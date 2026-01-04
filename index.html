@@ -4,52 +4,38 @@
         <meta charset="UTF-8" />
         <link rel="icon" type="image/svg+xml" href="/vite.svg" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>etea-cafe</title>
+        <link rel="stylesheet" href="/style.css" />
+        <title>etea cafe</title>
     </head>
     <body>
         <div id="root">
-            <div
-                style="
-                    display: flex;
-                    gap: 24px;
-                    padding: 16px;
-                    min-height: 100vh;
-                    align-items: center;
-                    justify-content: center;
-                "
-            >
-                <div style="user-select: none">
-                    <div style="margin-bottom: 8px; text-align: left">
+            <div class="game-container">
+                <div class="game-section">
+                    <div class="game-controls">
+                        <button id="run-btn">run</button>
+                        <button id="retry-btn">retry</button>
+                    </div>
+
+                    <canvas id="game-canvas" class="game-canvas"></canvas>
+
+                    <div class="game-info">
                         <div id="steps">steps: 0</div>
                         <div id="message">yea</div>
                     </div>
-
-                    <canvas
-                        id="game-canvas"
-                        style="
-                            display: block;
-                            image-rendering: pixelated;
-                            image-rendering: crisp-edges;
-                        "
-                    ></canvas>
 
                     <!--<div id="path" style="margin-top: 8px; max-width: 500px; white-space: normal; overflow-wrap: anywhere; text-align: left;">
             ur path:
           </div>-->
                 </div>
 
-                <div style="min-width: 260px; text-align: left">
-                    <h3 style="margin-top: 0">orders</h3>
+                <div class="sidebar">
+                    <h3>orders</h3>
                     <ul id="orders"></ul>
 
-                    <div style="margin-top: 8px">
+                    <div class="sidebar-content">
                         <div id="inventory">in hand: (empty)</div>
                         <div id="served">served:</div>
                     </div>
-
-                    <h3>controls</h3>
-                    <button id="run-btn">run</button>
-                    <button id="retry-btn">retry</button>
                 </div>
             </div>
         </div>

@@ -9,9 +9,8 @@ import {
 import { buildLevel } from "./levels/loader";
 import { getDailyLevelData } from "./levels/daily";
 import { pathImagesLoaded, renderPath, renderPathArrow } from "./paths";
+import { TILE_SIZE } from "./config/constants";
 import "./style.css";
-
-const TILE_SIZE = 32; // 16x16 pixel art scaled 2x for pixel-perfect rendering
 
 // load sprites
 const floorOpen = new Image();
@@ -89,14 +88,18 @@ function inBounds(levelW: number, levelH: number, p: Pos): boolean {
   return p.x >= 0 && p.x < levelW && p.y >= 0 && p.y < levelH;
 }
 
-function getTilePos(canvas: HTMLCanvasElement, x: number, y: number): Pos | null {
+function getTilePos(
+  canvas: HTMLCanvasElement,
+  x: number,
+  y: number,
+): Pos | null {
   const rect = canvas.getBoundingClientRect();
   const canvasX = x - rect.left;
   const canvasY = y - rect.top;
-  
+
   const tileX = Math.floor(canvasX / TILE_SIZE);
   const tileY = Math.floor(canvasY / TILE_SIZE);
-  
+
   return { x: tileX, y: tileY };
 }
 
@@ -118,7 +121,7 @@ class GameRenderer {
     if (!ctx) throw new Error("Could not get 2d context");
     this.ctx = ctx;
     this.state = state;
-    
+
     // create temporary canvas for sprite tinting
     this.tempCanvas = document.createElement("canvas");
     this.tempCanvas.width = TILE_SIZE;
@@ -126,25 +129,25 @@ class GameRenderer {
     const tempCtx = this.tempCanvas.getContext("2d");
     if (!tempCtx) throw new Error("Could not get 2d context for temp canvas");
     this.tempCtx = tempCtx;
-    
+
     this.setupCanvas();
     this.setupEventListeners();
     this.startSimulation();
     this.startAnimation();
   }
-  
+
   private startAnimation() {
     if (this.animationInterval) {
       clearInterval(this.animationInterval);
     }
-    
+
     // animate path by switching between normal and alt sprites
     this.animationInterval = window.setInterval(() => {
       this.animationFrame = (this.animationFrame + 1) % 2;
       this.render();
     }, 500); // switch every 500ms
   }
-  
+
   public destroy() {
     if (this.simInterval) {
       clearInterval(this.simInterval);
@@ -156,11 +159,23 @@ class GameRenderer {
 
   private setupCanvas() {
     const level = this.state.level;
-    this.canvas.width = level.width * TILE_SIZE;
-    this.canvas.height = level.height * TILE_SIZE;
-    this.canvas.style.width = `${this.canvas.width}px`;
-    this.canvas.style.height = `${this.canvas.height}px`;
-    
+
+    // Use fixed 4x scale to make game larger on all monitors
+    const scale = 4;
+    const baseCanvasWidth = level.width * TILE_SIZE;
+    const baseCanvasHeight = level.height * TILE_SIZE;
+
+    // Set internal resolution (for crisp rendering)
+    this.canvas.width = baseCanvasWidth * scale;
+    this.canvas.height = baseCanvasHeight * scale;
+
+    // Set display size (what users see)
+    this.canvas.style.width = `${this.canvas.width / scale}px`;
+    this.canvas.style.height = `${this.canvas.height / scale}px`;
+
+    // Scale the context to match the higher resolution
+    this.ctx.scale(scale, scale);
+
     // disable image smoothing for crisp pixel art
     this.ctx.imageSmoothingEnabled = false;
     this.tempCtx.imageSmoothingEnabled = false;
@@ -178,17 +193,23 @@ class GameRenderer {
       this.hoverTile = null;
       this.render();
     });
-    
+
     // touch svreen support
     this.canvas.addEventListener("touchstart", (e) => {
       e.preventDefault();
       const touch = e.touches[0];
-      this.handlePointerDown({ clientX: touch.clientX, clientY: touch.clientY });
+      this.handlePointerDown({
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+      });
     });
     this.canvas.addEventListener("touchmove", (e) => {
       e.preventDefault();
       const touch = e.touches[0];
-      this.handlePointerMove({ clientX: touch.clientX, clientY: touch.clientY });
+      this.handlePointerMove({
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+      });
     });
     this.canvas.addEventListener("touchend", () => this.stopDrawing());
   }
@@ -197,21 +218,22 @@ class GameRenderer {
     if (this.state.status !== "idle") return;
     const pos = getTilePos(this.canvas, e.clientX, e.clientY);
     if (!pos) return;
-    
-    const last = this.state.path[this.state.path.length - 1] ?? this.state.level.start;
+
+    const last =
+      this.state.path[this.state.path.length - 1] ?? this.state.level.start;
     if (pos.x !== last.x || pos.y !== last.y) return;
-    
+
     this.isDrawing = true;
   }
 
   private handlePointerMove(e: { clientX: number; clientY: number }) {
     if (!this.isDrawing) return;
     if (this.state.status !== "idle") return;
-    
+
     const pos = getTilePos(this.canvas, e.clientX, e.clientY);
     if (!pos) return;
     if (!inBounds(this.state.level.width, this.state.level.height, pos)) return;
-    
+
     this.state = tryAppendPath(this.state, pos);
     this.render();
     this.updateUI();
@@ -259,7 +281,7 @@ class GameRenderer {
       this.state = stepSimulation(this.state);
       this.render();
       this.updateUI();
-      
+
       if (this.state.status !== "running") {
         if (this.simInterval) {
           clearInterval(this.simInterval);
@@ -272,9 +294,9 @@ class GameRenderer {
   public render() {
     const { level, glorboPos } = this.state;
     const ctx = this.ctx;
-    
+
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    
+
     // draw floor for all tiles
     for (let y = 0; y < level.height; y++) {
       for (let x = 0; x < level.width; x++) {
@@ -283,7 +305,7 @@ class GameRenderer {
         ctx.drawImage(floorOpen, px, py, TILE_SIZE, TILE_SIZE);
       }
     }
-    
+
     // draw walls
     ctx.fillStyle = "#333";
     for (const wallKey of level.walls) {
@@ -292,16 +314,16 @@ class GameRenderer {
       const py = y * TILE_SIZE;
       ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
     }
-    
+
     // draw drink stations
     for (const [key, drink] of Object.entries(level.drinkStations)) {
       const [x, y] = key.split(",").map(Number);
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
-      
+
       // check if glorbo is on this drink station
       const isGlorboOnStation = glorboPos.x === x && glorboPos.y === y;
-      
+
       if (drink === "D1") {
         // use pressed sprite if glorbo is on it, otherwise normal sprite
         const spriteToUse = isGlorboOnStation ? drinkPressed : drinkA;
@@ -312,33 +334,37 @@ class GameRenderer {
         ctx.drawImage(spriteToUse, px, py, TILE_SIZE, TILE_SIZE);
       }
     }
-    
+
     // serve boxes
     for (const [key] of Object.entries(level.standHere)) {
       const [x, y] = key.split(",").map(Number);
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
-      
 
       const standWidth = standHere.width;
       const standHeight = standHere.height;
       const frameWidth = standWidth / 2;
       const frameIndex = this.animationFrame % 2;
-      
 
       ctx.drawImage(
         standHere,
-        frameIndex * frameWidth, 0, frameWidth, standHeight,
-        px, py, TILE_SIZE, TILE_SIZE
+        frameIndex * frameWidth,
+        0,
+        frameWidth,
+        standHeight,
+        px,
+        py,
+        TILE_SIZE,
+        TILE_SIZE,
       );
     }
-    
+
     // draw customers
     for (const [key, customerId] of Object.entries(level.customers)) {
       const [x, y] = key.split(",").map(Number);
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
-      
+
       // Ok wait is there a better way to do this or are we just gonna have a million diff customers in this
       // big ahh if statement......
       let customerSprite: HTMLImageElement;
@@ -346,10 +372,10 @@ class GameRenderer {
       else if (customerId === "B") customerSprite = customerB;
       else if (customerId === "C") customerSprite = customerC;
       else continue;
-      
+
       // check if customer is served
       const isServed = this.state.served[customerId];
-      
+
       // sprite is split into 4 quadrants:
       // top-left (0,0): animation 1 before drink
       // top-right (1,0): animation 2 before drink
@@ -357,70 +383,88 @@ class GameRenderer {
       // bottom-right (1,1): animation 2 after drink
       const spriteWidth = customerSprite.width / 2;
       const spriteHeight = customerSprite.height / 2;
-      
+
       const frameIndex = this.animationFrame % 2; // 0 or 1 for animation frame
       const sourceX = frameIndex * spriteWidth;
       const sourceY = isServed ? spriteHeight : 0; // top half if not served, bottom half if served
-      
 
       ctx.drawImage(
         customerSprite,
-        sourceX, sourceY, spriteWidth, spriteHeight,
-        px, py, TILE_SIZE, TILE_SIZE
+        sourceX,
+        sourceY,
+        spriteWidth,
+        spriteHeight,
+        px,
+        py,
+        TILE_SIZE,
+        TILE_SIZE,
       );
     }
-    
+
     // draw path with directional sprites and gradient overlay
     renderPath(ctx, this.tempCtx, this.state, this.animationFrame);
-    
+
     // draw path arrow on the last tile (current point user is on)
     renderPathArrow(ctx, this.state, this.animationFrame);
-    
+
     // draw glorbo (on top of path)
     const gx = glorboPos.x * TILE_SIZE;
     const gy = glorboPos.y * TILE_SIZE;
-    
+
     // determine which sprite to use based on inventory count
     const drinkCount = this.state.inventory.length;
     const spriteIndex = Math.min(drinkCount, 2); // 0, 1, or 2
-    
+
     // sprite sheet is divided into 3 equal parts horizontally
     const spriteSheetWidth = glorboSpriteSheet.width;
     const spriteSheetHeight = glorboSpriteSheet.height;
     const spriteWidth = spriteSheetWidth / 3;
-    
+
     // draw the appropriate third of the sprite sheet
     ctx.drawImage(
       glorboSpriteSheet,
-      spriteIndex * spriteWidth, 0, spriteWidth, spriteSheetHeight, // source rectangle
-      gx, gy, TILE_SIZE, TILE_SIZE // destination rectangle
+      spriteIndex * spriteWidth,
+      0,
+      spriteWidth,
+      spriteSheetHeight, // source rectangle
+      gx,
+      gy,
+      TILE_SIZE,
+      TILE_SIZE, // destination rectangle
     );
-    
+
     // draw hover sprite on hovered tile (only during idle state)
     if (this.state.status === "idle" && this.hoverTile) {
       const hx = this.hoverTile.x * TILE_SIZE;
       const hy = this.hoverTile.y * TILE_SIZE;
-      
+
       // check if tile is unwalkable (wall or customer)
       const hoverKey = `${this.hoverTile.x},${this.hoverTile.y}`;
-      const isUnwalkable = this.state.level.walls.has(hoverKey) || 
-                          this.state.level.customers[hoverKey];
-      
+      const isUnwalkable =
+        this.state.level.walls.has(hoverKey) ||
+        this.state.level.customers[hoverKey];
+
       // use hover_nope for unwalkable tiles, hover for walkable tiles
       const spriteToUse = isUnwalkable ? hoverNopeSprite : hoverSprite;
-      
+
       // hover sprite has 2 frames split in half horizontally
       const hoverWidth = spriteToUse.width;
       const hoverHeight = spriteToUse.height;
       const frameWidth = hoverWidth / 2;
       // stay on second frame (index 1) when dragging, otherwise animate
-      const frameIndex = this.isDrawing ? 1 : (this.animationFrame % 2);
-      
+      const frameIndex = this.isDrawing ? 1 : this.animationFrame % 2;
+
       // draw the appropriate frame
       ctx.drawImage(
         spriteToUse,
-        frameIndex * frameWidth, 0, frameWidth, hoverHeight, // source rectangle
-        hx, hy, TILE_SIZE, TILE_SIZE // destination rectangle
+        frameIndex * frameWidth,
+        0,
+        frameWidth,
+        hoverHeight, // source rectangle
+        hx,
+        hy,
+        TILE_SIZE,
+        TILE_SIZE, // destination rectangle
       );
     }
   }
@@ -432,31 +476,35 @@ class GameRenderer {
     const inventoryEl = document.getElementById("inventory");
     const servedEl = document.getElementById("served");
     const runButton = document.getElementById("run-btn") as HTMLButtonElement;
-    const retryButton = document.getElementById("retry-btn") as HTMLButtonElement;
-    
+    const retryButton = document.getElementById(
+      "retry-btn",
+    ) as HTMLButtonElement;
+
     if (stepsEl) stepsEl.textContent = `steps: ${this.state.stepsTaken}`;
     if (messageEl) messageEl.textContent = this.state.message || "";
-    
+
     if (pathEl) {
-      const pathLabel = this.state.path.map((p) => `(${p.x},${p.y})`).join(" → ");
+      const pathLabel = this.state.path
+        .map((p) => `(${p.x},${p.y})`)
+        .join(" → ");
       pathEl.textContent = `ur path: ${pathLabel}`;
     }
-    
+
     if (inventoryEl) {
       inventoryEl.textContent = `in hand: ${this.state.inventory.join(", ") || "(empty)"}`;
     }
-    
+
     if (servedEl) {
       const entries = Object.entries(this.state.served).map(
-        ([k, v]) => `${k}:${v ? "✅" : "❌"}`
+        ([k, v]) => `${k}:${v ? "✅" : "❌"}`,
       );
       servedEl.textContent = `served: ${entries.join("  ")}`;
     }
-    
+
     if (runButton) {
       runButton.disabled = this.state.status !== "idle";
     }
-    
+
     if (retryButton) {
       retryButton.disabled = this.state.status === "running";
     }
@@ -466,28 +514,32 @@ class GameRenderer {
 // initialize game
 async function init() {
   await imagesLoaded;
-  
+
   const level = buildLevel(getDailyLevelData());
   const state = initGame(level);
-  
+
   const canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
   if (!canvas) throw new Error("no canvas found");
-  
+
   const renderer = new GameRenderer(canvas, state);
-  
+
   // setup buttons
   const runButton = document.getElementById("run-btn");
   const retryButton = document.getElementById("retry-btn");
-  
+
   if (runButton) {
     runButton.addEventListener("click", () => {
       const currentState = renderer.getState();
       if (currentState.status !== "idle") return;
-      const newState = { ...currentState, status: "running" as const, message: "Running..." };
+      const newState = {
+        ...currentState,
+        status: "running" as const,
+        message: "Running...",
+      };
       renderer.setState(newState);
     });
   }
-  
+
   if (retryButton) {
     retryButton.addEventListener("click", () => {
       const currentState = renderer.getState();
@@ -496,7 +548,7 @@ async function init() {
       renderer.setState(newState);
     });
   }
-  
+
   // setup orders display
   const ordersEl = document.getElementById("orders");
   if (ordersEl) {
@@ -508,7 +560,7 @@ async function init() {
     });
     ordersEl.innerHTML = ordersList.map((line) => `<li>${line}</li>`).join("");
   }
-  
+
   // initial render
   renderer.render();
   renderer.updateUI();
