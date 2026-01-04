@@ -160,23 +160,18 @@ class GameRenderer {
   private setupCanvas() {
     const level = this.state.level;
 
-    // Use fixed 4x scale to make game larger on all monitors
     const scale = 4;
     const baseCanvasWidth = level.width * TILE_SIZE;
     const baseCanvasHeight = level.height * TILE_SIZE;
 
-    // Set internal resolution (for crisp rendering)
     this.canvas.width = baseCanvasWidth * scale;
     this.canvas.height = baseCanvasHeight * scale;
 
-    // Set display size (what users see)
     this.canvas.style.width = `${this.canvas.width / scale}px`;
     this.canvas.style.height = `${this.canvas.height / scale}px`;
 
-    // Scale the context to match the higher resolution
     this.ctx.scale(scale, scale);
 
-    // disable image smoothing for crisp pixel art
     this.ctx.imageSmoothingEnabled = false;
     this.tempCtx.imageSmoothingEnabled = false;
   }
@@ -250,11 +245,24 @@ class GameRenderer {
         this.hoverTile = pos;
         this.render();
       }
+
+      // grab cursor on path that you can grab from
+      const lastPathTile = this.state.path[this.state.path.length - 1];
+      const isLastPathTile =
+        lastPathTile && pos.x === lastPathTile.x && pos.y === lastPathTile.y;
+
+      // TODO: SPRITE CHANGE!! make it green or something when u can grab on it
+      if (isLastPathTile) {
+        this.canvas.style.cursor = this.isDrawing ? "grabbing" : "grab";
+      } else {
+        this.canvas.style.cursor = "default";
+      }
     } else {
       if (this.hoverTile !== null) {
         this.hoverTile = null;
         this.render();
       }
+      this.canvas.style.cursor = "default";
     }
   }
 
