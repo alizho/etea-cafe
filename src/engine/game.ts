@@ -48,6 +48,8 @@ export function canAppendToPath(state: GameState, next: Pos): boolean {
   if (!last) return false;
   if (!manhattan1(last, next)) return false; // "orthagonically"
   if (state.level.walls.has(keyOf(next))) return false;
+  // can't step on customers
+  if (state.level.customers[keyOf(next)]) return false;
   return true; // allow revisits
 }
 
@@ -107,7 +109,8 @@ export function stepSimulation(state: GameState): GameState {
   const nextPos = state.path[nextIndex];
   const posKey = keyOf(nextPos);
 
-  if (state.level.walls.has(posKey)) {
+  // can't step on walls or customers (but floor still shows under customers)
+  if (state.level.walls.has(posKey) || state.level.customers[posKey]) {
     return {
       ...state,
       stepIndex: nextIndex,
@@ -123,14 +126,14 @@ export function stepSimulation(state: GameState): GameState {
     inventory = pickDrink(inventory, stationDrink);
   }
 
-  // serveee
-  const customer = state.level.customers[posKey] as CustomerId | undefined;
+  // serve customer when standing on standHere tile
+  const customerId = state.level.standHere[posKey] as CustomerId | undefined;
   let served = state.served;
-  if (customer && !served[customer]) {
-    const needs = state.level.orders[customer];
+  if (customerId && !served[customerId]) {
+    const needs = state.level.orders[customerId];
     if (needs && canServe(inventory, needs)) {
       inventory = removeServed(inventory, needs);
-      served = { ...served, [customer]: true };
+      served = { ...served, [customerId]: true };
     }
   }
 

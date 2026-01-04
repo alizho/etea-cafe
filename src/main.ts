@@ -11,7 +11,7 @@ import { getDailyLevelData } from "./levels/daily";
 import { pathImagesLoaded, renderPath, renderPathArrow } from "./paths";
 import "./style.css";
 
-const TILE_SIZE = 36;
+const TILE_SIZE = 32; // 16x16 pixel art scaled 2x for pixel-perfect rendering
 
 // load sprites
 const floorOpen = new Image();
@@ -31,6 +31,21 @@ glorboSpriteSheet.src = "/src/assets/glorbo_sprite_sheet.png";
 
 const hoverSprite = new Image();
 hoverSprite.src = "/src/assets/hover.png";
+
+const hoverNopeSprite = new Image();
+hoverNopeSprite.src = "/src/assets/hover_nope.png";
+
+const customerA = new Image();
+customerA.src = "/src/assets/customer_a.png";
+
+const customerB = new Image();
+customerB.src = "/src/assets/customer_b.png";
+
+const customerC = new Image();
+customerC.src = "/src/assets/customer_c.png";
+
+const standHere = new Image();
+standHere.src = "/src/assets/stand_here.png";
 
 // images have to load :(
 const imagesLoaded = Promise.all([
@@ -52,6 +67,21 @@ const imagesLoaded = Promise.all([
   }),
   new Promise<void>((resolve) => {
     hoverSprite.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    hoverNopeSprite.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    customerA.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    customerB.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    customerC.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    standHere.onload = () => resolve();
   }),
 ]);
 
@@ -283,15 +313,61 @@ class GameRenderer {
       }
     }
     
+    // serve boxes
+    for (const [key] of Object.entries(level.standHere)) {
+      const [x, y] = key.split(",").map(Number);
+      const px = x * TILE_SIZE;
+      const py = y * TILE_SIZE;
+      
+
+      const standWidth = standHere.width;
+      const standHeight = standHere.height;
+      const frameWidth = standWidth / 2;
+      const frameIndex = this.animationFrame % 2;
+      
+
+      ctx.drawImage(
+        standHere,
+        frameIndex * frameWidth, 0, frameWidth, standHeight,
+        px, py, TILE_SIZE, TILE_SIZE
+      );
+    }
+    
     // draw customers
-    ctx.font = "24px Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
     for (const [key, customerId] of Object.entries(level.customers)) {
       const [x, y] = key.split(",").map(Number);
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
-      ctx.fillText(`🧍${customerId}`, px + TILE_SIZE / 2, py + TILE_SIZE / 2);
+      
+      // Ok wait is there a better way to do this or are we just gonna have a million diff customers in this
+      // big ahh if statement......
+      let customerSprite: HTMLImageElement;
+      if (customerId === "A") customerSprite = customerA;
+      else if (customerId === "B") customerSprite = customerB;
+      else if (customerId === "C") customerSprite = customerC;
+      else continue;
+      
+      // check if customer is served
+      const isServed = this.state.served[customerId];
+      
+      // sprite is split into 4 quadrants:
+      // top-left (0,0): animation 1 before drink
+      // top-right (1,0): animation 2 before drink
+      // bottom-left (0,1): animation 1 after drink
+      // bottom-right (1,1): animation 2 after drink
+      const spriteWidth = customerSprite.width / 2;
+      const spriteHeight = customerSprite.height / 2;
+      
+      const frameIndex = this.animationFrame % 2; // 0 or 1 for animation frame
+      const sourceX = frameIndex * spriteWidth;
+      const sourceY = isServed ? spriteHeight : 0; // top half if not served, bottom half if served
+      
+
+      ctx.drawImage(
+        customerSprite,
+        sourceX, sourceY, spriteWidth, spriteHeight,
+        px, py, TILE_SIZE, TILE_SIZE
+      );
     }
     
     // draw path with directional sprites and gradient overlay
@@ -325,16 +401,24 @@ class GameRenderer {
       const hx = this.hoverTile.x * TILE_SIZE;
       const hy = this.hoverTile.y * TILE_SIZE;
       
+      // check if tile is unwalkable (wall or customer)
+      const hoverKey = `${this.hoverTile.x},${this.hoverTile.y}`;
+      const isUnwalkable = this.state.level.walls.has(hoverKey) || 
+                          this.state.level.customers[hoverKey];
+      
+      // use hover_nope for unwalkable tiles, hover for walkable tiles
+      const spriteToUse = isUnwalkable ? hoverNopeSprite : hoverSprite;
+      
       // hover sprite has 2 frames split in half horizontally
-      const hoverWidth = hoverSprite.width;
-      const hoverHeight = hoverSprite.height;
+      const hoverWidth = spriteToUse.width;
+      const hoverHeight = spriteToUse.height;
       const frameWidth = hoverWidth / 2;
       // stay on second frame (index 1) when dragging, otherwise animate
       const frameIndex = this.isDrawing ? 1 : (this.animationFrame % 2);
       
       // draw the appropriate frame
       ctx.drawImage(
-        hoverSprite,
+        spriteToUse,
         frameIndex * frameWidth, 0, frameWidth, hoverHeight, // source rectangle
         hx, hy, TILE_SIZE, TILE_SIZE // destination rectangle
       );

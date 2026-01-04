@@ -51,9 +51,9 @@
     ],
 
     "customers": [
-      { "x": 9, "y": 1, "id": "A" },
-      { "x": 9, "y": 3, "id": "B" },
-      { "x": 9, "y": 4, "id": "C" }
+      { "x": 9, "y": 1, "id": "A", "standHere": "left" },
+      { "x": 9, "y": 3, "id": "B", "standHere": "left" },
+      { "x": 9, "y": 4, "id": "C", "standHere": "left" }
     ],
 
     "orders": {

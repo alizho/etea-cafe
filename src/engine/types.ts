@@ -11,6 +11,7 @@ export type Level = {
 
   drinkStations: Record<string, DrinkId>; // key "x,y" -> drink id
   customers: Record<string, CustomerId>; // key "x,y" -> customer id
+  standHere: Record<string, CustomerId>;
   orders: Record<CustomerId, DrinkId[]>;
 };
 

@@ -1,7 +1,7 @@
 import { type Pos } from "./engine/types";
 import type { GameState } from "./engine/game";
 
-const TILE_SIZE = 36;
+const TILE_SIZE = 32;
 
 // sprites
 const pathH = new Image();
