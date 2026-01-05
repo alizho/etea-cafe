@@ -523,8 +523,18 @@ class GameRenderer {
 async function init() {
   await imagesLoaded;
 
-  const level = buildLevel(getDailyLevelData());
+  const levelData = getDailyLevelData();
+  const level = buildLevel(levelData);
   const state = initGame(level);
+
+  // setup day text
+  const dayTextEl = document.getElementById("day-text");
+  if (dayTextEl) {
+    // extract day number from
+    const dayMatch = levelData.id.match(/day-(\d+)/);
+    const dayNumber = dayMatch ? parseInt(dayMatch[1], 10) : 1;
+    dayTextEl.textContent = `day ${dayNumber}`;
+  }
 
   const canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
   if (!canvas) throw new Error("no canvas found");

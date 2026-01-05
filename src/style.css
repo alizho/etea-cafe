@@ -9,19 +9,55 @@ body {
     padding: 0;
     background-color: #000;
     color: #fff;
+    overflow: hidden;
+    height: 100vh;
 }
 
 body {
     font-family: "PixelArial", Arial, sans-serif;
 }
 
+#root {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.logo {
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    max-width: 100%;
+    height: auto;
+    transform: scale(2);
+}
+
+.day-text {
+    margin-top: 20px;
+    font-size: 18px;
+}
+
 .game-container {
     display: flex;
-    gap: 24px;
-    padding: 16px;
-    min-height: 100vh;
-    align-items: flex-start;
+    gap: 16px;
+    padding: 8px;
+    align-items: center;
     justify-content: center;
+    flex-shrink: 1;
+    min-height: 0;
 }
 
 .game-section {
@@ -29,7 +65,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    flex: 1;
+    align-items: left;
     max-width: 90vw;
 }
 
@@ -68,7 +104,6 @@ body {
     max-width: 90vw;
     height: auto;
     aspect-ratio: 1;
-    border: 1px solid #666;
 }
 
 .sidebar {
@@ -79,6 +114,7 @@ body {
 
 .sidebar h3 {
     margin-top: 0;
+    text-align: center;
 }
 
 .sidebar-content {
