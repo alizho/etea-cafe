@@ -34,6 +34,9 @@ hoverSprite.src = "/src/assets/hover.png";
 const hoverNopeSprite = new Image();
 hoverNopeSprite.src = "/src/assets/hover_nope.png";
 
+const hoverYepSprite = new Image();
+hoverYepSprite.src = "/src/assets/hover_yep.png";
+
 const customerA = new Image();
 customerA.src = "/src/assets/customer_a.png";
 
@@ -75,6 +78,9 @@ const imagesLoaded = Promise.all([
   }),
   new Promise<void>((resolve) => {
     hoverNopeSprite.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    hoverYepSprite.onload = () => resolve();
   }),
   new Promise<void>((resolve) => {
     customerA.onload = () => resolve();
@@ -494,8 +500,12 @@ class GameRenderer {
         this.state.level.walls.has(hoverKey) ||
         this.state.level.customers[hoverKey];
 
-      // use hover_nope for unwalkable tiles, hover for walkable tiles
-      const spriteToUse = isUnwalkable ? hoverNopeSprite : hoverSprite;
+      // check if hovering over the last path tile (where you can grab from)
+      const lastPathTile = this.state.path[this.state.path.length - 1];
+      const isLastPathTile =
+        lastPathTile && this.hoverTile.x === lastPathTile.x && this.hoverTile.y === lastPathTile.y;
+
+      const spriteToUse = isLastPathTile ? hoverYepSprite : (isUnwalkable ? hoverNopeSprite : hoverSprite);
 
       // hover sprite has 2 frames split in half horizontally
       const hoverWidth = spriteToUse.width;
