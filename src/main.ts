@@ -342,6 +342,9 @@ class GameRenderer {
           clearInterval(this.simInterval);
           this.simInterval = null;
         }
+        if (this.state.status === "failed") {
+          this.showFailurePopup();
+        }
       }
     }, 250);
   }
@@ -573,6 +576,20 @@ class GameRenderer {
     }
   }
 
+  private showFailurePopup() {
+    const popup = document.getElementById("failure-popup");
+    if (popup) {
+      popup.style.display = "flex";
+    }
+  }
+
+  public hideFailurePopup() {
+    const popup = document.getElementById("failure-popup");
+    if (popup) {
+      popup.style.display = "none";
+    }
+  }
+
   private updateOrdersDisplay() {
     const ordersEl = document.getElementById("orders");
     if (!ordersEl) return;
@@ -651,6 +668,7 @@ async function init() {
     runButton.addEventListener("click", () => {
       const currentState = renderer.getState();
       if (currentState.status !== "idle") return;
+      renderer.hideFailurePopup();
       const newState = {
         ...currentState,
         status: "running" as const,
@@ -664,6 +682,18 @@ async function init() {
     retryButton.addEventListener("click", () => {
       const currentState = renderer.getState();
       if (currentState.status === "running") return;
+      renderer.hideFailurePopup();
+      const newState = clearPath(currentState);
+      renderer.setState(newState);
+    });
+  }
+
+  // setup popup retry button
+  const popupRetryButton = document.getElementById("popup-retry-btn");
+  if (popupRetryButton) {
+    popupRetryButton.addEventListener("click", () => {
+      renderer.hideFailurePopup();
+      const currentState = renderer.getState();
       const newState = clearPath(currentState);
       renderer.setState(newState);
     });

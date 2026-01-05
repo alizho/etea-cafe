@@ -16,8 +16,8 @@
             <div class="game-container">
                 <div class="game-section">
                     <div class="game-controls">
-                        <button id="run-btn">run</button>
-                        <button id="retry-btn">retry</button>
+                        <button id="run-btn" class="game-button">run</button>
+                        <button id="retry-btn" class="game-button">reset</button>
                     </div>
 
                     <canvas id="game-canvas" class="game-canvas"></canvas>
@@ -43,6 +43,15 @@
                 </div>
             </div>
         </div>
+
+        <!--not servbed popup -->
+        <div id="failure-popup" class="popup-overlay" style="display: none;">
+            <div class="popup-content">
+                <p class="popup-message">all customers weren't served :(</p>
+                <button id="popup-retry-btn" class="game-button">retry?</button>
+            </div>
+        </div>
+
         <script type="module" src="/src/main.ts"></script>
     </body>
 </html>
