@@ -7,7 +7,7 @@ html,
 body {
     margin: 0;
     padding: 0;
-    background-color: #000;
+    background-color: #000000;
     color: #fff;
     overflow: hidden;
     height: 100vh;
@@ -69,10 +69,33 @@ body {
     max-width: 90vw;
 }
 
+.inventory-display {
+    order: 3;
+    text-align: center;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-family: "PixelArial", Arial, sans-serif;
+    height: 40px;
+    min-height: 40px;
+    max-height: 40px;
+    overflow: hidden;
+}
+
+.inventory-drink-icon {
+    width: 32px;
+    height: 32px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    display: inline-block;
+}
+
 .game-info {
     margin-bottom: 0;
     text-align: left;
-    order: 3;
+    order: 4;
 }
 
 .game-controls {
@@ -84,15 +107,20 @@ body {
 .game-controls button {
     padding: 8px 16px;
     font-size: 16px;
+    font-family: "PixelArial", Arial, sans-serif;
     cursor: pointer;
-    background-color: #333;
-    color: #fff;
-    border: 1px solid #666;
-    border-radius: 4px;
+    background-color: #f3f2ed;
+    color: #76428a;
+    border: 2px solid #76428a;
+    box-shadow: 0 0 0 1px #76428a;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    border-radius: 0;
 }
 
 .game-controls button:hover {
-    background-color: #444;
+    background-color: #76428a;
+    color: #ffffff;
 }
 
 .game-canvas {
@@ -114,7 +142,77 @@ body {
 
 .sidebar h3 {
     margin-top: 0;
-    text-align: center;
+    text-align: left;
+    margin-bottom: 12px;
+}
+
+#orders {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.order-item {
+    margin-bottom: 12px;
+    padding: 8px;
+    width: 70%;
+    background-color: #f3f2ed;
+    border: 2px solid #000000;
+    box-shadow: 0 0 0 1px #000;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    transition: opacity 0.3s ease;
+}
+
+.order-item.order-served {
+    opacity: 0.6;
+    position: relative;
+}
+
+.order-item.order-served::after {
+    content: "SERVED";
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 18px;
+    color: #000;
+    font-weight: bold;
+}
+
+.order-header {
+    font-family: "PixelArial", Arial, sans-serif;
+    font-size: 14px;
+    color: #000;
+    margin-bottom: 4px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+.order-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.customer-icon {
+    width: 48px;
+    height: 48px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    flex-shrink: 0;
+}
+
+.drink-items {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.drink-item-icon {
+    width: 48px;
+    height: 48px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
 }
 
 .sidebar-content {

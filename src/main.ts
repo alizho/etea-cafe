@@ -46,6 +46,12 @@ customerC.src = "/src/assets/customer_c.png";
 const standHere = new Image();
 standHere.src = "/src/assets/stand_here.png";
 
+const drinkAItem = new Image();
+drinkAItem.src = "/src/assets/drink_a_item.png";
+
+const drinkBItem = new Image();
+drinkBItem.src = "/src/assets/drink_b_item.png";
+
 // images have to load :(
 const imagesLoaded = Promise.all([
   new Promise<void>((resolve) => {
@@ -82,10 +88,45 @@ const imagesLoaded = Promise.all([
   new Promise<void>((resolve) => {
     standHere.onload = () => resolve();
   }),
+  new Promise<void>((resolve) => {
+    drinkAItem.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    drinkBItem.onload = () => resolve();
+  }),
 ]);
 
 function inBounds(levelW: number, levelH: number, p: Pos): boolean {
   return p.x >= 0 && p.x < levelW && p.y >= 0 && p.y < levelH;
+}
+
+// quadrant: 2 = bottom-left (animation 1 after drink), 3 = bottom-right (animation 2 after drink)
+function getCustomerIconDataUrl(customerSprite: HTMLImageElement, quadrant: 2 | 3 = 2): string {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "";
+  
+  const spriteWidth = customerSprite.width / 2;
+  const spriteHeight = customerSprite.height / 2;
+  canvas.width = spriteWidth;
+  canvas.height = spriteHeight;
+  
+  const sourceX = quadrant === 2 ? 0 : spriteWidth;
+  const sourceY = spriteHeight;
+  
+  ctx.drawImage(
+    customerSprite,
+    sourceX,
+    sourceY,
+    spriteWidth,
+    spriteHeight,
+    0,
+    0,
+    spriteWidth,
+    spriteHeight
+  );
+  
+  return canvas.toDataURL();
 }
 
 function getTilePos(
@@ -423,18 +464,19 @@ class GameRenderer {
     const drinkCount = this.state.inventory.length;
     const spriteIndex = Math.min(drinkCount, 2); // 0, 1, or 2
 
-    // sprite sheet is divided into 3 equal parts horizontally
     const spriteSheetWidth = glorboSpriteSheet.width;
     const spriteSheetHeight = glorboSpriteSheet.height;
     const spriteWidth = spriteSheetWidth / 3;
+    const spriteHeight = spriteSheetHeight / 2; // 2 rows
+    const sourceY = this.animationFrame * spriteHeight; // 0 for static, spriteHeight for animation
 
-    // draw the appropriate third of the sprite sheet
+    // draw the appropriate sprite from the sprite sheet
     ctx.drawImage(
       glorboSpriteSheet,
       spriteIndex * spriteWidth,
-      0,
+      sourceY,
       spriteWidth,
-      spriteSheetHeight, // source rectangle
+      spriteHeight, // source rectangle
       gx,
       gy,
       TILE_SIZE,
@@ -482,7 +524,6 @@ class GameRenderer {
     const messageEl = document.getElementById("message");
     const pathEl = document.getElementById("path");
     const inventoryEl = document.getElementById("inventory");
-    const servedEl = document.getElementById("served");
     const runButton = document.getElementById("run-btn") as HTMLButtonElement;
     const retryButton = document.getElementById(
       "retry-btn",
@@ -499,15 +540,19 @@ class GameRenderer {
     }
 
     if (inventoryEl) {
-      inventoryEl.textContent = `in hand: ${this.state.inventory.join(", ") || "(empty)"}`;
+      const inventory = this.state.inventory;
+      if (inventory.length === 0) {
+        inventoryEl.innerHTML = `in hand: (empty)`;
+      } else {
+        const drinkImages = inventory.map(drinkId => {
+          const imageSrc = drinkId === "D1" ? drinkAItem.src : drinkBItem.src;
+          return `<img src="${imageSrc}" alt="${drinkId}" class="inventory-drink-icon" />`;
+        }).join("");
+        inventoryEl.innerHTML = `in hand: ${drinkImages}`;
+      }
     }
 
-    if (servedEl) {
-      const entries = Object.entries(this.state.served).map(
-        ([k, v]) => `${k}:${v ? "✅" : "❌"}`,
-      );
-      servedEl.textContent = `served: ${entries.join("  ")}`;
-    }
+    this.updateOrdersDisplay();
 
     if (runButton) {
       runButton.disabled = this.state.status !== "idle";
@@ -516,6 +561,53 @@ class GameRenderer {
     if (retryButton) {
       retryButton.disabled = this.state.status === "running";
     }
+  }
+
+  private updateOrdersDisplay() {
+    const ordersEl = document.getElementById("orders");
+    if (!ordersEl) return;
+
+    const { level, served } = this.state;
+    const entries = Object.entries(level.orders);
+    entries.sort(([a], [b]) => a.localeCompare(b));
+    
+    const getCustomerSprite = (customerId: string): HTMLImageElement | null => {
+      if (customerId === "A") return customerA;
+      if (customerId === "B") return customerB;
+      if (customerId === "C") return customerC;
+      return null;
+    };
+    
+    const getDrinkItemImage = (drinkId: string): string => {
+      if (drinkId === "D1") return drinkAItem.src;
+      if (drinkId === "D2") return drinkBItem.src;
+      return "";
+    };
+    
+    const ordersHTML = entries.map(([customerId, drinks], index) => {
+      const customerSprite = getCustomerSprite(customerId);
+      const isServed = served[customerId as keyof typeof served] || false;
+      const quadrant: 2 | 3 = isServed ? 3 : 2;
+      const customerIconUrl = customerSprite ? getCustomerIconDataUrl(customerSprite, quadrant) : "";
+      
+      const drinkImages = drinks.map(drinkId => 
+        `<img src="${getDrinkItemImage(drinkId)}" alt="${drinkId}" class="drink-item-icon" />`
+      ).join("");
+      
+      const servedClass = isServed ? "order-served" : "";
+      
+      return `
+        <li class="order-item ${servedClass}" data-customer-id="${customerId}">
+          <div class="order-header">order #${index + 1}</div>
+          <div class="order-row">
+            <img src="${customerIconUrl}" alt="${customerId}" class="customer-icon" />
+            <div class="drink-items">${drinkImages}</div>
+          </div>
+        </li>
+      `;
+    }).join("");
+    
+    ordersEl.innerHTML = ordersHTML;
   }
 }
 
@@ -567,19 +659,7 @@ async function init() {
     });
   }
 
-  // setup orders display
-  const ordersEl = document.getElementById("orders");
-  if (ordersEl) {
-    const entries = Object.entries(level.orders);
-    entries.sort(([a], [b]) => a.localeCompare(b));
-    const ordersList = entries.map(([customerId, drinks]) => {
-      const label = drinks.length ? drinks.join(" + ") : "(none)";
-      return `${customerId} → ${label}`;
-    });
-    ordersEl.innerHTML = ordersList.map((line) => `<li>${line}</li>`).join("");
-  }
-
-  // initial render
+  // initial render and orders display
   renderer.render();
   renderer.updateUI();
 }
