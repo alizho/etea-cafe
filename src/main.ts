@@ -8,6 +8,9 @@ import {
 } from "./engine/game";
 import { buildLevel } from "./levels/loader";
 import { getDailyLevelData } from "./levels/daily";
+import type { LevelData } from "./levels/level.schema";
+import { validateLevelData } from "./levels/validate";
+import { solveLevel } from "./engine/solver";
 import { pathImagesLoaded, renderPath, renderPathArrow } from "./paths";
 import { TILE_SIZE } from "./config/constants";
 import "./style.css";
@@ -135,6 +138,34 @@ function getCustomerIconDataUrl(customerSprite: HTMLImageElement, quadrant: 2 | 
   return canvas.toDataURL();
 }
 
+function getGlorboIcon(glorboSprite: HTMLImageElement): string {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "";
+
+  const spriteSheetWidth = glorboSprite.width;
+  const spriteSheetHeight = glorboSprite.height;
+  const spriteWidth = spriteSheetWidth / 3;
+  const spriteHeight = spriteSheetHeight / 2;
+
+  canvas.width = spriteWidth;
+  canvas.height = spriteHeight;
+
+  ctx.drawImage(
+    glorboSprite,
+    0,
+    0,
+    spriteWidth,
+    spriteHeight,
+    0,
+    0,
+    spriteWidth,
+    spriteHeight,
+  );
+
+  return canvas.toDataURL();
+}
+
 function getTilePos(
   canvas: HTMLCanvasElement,
   x: number,
@@ -161,6 +192,12 @@ class GameRenderer {
   private tempCanvas: HTMLCanvasElement;
   private tempCtx: CanvasRenderingContext2D;
   private hoverTile: Pos | null = null;
+
+  private uiMode: "play" | "build" = "play";
+  private onBuildTileClick: ((pos: Pos) => void) | null = null;
+
+  // avoid build mode spamming paint calls on same tile
+  private lastBuildPaintKey: string | null = null;
 
   constructor(canvas: HTMLCanvasElement, state: GameState) {
     this.canvas = canvas;
@@ -261,6 +298,16 @@ class GameRenderer {
     const pos = getTilePos(this.canvas, e.clientX, e.clientY);
     if (!pos) return;
 
+    if (this.uiMode === "build") {
+      if (!inBounds(this.state.level.width, this.state.level.height, pos)) return;
+      this.isDrawing = true;
+      this.lastBuildPaintKey = null;
+
+      this.onBuildTileClick?.(pos);
+      this.lastBuildPaintKey = `${pos.x},${pos.y}`;
+      return;
+    }
+
     const last =
       this.state.path[this.state.path.length - 1] ?? this.state.level.start;
     if (pos.x !== last.x || pos.y !== last.y) return;
@@ -269,6 +316,23 @@ class GameRenderer {
   }
 
   private handlePointerMove(e: { clientX: number; clientY: number }) {
+    if (this.uiMode === "build") {
+      if (!this.isDrawing) return;
+      if (this.state.status !== "idle") return;
+
+      const pos = getTilePos(this.canvas, e.clientX, e.clientY);
+      if (!pos) return;
+      if (!inBounds(this.state.level.width, this.state.level.height, pos)) return;
+
+      const key = `${pos.x},${pos.y}`;
+      if (this.lastBuildPaintKey === key) return;
+      this.lastBuildPaintKey = key;
+
+      // repaintttt
+      this.onBuildTileClick?.(pos);
+      return;
+    }
+
     if (!this.isDrawing) return;
     if (this.state.status !== "idle") return;
 
@@ -283,6 +347,7 @@ class GameRenderer {
 
   private stopDrawing() {
     this.isDrawing = false;
+    this.lastBuildPaintKey = null;
   }
 
   private handleHover(e: { clientX: number; clientY: number }) {
@@ -291,6 +356,11 @@ class GameRenderer {
       if (this.hoverTile?.x !== pos.x || this.hoverTile?.y !== pos.y) {
         this.hoverTile = pos;
         this.render();
+      }
+
+      if (this.uiMode === "build") {
+        this.canvas.style.cursor = "crosshair";
+        return;
       }
 
       // grab cursor on path that you can grab from
@@ -313,6 +383,25 @@ class GameRenderer {
     }
   }
 
+  public setUIMode(mode: "play" | "build") {
+    this.uiMode = mode;
+    this.isDrawing = false;
+    this.lastBuildPaintKey = null;
+    if (this.uiMode === "build") {
+      // stop sim while editing
+      if (this.simInterval) {
+        clearInterval(this.simInterval);
+        this.simInterval = null;
+      }
+    }
+    this.render();
+    this.updateUI();
+  }
+
+  public setOnBuildTileClick(handler: ((pos: Pos) => void) | null) {
+    this.onBuildTileClick = handler;
+  }
+
   public getState(): GameState {
     return this.state;
   }
@@ -325,6 +414,7 @@ class GameRenderer {
   }
 
   private startSimulation() {
+    if (this.uiMode === "build") return;
     if (this.simInterval) {
       clearInterval(this.simInterval);
       this.simInterval = null;
@@ -424,11 +514,11 @@ class GameRenderer {
       const py = y * TILE_SIZE;
 
       // Ok wait is there a better way to do this or are we just gonna have a million diff customers in this
-      // big ahh if statement......
+      // big ahh if statement...... yandev core
       let customerSprite: HTMLImageElement;
-      if (customerId === "A") customerSprite = customerA;
-      else if (customerId === "B") customerSprite = customerB;
-      else if (customerId === "C") customerSprite = customerC;
+      if (customerId === "1") customerSprite = customerA;
+      else if (customerId === "2") customerSprite = customerB;
+      else if (customerId === "3") customerSprite = customerC;
       else continue;
 
       // check if customer is served
@@ -459,11 +549,13 @@ class GameRenderer {
       );
     }
 
-    // draw path with directional sprites and gradient overlay
-    renderPath(ctx, this.tempCtx, this.state, this.animationFrame);
+    if (this.uiMode === "play") {
+      // draw path with directional sprites and gradient overlay
+      renderPath(ctx, this.tempCtx, this.state, this.animationFrame);
 
-    // draw path arrow on the last tile (current point user is on)
-    renderPathArrow(ctx, this.state, this.animationFrame);
+      // draw path arrow on the last tile (current point user is on)
+      renderPathArrow(ctx, this.state, this.animationFrame);
+    }
 
     // draw glorbo (on top of path)
     const gx = glorboPos.x * TILE_SIZE;
@@ -497,18 +589,21 @@ class GameRenderer {
       const hx = this.hoverTile.x * TILE_SIZE;
       const hy = this.hoverTile.y * TILE_SIZE;
 
-      // check if tile is unwalkable (wall or customer)
-      const hoverKey = `${this.hoverTile.x},${this.hoverTile.y}`;
-      const isUnwalkable =
-        this.state.level.walls.has(hoverKey) ||
-        this.state.level.customers[hoverKey];
+      let spriteToUse = hoverSprite;
+      if (this.uiMode === "play") {
+        // check if tile is unwalkable (wall or customer)
+        const hoverKey = `${this.hoverTile.x},${this.hoverTile.y}`;
+        const isUnwalkable =
+          this.state.level.walls.has(hoverKey) ||
+          this.state.level.customers[hoverKey];
 
-      // check if hovering over the last path tile (where you can grab from)
-      const lastPathTile = this.state.path[this.state.path.length - 1];
-      const isLastPathTile =
-        lastPathTile && this.hoverTile.x === lastPathTile.x && this.hoverTile.y === lastPathTile.y;
+        // check if hovering over the last path tile (where you can grab from)
+        const lastPathTile = this.state.path[this.state.path.length - 1];
+        const isLastPathTile =
+          lastPathTile && this.hoverTile.x === lastPathTile.x && this.hoverTile.y === lastPathTile.y;
 
-      const spriteToUse = isLastPathTile ? hoverYepSprite : (isUnwalkable ? hoverNopeSprite : hoverSprite);
+        spriteToUse = isLastPathTile ? hoverYepSprite : (isUnwalkable ? hoverNopeSprite : hoverSprite);
+      }
 
       // hover sprite has 2 frames split in half horizontally
       const hoverWidth = spriteToUse.width;
@@ -568,11 +663,11 @@ class GameRenderer {
     this.updateOrdersDisplay();
 
     if (runButton) {
-      runButton.disabled = this.state.status !== "idle";
+      runButton.disabled = this.uiMode === "build" || this.state.status !== "idle";
     }
 
     if (retryButton) {
-      retryButton.disabled = this.state.status === "running";
+      retryButton.disabled = this.uiMode === "build" || this.state.status === "running";
     }
   }
 
@@ -599,9 +694,9 @@ class GameRenderer {
     entries.sort(([a], [b]) => a.localeCompare(b));
     
     const getCustomerSprite = (customerId: string): HTMLImageElement | null => {
-      if (customerId === "A") return customerA;
-      if (customerId === "B") return customerB;
-      if (customerId === "C") return customerC;
+      if (customerId === "1") return customerA;
+      if (customerId === "2") return customerB;
+      if (customerId === "3") return customerC;
       return null;
     };
     
@@ -642,9 +737,22 @@ class GameRenderer {
 async function init() {
   await imagesLoaded;
 
-  const levelData = getDailyLevelData();
+  // builder tool icons
+  const startIcon = document.getElementById("builder-start-icon") as HTMLImageElement | null;
+  const b1 = document.getElementById("builder-cust1-icon") as HTMLImageElement | null;
+  const b2 = document.getElementById("builder-cust2-icon") as HTMLImageElement | null;
+  const b3 = document.getElementById("builder-cust3-icon") as HTMLImageElement | null;
+  if (startIcon) startIcon.src = getGlorboIcon(glorboSpriteSheet);
+  if (b1) b1.src = getCustomerIconDataUrl(customerA, 2);
+  if (b2) b2.src = getCustomerIconDataUrl(customerB, 2);
+  if (b3) b3.src = getCustomerIconDataUrl(customerC, 2);
+
+  const levelData: LevelData = getDailyLevelData();
+
   const level = buildLevel(levelData);
   const state = initGame(level);
+
+  let currentLevelData: LevelData = JSON.parse(JSON.stringify(levelData)) as LevelData;
 
   // setup day text
   const dayTextEl = document.getElementById("day-text");
@@ -660,6 +768,338 @@ async function init() {
 
   const renderer = new GameRenderer(canvas, state);
 
+  // builder mode starts based off the day's level
+  type BuilderTool = "erase" | "wall" | "start" | "d1" | "d2" | "cust1" | "cust2" | "cust3";
+  let builderMode = false;
+  let builderData: LevelData = JSON.parse(JSON.stringify(currentLevelData)) as LevelData;
+  let builderTool: BuilderTool = "wall";
+
+  const builderButton = document.getElementById("builder-btn") as HTMLButtonElement | null;
+  const builderPanel = document.getElementById("builder-panel") as HTMLDivElement | null;
+  const builderStatusEl = document.getElementById("builder-status") as HTMLDivElement | null;
+  const toolButtons = Array.from(document.querySelectorAll(".builder-tool-btn")) as HTMLButtonElement[];
+  const checkBtn = document.getElementById("builder-check-btn") as HTMLButtonElement | null;
+  const sidebarOrdersEl = document.getElementById("orders") as HTMLUListElement | null;
+
+  const setBuilderStatus = (text: string) => {
+    if (builderStatusEl) builderStatusEl.textContent = text;
+  };
+
+  const applyToolActiveUI = () => {
+    for (const btn of toolButtons) {
+      const tool = btn.dataset.tool as BuilderTool | undefined;
+      btn.classList.toggle("builder-tool-active", tool === builderTool);
+    }
+  };
+
+  const normalizeOrders = () => {
+    // ensure every customer has at least drink 1
+    builderData.orders = {
+      "1": builderData.orders?.["1"]?.length ? builderData.orders["1"].slice(0, 2) : ["D1"],
+      "2": builderData.orders?.["2"]?.length ? builderData.orders["2"].slice(0, 2) : ["D1"],
+      "3": builderData.orders?.["3"]?.length ? builderData.orders["3"].slice(0, 2) : ["D1"],
+    };
+  };
+
+  const rebuildPreview = () => {
+    normalizeOrders();
+    renderer.setState(initGame(buildLevel(builderData)));
+    if (builderMode) {
+      renderBuilderOrdersInSidebar();
+    }
+  };
+
+  const renderBuilderOrdersInSidebar = () => {
+    if (!sidebarOrdersEl) return;
+    normalizeOrders();
+
+    // replace normal orders list w button ver... idk if i like this approach but whatever
+
+    const drinkIconSrc = (drink: "D1" | "D2") =>
+      drink === "D1" ? "/src/assets/drink_a_item.png" : "/src/assets/drink_b_item.png";
+
+    const renderDrinkButtonContent = (value: "D1" | "D2" | "") => {
+      if (value === "") {
+        const placeholder = document.createElement("div");
+        placeholder.className = "builder-none-placeholder";
+        placeholder.setAttribute("aria-hidden", "true");
+        return placeholder;
+      }
+      const img = document.createElement("img");
+      img.src = drinkIconSrc(value);
+      img.alt = value;
+      img.className = "drink-item-icon";
+      return img;
+    };
+
+    const makeDrinkButton = (
+      value: "D1" | "D2" | "",
+      allowNone: boolean,
+      onPick: (v: "D1" | "D2" | "") => void,
+    ) => {
+      const btn = document.createElement("button");
+      btn.className = "game-button builder-drink-btn";
+      btn.type = "button";
+      btn.ariaLabel = "pick drink";
+
+      const setValue = (v: "D1" | "D2" | "") => {
+        btn.innerHTML = "";
+        btn.appendChild(renderDrinkButtonContent(v));
+      };
+
+      setValue(value);
+
+      btn.addEventListener("click", () => {
+        if (allowNone) {
+          // cycle none -> D1 -> D2 -> none
+          const next = value === "" ? "D1" : value === "D1" ? "D2" : "";
+          value = next;
+          setValue(value);
+          onPick(value);
+        } else {
+          const next = value === "D1" ? "D2" : "D1";
+          value = next;
+          setValue(value);
+          onPick(value);
+        }
+      });
+
+      return btn;
+    };
+
+    const getCustomerSprite = (customerId: string): HTMLImageElement | null => {
+      if (customerId === "1") return customerA;
+      if (customerId === "2") return customerB;
+      if (customerId === "3") return customerC;
+      return null;
+    };
+
+    sidebarOrdersEl.innerHTML = "";
+
+    for (const id of ["1", "2", "3"] as const) {
+      const li = document.createElement("li");
+      li.className = "order-item";
+
+      const header = document.createElement("div");
+      header.className = "order-header";
+      header.textContent = `order #${id}`;
+
+      const row = document.createElement("div");
+      row.className = "order-row";
+
+      const sprite = getCustomerSprite(id);
+      const iconUrl = sprite ? getCustomerIconDataUrl(sprite, 2) : "";
+      const icon = document.createElement("img");
+      icon.src = iconUrl;
+      icon.alt = id;
+      icon.className = "customer-icon";
+
+      const drinks = document.createElement("div");
+      drinks.className = "drink-items";
+
+      const first = builderData.orders[id][0] ?? "D1";
+      const second = builderData.orders[id][1] ?? "";
+
+      let a = first as "D1" | "D2";
+      let b = second as "D1" | "D2" | "";
+
+      const commit = () => {
+        // write to builder data and rebuild preview
+        builderData.orders[id] = b ? [a, b] : [a];
+        rebuildPreview();
+        setBuilderStatus("edited! check again");
+      };
+
+      const btn1 = makeDrinkButton(a, false, (v) => {
+        a = v as "D1" | "D2";
+        commit();
+      });
+      const btn2 = makeDrinkButton(b, true, (v) => {
+        b = v;
+        commit();
+      });
+
+      drinks.appendChild(btn1);
+      drinks.appendChild(btn2);
+
+      row.appendChild(icon);
+      row.appendChild(drinks);
+
+      li.appendChild(header);
+      li.appendChild(row);
+
+      sidebarOrdersEl.appendChild(li);
+    }
+  };
+
+  const posKey = (p: Pos) => `${p.x},${p.y}`;
+  const removeAt = (p: Pos) => {
+    const key = posKey(p);
+    builderData.walls = builderData.walls.filter((w) => `${w.x},${w.y}` !== key);
+    builderData.drinkStations = builderData.drinkStations.filter((d) => `${d.x},${d.y}` !== key);
+    builderData.customers = builderData.customers.filter((c) => `${c.x},${c.y}` !== key);
+  };
+
+  const toggleWallAt = (p: Pos) => {
+    const key = posKey(p);
+    if (key === posKey(builderData.start)) {
+      setBuilderStatus("start tile can’t be a wall");
+      return;
+    }
+    const has = builderData.walls.some((w) => `${w.x},${w.y}` === key);
+    if (has) builderData.walls = builderData.walls.filter((w) => `${w.x},${w.y}` !== key);
+    else {
+      removeAt(p);
+      builderData.walls = [...builderData.walls, { x: p.x, y: p.y }];
+    }
+  };
+
+  const setStartAt = (p: Pos) => {
+    removeAt(p);
+    builderData.start = { x: p.x, y: p.y };
+  };
+
+  const setDrinkAt = (p: Pos, drink: "D1" | "D2") => {
+    const key = posKey(p);
+    if (key === posKey(builderData.start)) {
+      // allow start to overlap station (pickup immediately)
+    }
+    // remove wall/customer; station can overwrite station
+    builderData.walls = builderData.walls.filter((w) => `${w.x},${w.y}` !== key);
+    builderData.customers = builderData.customers.filter((c) => `${c.x},${c.y}` !== key);
+    builderData.drinkStations = builderData.drinkStations.filter((d) => `${d.x},${d.y}` !== key);
+    builderData.drinkStations = [...builderData.drinkStations, { x: p.x, y: p.y, drink }];
+  };
+
+  const setCustomerAt = (p: Pos, id: "1" | "2" | "3") => {
+    const key = posKey(p);
+    if (key === posKey(builderData.start)) {
+      setBuilderStatus("can’t place a customer on start");
+      return;
+    }
+    // remove wall/station at tile
+    builderData.walls = builderData.walls.filter((w) => `${w.x},${w.y}` !== key);
+    builderData.drinkStations = builderData.drinkStations.filter((d) => `${d.x},${d.y}` !== key);
+
+    // if clicking same customer, toggle standHere
+    const existingHere = builderData.customers.find((c) => `${c.x},${c.y}` === key);
+    if (existingHere && existingHere.id === id) {
+      existingHere.standHere = existingHere.standHere === "left" ? "right" : "left";
+      return;
+    }
+
+    // remove any other customer at tile
+    builderData.customers = builderData.customers.filter((c) => `${c.x},${c.y}` !== key);
+    // ensure unique per id
+    builderData.customers = builderData.customers.filter((c) => c.id !== id);
+    builderData.customers = [...builderData.customers, { x: p.x, y: p.y, id, standHere: "left" }];
+  };
+
+  const handleBuildTileClick = (p: Pos) => {
+    if (!builderMode) return;
+    if (!inBounds(builderData.width, builderData.height, p)) return;
+
+    switch (builderTool) {
+      case "erase":
+        removeAt(p);
+        break;
+      case "wall":
+        toggleWallAt(p);
+        break;
+      case "start":
+        setStartAt(p);
+        break;
+      case "d1":
+        setDrinkAt(p, "D1");
+        break;
+      case "d2":
+        setDrinkAt(p, "D2");
+        break;
+      case "cust1":
+        setCustomerAt(p, "1");
+        break;
+      case "cust2":
+        setCustomerAt(p, "2");
+        break;
+      case "cust3":
+        setCustomerAt(p, "3");
+        break;
+    }
+
+    rebuildPreview();
+    setBuilderStatus("edited! check again");
+  };
+
+  for (const btn of toolButtons) {
+    btn.addEventListener("click", () => {
+      const tool = btn.dataset.tool as BuilderTool | undefined;
+      if (!tool) return;
+      builderTool = tool;
+      applyToolActiveUI();
+    });
+  }
+
+  const checkSolvableNow = () => {
+    // first validate for quick immediate errors. Then bfs algo (slowerish) 
+    const validation = validateLevelData(builderData);
+    if (!validation.ok) {
+      setBuilderStatus(`invalid:\n${validation.errors.join("\n")}`);
+      return;
+    }
+
+    const built = buildLevel(builderData);
+    const solved = solveLevel(built);
+    if (solved.solvable) {
+      setBuilderStatus(`solvable! (searched ${solved.visitedStates} states)`);
+    } else {
+      setBuilderStatus(`not solvable (searched ${solved.visitedStates} states)`);
+    }
+  };
+
+  if (checkBtn) {
+    checkBtn.addEventListener("click", () => {
+      if (!builderMode) return;
+      checkSolvableNow();
+    });
+  }
+
+  const enterBuilderMode = () => {
+    builderMode = true;
+    builderData = JSON.parse(JSON.stringify(currentLevelData)) as LevelData;
+    builderTool = "wall";
+
+    renderer.hideFailurePopup();
+    renderer.setUIMode("build");
+    renderer.setOnBuildTileClick(handleBuildTileClick);
+
+    if (builderPanel) builderPanel.style.display = "block";
+    applyToolActiveUI();
+    renderBuilderOrdersInSidebar();
+    rebuildPreview();
+    setBuilderStatus("builder mode. click tiles to edit");
+  };
+
+  const exitBuilderMode = () => {
+    builderMode = false;
+    renderer.setOnBuildTileClick(null);
+    renderer.setUIMode("play");
+    if (builderPanel) builderPanel.style.display = "none";
+
+    // keep playing the level you just built if leave
+    currentLevelData = JSON.parse(JSON.stringify(builderData)) as LevelData;
+    renderer.setState(initGame(buildLevel(currentLevelData)));
+
+    const dayTextEl2 = document.getElementById("day-text");
+    if (dayTextEl2) dayTextEl2.textContent = "your level";
+  };
+
+  if (builderButton) {
+    builderButton.addEventListener("click", () => {
+      if (builderMode) exitBuilderMode();
+      else enterBuilderMode();
+    });
+  }
+
   // setup buttons
   const runButton = document.getElementById("run-btn");
   const retryButton = document.getElementById("retry-btn");
@@ -672,7 +1112,7 @@ async function init() {
       const newState = {
         ...currentState,
         status: "running" as const,
-        message: "Running...",
+        message: "running...",
       };
       renderer.setState(newState);
     });

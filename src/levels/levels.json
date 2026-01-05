@@ -51,15 +51,15 @@
     ],
 
     "customers": [
-      { "x": 9, "y": 1, "id": "A", "standHere": "left" },
-      { "x": 9, "y": 3, "id": "B", "standHere": "left" },
-      { "x": 9, "y": 4, "id": "C", "standHere": "left" }
+      { "x": 9, "y": 1, "id": "1", "standHere": "left" },
+      { "x": 9, "y": 3, "id": "2", "standHere": "left" },
+      { "x": 9, "y": 4, "id": "3", "standHere": "left" }
     ],
 
     "orders": {
-      "A": ["D1"],
-      "B": ["D2"],
-      "C": ["D1", "D2"]
+      "1": ["D1"],
+      "2": ["D2"],
+      "3": ["D1", "D2"]
     }
   }
 ]

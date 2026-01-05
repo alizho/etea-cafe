@@ -18,6 +18,7 @@
                     <div class="game-controls">
                         <button id="run-btn" class="game-button">run</button>
                         <button id="retry-btn" class="game-button">reset</button>
+                        <button id="builder-btn" class="game-button">builder</button>
                     </div>
 
                     <canvas id="game-canvas" class="game-canvas"></canvas>
@@ -39,6 +40,38 @@
                     <ul id="orders"></ul>
 
                     <div class="sidebar-content">
+                        <div id="builder-panel" class="builder-panel" style="display: none;">
+                            <div class="builder-row">
+                                <div class="builder-label">tool</div>
+                                <div class="builder-tools">
+                                    <button class="game-button builder-tool-btn" data-tool="erase">erase</button>
+                                    <button class="game-button builder-tool-btn" data-tool="wall">wall</button>
+                                    <button class="game-button builder-tool-btn" data-tool="start" aria-label="place start">
+                                        <img id="builder-start-icon" alt="start" class="builder-customer-icon" />
+                                    </button>
+                                    <button class="game-button builder-tool-btn" data-tool="d1" aria-label="place D1">
+                                        <img src="/src/assets/drink_a_item.png" alt="D1" class="builder-drink-icon" />
+                                    </button>
+                                    <button class="game-button builder-tool-btn" data-tool="d2" aria-label="place D2">
+                                        <img src="/src/assets/drink_b_item.png" alt="D2" class="builder-drink-icon" />
+                                    </button>
+                                    <button class="game-button builder-tool-btn" data-tool="cust1" aria-label="place customer 1">
+                                        <img id="builder-cust1-icon" alt="1" class="builder-customer-icon" />
+                                    </button>
+                                    <button class="game-button builder-tool-btn" data-tool="cust2" aria-label="place customer 2">
+                                        <img id="builder-cust2-icon" alt="2" class="builder-customer-icon" />
+                                    </button>
+                                    <button class="game-button builder-tool-btn" data-tool="cust3" aria-label="place customer 3">
+                                        <img id="builder-cust3-icon" alt="3" class="builder-customer-icon" />
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="builder-row builder-actions">
+                                <button id="builder-check-btn" class="game-button">check</button>
+                            </div>
+
+                            <div id="builder-status" class="builder-status"></div>
+                        </div>
                     </div>
                 </div>
             </div>

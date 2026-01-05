@@ -16,9 +16,9 @@ export type LevelData = {
   customers: {
     x: number;
     y: number;
-    id: "A" | "B" | "C";
+    id: "1" | "2" | "3";
     standHere: "left" | "right"; // do we want to step on left or right of customer to serve them
   }[];
 
-  orders: Record<"A" | "B" | "C", ("D1" | "D2")[]>;
+  orders: Record<"1" | "2" | "3", ("D1" | "D2")[]>;
 };

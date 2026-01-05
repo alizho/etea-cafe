@@ -219,6 +219,113 @@ body {
     margin-top: 8px;
 }
 
+.builder-panel {
+    margin-top: 10px;
+    padding: 8px;
+    background-color: #f3f2ed;
+    border: 2px solid #000000;
+    box-shadow: 0 0 0 1px #000;
+    color: #000;
+}
+
+.builder-row {
+    margin-bottom: 8px;
+}
+
+.builder-label {
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 6px;
+    display: block;
+}
+
+.builder-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.builder-tool-btn {
+    padding: 4px 8px;
+    font-size: 13px;
+}
+
+.builder-drink-icon {
+    width: 32px;
+    height: 32px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    display: block;
+}
+
+.builder-customer-icon {
+    width: 32px;
+    height: 32px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    display: block;
+}
+
+.builder-drink-btn {
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+}
+
+.builder-none-placeholder {
+    width: 48px;
+    height: 48px;
+    border: none;
+    background-color: transparent;
+    box-sizing: border-box;
+    display: block;
+}
+
+.builder-tool-btn.builder-tool-active {
+    background-color: #76428a;
+    color: #ffffff;
+}
+
+.builder-select {
+    width: 100%;
+    padding: 6px;
+    font-family: "PixelArial", Arial, sans-serif;
+    font-size: 14px;
+    border: 2px solid #000000;
+    background-color: #ffffff;
+}
+
+.builder-orders {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.builder-order-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.builder-order-row .builder-select {
+    width: auto;
+    flex: 1;
+}
+
+.builder-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.builder-status {
+    font-size: 14px;
+    margin-top: 6px;
+    white-space: pre-wrap;
+}
+
+
 .popup-overlay {
     position: fixed;
     top: 0;
