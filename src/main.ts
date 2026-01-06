@@ -176,12 +176,25 @@ function getGlorboIcon(glorboSprite: HTMLImageElement): string {
 
 function getTilePos(
   canvas: HTMLCanvasElement,
+  levelWidthTiles: number,
+  levelHeightTiles: number,
   x: number,
   y: number,
 ): Pos | null {
   const rect = canvas.getBoundingClientRect();
-  const canvasX = x - rect.left;
-  const canvasY = y - rect.top;
+
+  // this is cuz resizing would make things cutoff on smaller displays 
+  // idk if it's the best solution but
+  const cssX = x - rect.left;
+  const cssY = y - rect.top;
+
+  if (rect.width <= 0 || rect.height <= 0) return null;
+
+  const logicalW = levelWidthTiles * TILE_SIZE;
+  const logicalH = levelHeightTiles * TILE_SIZE;
+
+  const canvasX = (cssX / rect.width) * logicalW;
+  const canvasY = (cssY / rect.height) * logicalH;
 
   const tileX = Math.floor(canvasX / TILE_SIZE);
   const tileY = Math.floor(canvasY / TILE_SIZE);
@@ -259,16 +272,46 @@ class GameRenderer {
     const baseCanvasWidth = level.width * TILE_SIZE;
     const baseCanvasHeight = level.height * TILE_SIZE;
 
+    // changing canvas width/height
     this.canvas.width = baseCanvasWidth * scale;
     this.canvas.height = baseCanvasHeight * scale;
 
-    this.canvas.style.width = `${this.canvas.width / scale}px`;
-    this.canvas.style.height = `${this.canvas.height / scale}px`;
+    this.updateCanvasDisplaySize(baseCanvasWidth, baseCanvasHeight);
 
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.ctx.scale(scale, scale);
 
     this.ctx.imageSmoothingEnabled = false;
     this.tempCtx.imageSmoothingEnabled = false;
+
+  }
+
+  private updateCanvasDisplaySize(baseCanvasWidth: number, baseCanvasHeight: number) {
+    // fit display size w current layout
+    const headerEl = document.querySelector(".header") as HTMLElement | null;
+    const controlsEl = document.querySelector(".game-controls") as HTMLElement | null;
+    const infoEl = document.querySelector(".game-info") as HTMLElement | null;
+    const sidebarEl = document.querySelector(".sidebar") as HTMLElement | null;
+    const inventoryEl = document.getElementById("inventory") as HTMLElement | null;
+
+    const headerH = headerEl?.getBoundingClientRect().height ?? 0;
+    const controlsH = controlsEl?.getBoundingClientRect().height ?? 0;
+    const inventoryH = inventoryEl?.getBoundingClientRect().height ?? 0;
+    const infoH = infoEl?.getBoundingClientRect().height ?? 0;
+    const sidebarW = sidebarEl?.getBoundingClientRect().width ?? 0;
+
+    const paddingW = 64;
+    const paddingH = 72;
+
+    const maxW = Math.max(120, window.innerWidth - sidebarW - paddingW);
+    const maxH = Math.max(120, window.innerHeight - headerH - controlsH - inventoryH - infoH - paddingH);
+
+    const fitScale = Math.min(maxW / baseCanvasWidth, maxH / baseCanvasHeight, 1);
+    const cssW = Math.max(64, Math.floor(baseCanvasWidth * fitScale));
+    const cssH = Math.max(64, Math.floor(baseCanvasHeight * fitScale));
+
+    this.canvas.style.width = `${cssW}px`;
+    this.canvas.style.height = `${cssH}px`;
   }
 
   private setupEventListeners() {
@@ -302,11 +345,23 @@ class GameRenderer {
       });
     });
     this.canvas.addEventListener("touchend", () => this.stopDrawing());
+
+    window.addEventListener("resize", () => {
+      const level = this.state.level;
+      this.updateCanvasDisplaySize(level.width * TILE_SIZE, level.height * TILE_SIZE);
+      this.render();
+    });
   }
 
   private handlePointerDown(e: { clientX: number; clientY: number }) {
     if (this.state.status !== "idle") return;
-    const pos = getTilePos(this.canvas, e.clientX, e.clientY);
+    const pos = getTilePos(
+      this.canvas,
+      this.state.level.width,
+      this.state.level.height,
+      e.clientX,
+      e.clientY,
+    );
     if (!pos) return;
 
     if (this.uiMode === "build") {
@@ -332,7 +387,13 @@ class GameRenderer {
       if (!this.isDrawing) return;
       if (this.state.status !== "idle") return;
 
-      const pos = getTilePos(this.canvas, e.clientX, e.clientY);
+      const pos = getTilePos(
+        this.canvas,
+        this.state.level.width,
+        this.state.level.height,
+        e.clientX,
+        e.clientY,
+      );
       if (!pos) return;
       if (!inBounds(this.state.level.width, this.state.level.height, pos))
         return;
@@ -349,7 +410,13 @@ class GameRenderer {
     if (!this.isDrawing) return;
     if (this.state.status !== "idle") return;
 
-    const pos = getTilePos(this.canvas, e.clientX, e.clientY);
+    const pos = getTilePos(
+      this.canvas,
+      this.state.level.width,
+      this.state.level.height,
+      e.clientX,
+      e.clientY,
+    );
     if (!pos) return;
     if (!inBounds(this.state.level.width, this.state.level.height, pos)) return;
 
@@ -364,7 +431,13 @@ class GameRenderer {
   }
 
   private handleHover(e: { clientX: number; clientY: number }) {
-    const pos = getTilePos(this.canvas, e.clientX, e.clientY);
+    const pos = getTilePos(
+      this.canvas,
+      this.state.level.width,
+      this.state.level.height,
+      e.clientX,
+      e.clientY,
+    );
     if (pos && inBounds(this.state.level.width, this.state.level.height, pos)) {
       if (this.hoverTile?.x !== pos.x || this.hoverTile?.y !== pos.y) {
         this.hoverTile = pos;
@@ -428,7 +501,14 @@ class GameRenderer {
   }
 
   public setState(newState: GameState) {
+    const prevW = this.state.level.width;
+    const prevH = this.state.level.height;
     this.state = newState;
+
+    if (newState.level.width !== prevW || newState.level.height !== prevH) {
+      this.setupCanvas();
+    }
+
     // reset success on reset
     if (newState.status !== "success") {
       this.successHandled = false;
@@ -904,6 +984,15 @@ async function init() {
   const builderStatusEl = document.getElementById(
     "builder-status",
   ) as HTMLDivElement | null;
+  const builderWidthInput = document.getElementById(
+    "builder-width-input",
+  ) as HTMLInputElement | null;
+  const builderHeightInput = document.getElementById(
+    "builder-height-input",
+  ) as HTMLInputElement | null;
+  const builderResizeBtn = document.getElementById(
+    "builder-resize-btn",
+  ) as HTMLButtonElement | null;
   const toolButtons = Array.from(
     document.querySelectorAll(".builder-tool-btn"),
   ) as HTMLButtonElement[];
@@ -916,6 +1005,20 @@ async function init() {
 
   const setBuilderStatus = (text: string) => {
     if (builderStatusEl) builderStatusEl.textContent = text;
+  };
+
+  const clamp = (n: number, min: number, max: number) =>
+    Math.min(Math.max(n, min), max);
+
+  const MIN_BUILDER_SIZE = 6;
+  const MAX_BUILDER_SIZE = 12;
+
+  const isBorderTile = (w: number, h: number, p: Pos) =>
+    p.x === 0 || p.y === 0 || p.x === w - 1 || p.y === h - 1;
+
+  const syncBuilderSizeInputs = () => {
+    if (builderWidthInput) builderWidthInput.value = String(builderData.width);
+    if (builderHeightInput) builderHeightInput.value = String(builderData.height);
   };
 
   const applyToolActiveUI = () => {
@@ -942,6 +1045,10 @@ async function init() {
 
   const rebuildPreview = () => {
     normalizeOrders();
+
+    // automatically border walls
+    enforceBorderWalls();
+
     renderer.setState(initGame(buildLevel(builderData)));
     if (builderMode) {
       renderBuilderOrdersInSidebar();
@@ -1074,7 +1181,56 @@ async function init() {
   };
 
   const posKey = (p: Pos) => `${p.x},${p.y}`;
+
+  const enforceBorderWalls = () => {
+    const w = builderData.width;
+    const h = builderData.height;
+    if (w < 3 || h < 3) return;
+
+    // clamp start into the interior so it can't overlap borders or be outside
+    const nextStart = {
+      x: clamp(builderData.start.x, 1, w - 2),
+      y: clamp(builderData.start.y, 1, h - 2),
+    };
+    builderData.start = nextStart;
+
+    const startKey = `${builderData.start.x},${builderData.start.y}`;
+
+    // remove Anything that would overlap
+    builderData.drinkStations = builderData.drinkStations.filter((d) => {
+      const key = `${d.x},${d.y}`;
+      return key !== startKey && !isBorderTile(w, h, { x: d.x, y: d.y });
+    });
+
+    builderData.customers = builderData.customers.filter((c) => {
+      const key = `${c.x},${c.y}`;
+      return key !== startKey && !isBorderTile(w, h, { x: c.x, y: c.y });
+    });
+
+    const wallSet = new Set(builderData.walls.map((wall) => `${wall.x},${wall.y}`));
+
+    for (let x = 0; x < w; x++) {
+      wallSet.add(`${x},0`);
+      wallSet.add(`${x},${h - 1}`);
+    }
+    for (let y = 0; y < h; y++) {
+      wallSet.add(`0,${y}`);
+      wallSet.add(`${w - 1},${y}`);
+    }
+
+    wallSet.delete(startKey);
+
+    builderData.walls = Array.from(wallSet).map((key) => {
+      const [x, y] = key.split(",").map(Number);
+      return { x, y };
+    });
+  };
+
   const removeAt = (p: Pos) => {
+    if (isBorderTile(builderData.width, builderData.height, p)) {
+      setBuilderStatus("border tiles are always walls");
+      return;
+    }
     const key = posKey(p);
     builderData.walls = builderData.walls.filter(
       (w) => `${w.x},${w.y}` !== key,
@@ -1088,6 +1244,10 @@ async function init() {
   };
 
   const toggleWallAt = (p: Pos) => {
+    if (isBorderTile(builderData.width, builderData.height, p)) {
+      setBuilderStatus("border tiles are always walls");
+      return;
+    }
     const key = posKey(p);
     if (key === posKey(builderData.start)) {
       setBuilderStatus("start tile can’t be a wall");
@@ -1105,11 +1265,19 @@ async function init() {
   };
 
   const setStartAt = (p: Pos) => {
+    if (isBorderTile(builderData.width, builderData.height, p)) {
+      setBuilderStatus("start can’t be on the border");
+      return;
+    }
     removeAt(p);
     builderData.start = { x: p.x, y: p.y };
   };
 
   const setDrinkAt = (p: Pos, drink: "D1" | "D2") => {
+    if (isBorderTile(builderData.width, builderData.height, p)) {
+      setBuilderStatus("border tiles are walls (can’t place here)");
+      return;
+    }
     const key = posKey(p);
     if (key === posKey(builderData.start)) {
       // allow start to overlap station (pickup immediately)
@@ -1131,6 +1299,10 @@ async function init() {
   };
 
   const setCustomerAt = (p: Pos, id: "A" | "B" | "C") => {
+    if (isBorderTile(builderData.width, builderData.height, p)) {
+      setBuilderStatus("border tiles are walls (can’t place here)");
+      return;
+    }
     const key = posKey(p);
     if (key === posKey(builderData.start)) {
       setBuilderStatus("can't place a customer on start");
@@ -1149,8 +1321,20 @@ async function init() {
       (c) => `${c.x},${c.y}` === key,
     );
     if (existingHere && existingHere.id === id) {
-      existingHere.standHere =
-        existingHere.standHere === "left" ? "right" : "left";
+      const nextStand = existingHere.standHere === "left" ? "right" : "left";
+      const standX = nextStand === "left" ? existingHere.x - 1 : existingHere.x + 1;
+      const standY = existingHere.y;
+      const standPos = { x: standX, y: standY };
+      if (!inBounds(builderData.width, builderData.height, standPos)) {
+        setBuilderStatus("stand tile would be out of bounds");
+        return;
+      }
+      if (isBorderTile(builderData.width, builderData.height, standPos)) {
+        setBuilderStatus("stand tile can’t be on border walls");
+        return;
+      }
+
+      existingHere.standHere = nextStand;
       return;
     }
 
@@ -1160,15 +1344,74 @@ async function init() {
     );
     // ensure unique per id
     builderData.customers = builderData.customers.filter((c) => c.id !== id);
-    builderData.customers = [
-      ...builderData.customers,
-      { x: p.x, y: p.y, id, standHere: "left" },
-    ];
+    // avoid collision 
+    const leftStand = { x: p.x - 1, y: p.y };
+    const rightStand = { x: p.x + 1, y: p.y };
+
+    const leftOk =
+      inBounds(builderData.width, builderData.height, leftStand) &&
+      !isBorderTile(builderData.width, builderData.height, leftStand);
+    const rightOk =
+      inBounds(builderData.width, builderData.height, rightStand) &&
+      !isBorderTile(builderData.width, builderData.height, rightStand);
+
+    if (!leftOk && !rightOk) {
+      setBuilderStatus("customer needs a stand tile inside the border");
+      return;
+    }
+
+    const standHere: "left" | "right" = leftOk ? "left" : "right";
+
+    builderData.customers = [...builderData.customers, { x: p.x, y: p.y, id, standHere }];
+  };
+
+  const resizeBuilderLevel = (nextW: number, nextH: number) => {
+    if (!Number.isFinite(nextW) || !Number.isFinite(nextH)) return;
+    const rawW = Math.floor(nextW);
+    const rawH = Math.floor(nextH);
+    const cappedW = clamp(rawW, MIN_BUILDER_SIZE, MAX_BUILDER_SIZE);
+    const cappedH = clamp(rawH, MIN_BUILDER_SIZE, MAX_BUILDER_SIZE);
+
+    if (cappedW !== rawW || cappedH !== rawH) {
+      setBuilderStatus(`size capped to ${MIN_BUILDER_SIZE}–${MAX_BUILDER_SIZE}`);
+    }
+
+    const prevW = builderData.width;
+    const prevH = builderData.height;
+
+    builderData.width = cappedW;
+    builderData.height = cappedH;
+
+    const inB = (x: number, y: number) => x >= 0 && x < builderData.width && y >= 0 && y < builderData.height;
+
+    // erase previous border walls?
+    const wasPrevBorder = (w: { x: number; y: number }) =>
+      w.x === 0 || w.y === 0 || w.x === prevW - 1 || w.y === prevH - 1;
+
+    builderData.walls = builderData.walls.filter((w) => !wasPrevBorder(w)).filter((w) => inB(w.x, w.y));
+    builderData.drinkStations = builderData.drinkStations.filter((d) => inB(d.x, d.y));
+    builderData.customers = builderData.customers.filter((c) => inB(c.x, c.y));
+    
+    builderData.start = {
+      x: clamp(builderData.start.x, 0, builderData.width - 1),
+      y: clamp(builderData.start.y, 0, builderData.height - 1),
+    };
+
+    enforceBorderWalls();
+    syncBuilderSizeInputs();
+    rebuildPreview();
+    setBuilderStatus(`resized to ${builderData.width}x${builderData.height}`);
   };
 
   const handleBuildTileClick = (p: Pos) => {
     if (!builderMode) return;
     if (!inBounds(builderData.width, builderData.height, p)) return;
+
+    // border tiles are fixed walls
+    if (isBorderTile(builderData.width, builderData.height, p)) {
+      setBuilderStatus("border tiles are always walls");
+      return;
+    }
 
     switch (builderTool) {
       case "erase":
@@ -1241,6 +1484,9 @@ async function init() {
     builderData = JSON.parse(JSON.stringify(currentLevelData)) as LevelData;
     builderTool = "wall";
 
+    enforceBorderWalls();
+    syncBuilderSizeInputs();
+
     renderer.hideFailurePopup();
     renderer.setUIMode("build");
     renderer.setOnBuildTileClick(handleBuildTileClick);
@@ -1270,6 +1516,35 @@ async function init() {
     builderButton.addEventListener("click", () => {
       if (builderMode) exitBuilderMode();
       else enterBuilderMode();
+    });
+  }
+
+  const tryResizeFromInputs = () => {
+    if (!builderMode) return;
+    const w = builderWidthInput ? parseInt(builderWidthInput.value, 10) : NaN;
+    const h = builderHeightInput ? parseInt(builderHeightInput.value, 10) : NaN;
+    if (!Number.isFinite(w) || !Number.isFinite(h)) {
+      setBuilderStatus("enter valid width/height");
+      return;
+    }
+    resizeBuilderLevel(w, h);
+  };
+
+  if (builderResizeBtn) {
+    builderResizeBtn.addEventListener("click", () => {
+      tryResizeFromInputs();
+    });
+  }
+
+  if (builderWidthInput) {
+    builderWidthInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") tryResizeFromInputs();
+    });
+  }
+
+  if (builderHeightInput) {
+    builderHeightInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") tryResizeFromInputs();
     });
   }
 

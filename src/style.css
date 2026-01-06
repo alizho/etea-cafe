@@ -128,10 +128,8 @@ body {
     image-rendering: pixelated;
     image-rendering: crisp-edges;
     order: 2;
-    width: 100%;
     max-width: 90vw;
     height: auto;
-    aspect-ratio: 1;
 }
 
 .sidebar {
@@ -317,6 +315,29 @@ body {
 .builder-actions {
     display: flex;
     gap: 6px;
+    align-items: center;
+}
+
+.builder-dimensions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: nowrap;
+    margin-left: auto;
+}
+
+.builder-dimension-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.builder-dimension-input {
+    width: 56px;
+    padding: 4px 6px;
+    font-size: 14px;
 }
 
 .builder-status {
