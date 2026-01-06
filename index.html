@@ -27,6 +27,7 @@
 
                     <div class="game-info">
                         <div id="steps">steps: 0</div>
+                        <div id="best-score" class="best-score-display" style="display: none; color: #888; font-size: 0.9em;">best: --</div>
                         <div id="message">yea</div>
                     </div>
 
@@ -82,6 +83,23 @@
             <div class="popup-content">
                 <p class="popup-message">all customers weren't served :(</p>
                 <button id="popup-retry-btn" class="game-button">retry?</button>
+            </div>
+        </div>
+
+        <!--success popup -->
+        <div id="success-popup" class="popup-overlay" style="display: none;">
+            <div class="popup-content">
+                <h2 class="success-day-text">Results - Day 1</h2>
+                <div class="success-score-section">
+                    <div class="success-score-label">your score:</div>
+                    <div class="success-score-value">0</div>
+                    <div class="success-optimal-message">optimal path!</div>
+                </div>
+                <div class="success-distribution-section">
+                    <div class="success-distribution-label">score distribution</div>
+                    <div class="success-graph-container"></div>
+                </div>
+                <button id="success-popup-close-btn" class="game-button">close</button>
             </div>
         </div>
 

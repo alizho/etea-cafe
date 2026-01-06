@@ -22,7 +22,7 @@ export type GameState = {
 };
 
 function initServed(level: Level): Record<CustomerId, boolean> {
-  const served: Record<CustomerId, boolean> = { "1": false, "2": false, "3": false };
+  const served: Record<CustomerId, boolean> = { "A": false, "B": false, "C": false };
   for (const id of Object.keys(level.orders) as CustomerId[]) {
     served[id] = false;
   }
@@ -147,6 +147,6 @@ export function stepSimulation(state: GameState): GameState {
     inventory,
     served,
     status: allServedNow ? "success" : state.status,
-    message: allServedNow ? `success! steps: ${state.stepsTaken + 1}` : state.message,
+    message: allServedNow ? "success!" : state.message,
   };
 }

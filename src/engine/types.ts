@@ -1,5 +1,5 @@
 export type DrinkId = "D1" | "D2";
-export type CustomerId = "1" | "2" | "3";
+export type CustomerId = "A" | "B" | "C";
 
 export type Pos = { x: number; y: number };
 
