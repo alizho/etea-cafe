@@ -36,3 +36,43 @@ export function getPlayerId(): string {
   }
   return playerId;
 }
+
+export async function submitRun(
+  levelId: string,
+  playerId: string,
+  moves: number,
+  success: boolean
+) {
+  const { data, error } = await supabase
+    .from("runs")
+    .insert({
+      level_id: levelId,
+      player_id: playerId,
+      moves,
+      success,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getTopScoreForLevel(
+  levelId: string,
+  playerId: string
+): Promise<{ moves: number } | null> {
+  const { data, error } = await supabase
+    .from("runs")
+    .select("moves")
+    .eq("level_id", levelId)
+    .eq("player_id", playerId)
+    .eq("success", true)
+    .order("moves", { ascending: true })
+    .limit(1)
+    .single();
+
+  if (error && error.code !== "PGRST116") throw error;
+  // PGRST116 = no rows
+  return data;
+}

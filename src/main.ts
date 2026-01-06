@@ -8,6 +8,7 @@ import {
 } from "./engine/game";
 import { buildLevel } from "./levels/loader";
 import { getTodayLevelFromSupabase } from "./levels/daily";
+import { submitRun, getTopScoreForLevel, getPlayerId } from "./supabase/api";
 import type { LevelData } from "./levels/level.schema";
 import { validateLevelData } from "./levels/validate";
 import { solveLevel } from "./engine/solver";
@@ -195,6 +196,8 @@ class GameRenderer {
 
   private uiMode: "play" | "build" = "play";
   private onBuildTileClick: ((pos: Pos) => void) | null = null;
+  private onSuccess: ((moves: number) => void) | null = null;
+  private successHandled: boolean = false;
 
   // avoid build mode spamming paint calls on same tile
   private lastBuildPaintKey: string | null = null;
@@ -404,12 +407,20 @@ class GameRenderer {
     this.onBuildTileClick = handler;
   }
 
+  public setOnSuccess(handler: ((moves: number) => void) | null) {
+    this.onSuccess = handler;
+  }
+
   public getState(): GameState {
     return this.state;
   }
 
   public setState(newState: GameState) {
     this.state = newState;
+    // reset success on reset
+    if (newState.status !== "success") {
+      this.successHandled = false;
+    }
     this.render();
     this.updateUI();
     this.startSimulation();
@@ -436,6 +447,9 @@ class GameRenderer {
         }
         if (this.state.status === "failed") {
           this.showFailurePopup();
+        } else if (this.state.status === "success" && this.onSuccess && !this.successHandled) {
+          this.successHandled = true;
+          this.onSuccess(this.state.stepsTaken);
         }
       }
     }, 250);
@@ -774,7 +788,7 @@ async function init() {
   if (b2) b2.src = getCustomerIconDataUrl(customerB, 2);
   if (b3) b3.src = getCustomerIconDataUrl(customerC, 2);
 
-  const levelData: LevelData = await getTodayLevelFromSupabase();
+  const { levelData, levelId } = await getTodayLevelFromSupabase();
 
   const level = buildLevel(levelData);
   const state = initGame(level);
@@ -782,6 +796,9 @@ async function init() {
   let currentLevelData: LevelData = JSON.parse(
     JSON.stringify(levelData),
   ) as LevelData;
+  
+  // store level ID for submitting runs
+  let currentLevelId: string | null = levelId;
 
   // setup day text
   const dayTextEl = document.getElementById("day-text");
@@ -796,6 +813,47 @@ async function init() {
   if (!canvas) throw new Error("no canvas found");
 
   const renderer = new GameRenderer(canvas, state);
+
+  // submit run and show top score
+  renderer.setOnSuccess(async (moves: number) => {
+    if (!currentLevelId) {
+      // no level id => can't submit
+      return;
+    }
+
+    try {
+      const playerId = getPlayerId();
+      
+      // submit the run
+      await submitRun(currentLevelId, playerId, moves, true);
+      
+      // get top score
+      const topScore = await getTopScoreForLevel(currentLevelId, playerId);
+      
+      // display success message with top score
+      // TODO: MAKE THIS A POPUP MAYBE
+      // ALSO SHOW THE TOP SCORE THROUGHOUT THE GAME LIKE ENCLOSE
+      const messageEl = document.getElementById("message");
+      if (messageEl) {
+        if (topScore) {
+          if (topScore.moves === moves) {
+            messageEl.textContent = `success! steps: ${moves} (new best!)`;
+          } else {
+            messageEl.textContent = `success! steps: ${moves} (best: ${topScore.moves})`;
+          }
+        } else {
+          messageEl.textContent = `success! steps: ${moves}`;
+        }
+      }
+    } catch (error) {
+      console.error("Error submitting run or getting top score:", error);
+      // still show success message even if API call fails
+      const messageEl = document.getElementById("message");
+      if (messageEl) {
+        messageEl.textContent = `success! steps: ${moves}`;
+      }
+    }
+  });
 
   // builder mode starts based off the day's level
   type BuilderTool =  "erase" | "wall" | "start" | "d1" | "d2" | "cust1" | "cust2" | "cust3";

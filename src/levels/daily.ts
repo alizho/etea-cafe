@@ -14,8 +14,13 @@ export function getDailyLevelData(date: Date = new Date()): LevelData {
   return all[idx];
 }
 
+export type DailyLevelResult = {
+  levelData: LevelData;
+  levelId: string | null; // database level ID, null if using fallback
+};
+
 // get todays lvl with fallback to levels.json
-export async function getTodayLevelFromSupabase(): Promise<LevelData> {
+export async function getTodayLevelFromSupabase(): Promise<DailyLevelResult> {
   try {
     const supabaseLevel = await getTodayLevel();
 
@@ -26,13 +31,13 @@ export async function getTodayLevelFromSupabase(): Promise<LevelData> {
         "no lvl in supabase, using fallback",
       );
       const fallback = getDailyLevelData();
-      return fallback;
+      return { levelData: fallback, levelId: null };
     }
 
     if (!supabaseLevel.json) {
       console.warn("supabase lvl has no json, using fallback");
       const fallback = getDailyLevelData();
-      return fallback;
+      return { levelData: fallback, levelId: null };
     }
 
     // handle jsonb array response from supabase
@@ -43,17 +48,17 @@ export async function getTodayLevelFromSupabase(): Promise<LevelData> {
     if (!jsonData) {
       console.warn("supabase lvl json is empty, using fallback");
       const fallback = getDailyLevelData();
-      return fallback;
+      return { levelData: fallback, levelId: null };
     }
 
     const levelData = jsonData as LevelData;
     console.log("loaded", levelData.id);
-    return levelData;
+    return { levelData, levelId: supabaseLevel.id };
   } catch (error) {
     console.error("supabase error", error);
     console.log("using fallback");
     const fallback = getDailyLevelData();
     console.log("loaded fallback", fallback.id);
-    return fallback;
+    return { levelData: fallback, levelId: null };
   }
 }
