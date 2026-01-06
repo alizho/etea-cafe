@@ -8,7 +8,13 @@ import {
 } from "./engine/game";
 import { buildLevel } from "./levels/loader";
 import { getTodayLevelFromSupabase } from "./levels/daily";
-import { submitRun, getTopScoreForLevel, getPlayerId } from "./supabase/api";
+import {
+  submitRun,
+  getPlayerId,
+  getBestScoreFromStorage,
+  setBestScoreInStorage,
+  hasRunInDatabase,
+} from "./supabase/api";
 import type { LevelData } from "./levels/level.schema";
 import { validateLevelData } from "./levels/validate";
 import { solveLevel } from "./engine/solver";
@@ -823,30 +829,42 @@ async function init() {
 
     try {
       const playerId = getPlayerId();
+      const storedBest = getBestScoreFromStorage(currentLevelId);
+      const isNewBest = storedBest === null || moves < storedBest;
       
-      // submit the run
-      await submitRun(currentLevelId, playerId, moves, true);
-      
-      // get top score
-      const topScore = await getTopScoreForLevel(currentLevelId, playerId);
+      // check if player already has a run in database for this level
+      const hasExistingRun = await hasRunInDatabase(currentLevelId, playerId);
+
+      // only save to database if this is the first run
+      if (!hasExistingRun) {
+        await submitRun(currentLevelId, playerId, moves, true);
+      }
+
+      // update localStorage if it's a new best (for display purposes)
+      if (isNewBest) {
+        setBestScoreInStorage(currentLevelId, moves);
+      }
+
+      // get best score from localStorage (no DB query needed)
+      const bestScore = getBestScoreFromStorage(currentLevelId);
       
       // display success message with top score
       // TODO: MAKE THIS A POPUP MAYBE
       // ALSO SHOW THE TOP SCORE THROUGHOUT THE GAME LIKE ENCLOSE
       const messageEl = document.getElementById("message");
       if (messageEl) {
-        if (topScore) {
-          if (topScore.moves === moves) {
+        if (bestScore !== null) {
+          if (moves === bestScore && isNewBest) {
             messageEl.textContent = `success! steps: ${moves} (new best!)`;
           } else {
-            messageEl.textContent = `success! steps: ${moves} (best: ${topScore.moves})`;
+            messageEl.textContent = `success! steps: ${moves} (best: ${bestScore})`;
           }
         } else {
           messageEl.textContent = `success! steps: ${moves}`;
         }
       }
     } catch (error) {
-      console.error("Error submitting run or getting top score:", error);
+      console.error("Error submitting run:", error);
       // still show success message even if API call fails
       const messageEl = document.getElementById("message");
       if (messageEl) {

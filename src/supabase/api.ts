@@ -37,6 +37,37 @@ export function getPlayerId(): string {
   return playerId;
 }
 
+// get best score from localStorage for a specific level
+export function getBestScoreFromStorage(levelId: string): number | null {
+  const key = `bestScore_${levelId}`;
+  const stored = localStorage.getItem(key);
+  return stored ? parseInt(stored, 10) : null;
+}
+
+// set best score in localStorage for a specific level
+export function setBestScoreInStorage(levelId: string, moves: number): void {
+  const key = `bestScore_${levelId}`;
+  localStorage.setItem(key, moves.toString());
+}
+
+// check if player already has a run in the database for this level
+export async function hasRunInDatabase(
+  levelId: string,
+  playerId: string
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("runs")
+    .select("id")
+    .eq("level_id", levelId)
+    .eq("player_id", playerId)
+    .limit(1)
+    .single();
+
+  if (error && error.code !== "PGRST116") throw error;
+  // PGRST116 = no rows
+  return data !== null;
+}
+
 export async function submitRun(
   levelId: string,
   playerId: string,
