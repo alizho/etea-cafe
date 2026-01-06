@@ -15,6 +15,7 @@ import {
   setBestScoreInStorage,
   hasRunInDatabase,
 } from "./supabase/api";
+import { showSuccessPopup, hideSuccessPopup } from "./popup";
 import type { LevelData } from "./levels/level.schema";
 import { validateLevelData } from "./levels/validate";
 import { solveLevel } from "./engine/solver";
@@ -204,6 +205,7 @@ class GameRenderer {
   private onBuildTileClick: ((pos: Pos) => void) | null = null;
   private onSuccess: ((moves: number) => void) | null = null;
   private successHandled: boolean = false;
+  private currentLevelId: string | null = null;
 
   // avoid build mode spamming paint calls on same tile
   private lastBuildPaintKey: string | null = null;
@@ -417,6 +419,10 @@ class GameRenderer {
     this.onSuccess = handler;
   }
 
+  public setLevelId(levelId: string | null) {
+    this.currentLevelId = levelId;
+  }
+
   public getState(): GameState {
     return this.state;
   }
@@ -430,6 +436,10 @@ class GameRenderer {
     this.render();
     this.updateUI();
     this.startSimulation();
+  }
+
+  public updateBestScoreDisplay() {
+    this.updateUI();
   }
 
   private startSimulation() {
@@ -658,6 +668,7 @@ class GameRenderer {
   public updateUI() {
     const stepsEl = document.getElementById("steps");
     const messageEl = document.getElementById("message");
+    const bestScoreEl = document.getElementById("best-score");
     const pathEl = document.getElementById("path");
     const inventoryEl = document.getElementById("inventory");
     const runButton = document.getElementById("run-btn") as HTMLButtonElement;
@@ -667,6 +678,19 @@ class GameRenderer {
 
     if (stepsEl) stepsEl.textContent = `steps: ${this.state.stepsTaken}`;
     if (messageEl) messageEl.textContent = this.state.message || "";
+
+    // always show best score if available
+    if (bestScoreEl && this.currentLevelId) {
+      const bestScore = getBestScoreFromStorage(this.currentLevelId);
+      if (bestScore !== null) {
+        bestScoreEl.textContent = `best: ${bestScore}`;
+        bestScoreEl.style.display = "block";
+      } else {
+        bestScoreEl.style.display = "none";
+      }
+    } else if (bestScoreEl && !this.currentLevelId) {
+      bestScoreEl.style.display = "none";
+    }
 
     if (pathEl) {
       const pathLabel = this.state.path
@@ -819,6 +843,11 @@ async function init() {
   if (!canvas) throw new Error("no canvas found");
 
   const renderer = new GameRenderer(canvas, state);
+  renderer.setLevelId(currentLevelId);
+
+  // extract day number for popup
+  const dayMatch = levelData.id.match(/day-(\d+)/);
+  const dayNumber = dayMatch ? parseInt(dayMatch[1], 10) : 1;
 
   // submit run and show top score
   renderer.setOnSuccess(async (moves: number) => {
@@ -843,33 +872,18 @@ async function init() {
       // update localStorage if it's a new best (for display purposes)
       if (isNewBest) {
         setBestScoreInStorage(currentLevelId, moves);
+        // update UI to show new best score
+        renderer.updateBestScoreDisplay();
       }
 
-      // get best score from localStorage (no DB query needed)
-      const bestScore = getBestScoreFromStorage(currentLevelId);
-      
-      // display success message with top score
-      // TODO: MAKE THIS A POPUP MAYBE
-      // ALSO SHOW THE TOP SCORE THROUGHOUT THE GAME LIKE ENCLOSE
-      const messageEl = document.getElementById("message");
-      if (messageEl) {
-        if (bestScore !== null) {
-          if (moves === bestScore && isNewBest) {
-            messageEl.textContent = `success! steps: ${moves} (new best!)`;
-          } else {
-            messageEl.textContent = `success! steps: ${moves} (best: ${bestScore})`;
-          }
-        } else {
-          messageEl.textContent = `success! steps: ${moves}`;
-        }
+      // show success popup only on first play
+      if (!hasExistingRun) {
+        showSuccessPopup(dayNumber, moves, currentLevelId);
       }
     } catch (error) {
       console.error("Error submitting run:", error);
-      // still show success message even if API call fails
-      const messageEl = document.getElementById("message");
-      if (messageEl) {
-        messageEl.textContent = `success! steps: ${moves}`;
-      }
+      // still show popup even if API call fails
+      showSuccessPopup(dayNumber, moves, currentLevelId);
     }
   });
 
@@ -1295,6 +1309,14 @@ async function init() {
       const currentState = renderer.getState();
       const newState = clearPath(currentState);
       renderer.setState(newState);
+    });
+  }
+
+  // setup success popup close button
+  const successPopupCloseBtn = document.getElementById("success-popup-close-btn");
+  if (successPopupCloseBtn) {
+    successPopupCloseBtn.addEventListener("click", () => {
+      hideSuccessPopup();
     });
   }
 

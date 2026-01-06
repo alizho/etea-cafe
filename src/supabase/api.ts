@@ -107,3 +107,30 @@ export async function getTopScoreForLevel(
   // PGRST116 = no rows
   return data;
 }
+
+// calculate percentile for a given score
+export function calculatePercentile(
+  score: number,
+  allScores: number[]
+): number {
+  if (allScores.length === 0) return 100;
+  
+  const betterScores = allScores.filter((s) => s < score).length;
+  const percentile = (betterScores / allScores.length) * 100;
+  return Math.round(percentile);
+}
+
+// get all scores for a level to calculate percentile
+export async function getAllScoresForLevel(
+  levelId: string
+): Promise<number[]> {
+  const { data, error } = await supabase
+    .from("runs")
+    .select("moves")
+    .eq("level_id", levelId)
+    .eq("success", true)
+    .order("moves", { ascending: true });
+
+  if (error) throw error;
+  return data?.map((r) => r.moves) || [];
+}

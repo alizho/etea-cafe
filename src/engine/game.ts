@@ -147,6 +147,6 @@ export function stepSimulation(state: GameState): GameState {
     inventory,
     served,
     status: allServedNow ? "success" : state.status,
-    message: allServedNow ? `success! steps: ${state.stepsTaken + 1}` : state.message,
+    message: allServedNow ? "success!" : state.message,
   };
 }

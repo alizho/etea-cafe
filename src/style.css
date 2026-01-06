@@ -340,6 +340,7 @@ body {
 }
 
 .popup-content {
+    color: #000;
     background-color: #f3f2ed;
     border: 3px solid #76428a;
     box-shadow: 0 0 0 2px #76428a;
@@ -355,4 +356,74 @@ body {
     font-size: 18px;
     color: #000;
     margin: 0 0 20px 0;
+}
+
+.success-day-text {
+    font-family: "PixelArial", Arial, sans-serif;
+    color: #76428a;
+    margin-top: 0;
+}
+
+.success-score-section {
+    margin: 20px 0;
+}
+
+.success-score-label {
+    font-weight: bold;
+    margin-bottom: 8px;
+    font-family: "PixelArial", Arial, sans-serif;
+    color: #000;
+}
+
+.success-score-value {
+    font-size: 2em;
+    font-weight: bold;
+    font-family: "PixelArial", Arial, sans-serif;
+    color: #76428a;
+}
+
+.success-optimal-message {
+    font-family: "PixelArial", Arial, sans-serif;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #76428a;
+    margin-top: 8px;
+    text-transform: uppercase;
+    display: none;
+}
+
+.success-distribution-section {
+    margin-top: 20px;
+}
+
+.success-distribution-label {
+    font-weight: bold;
+    margin-bottom: 8px;
+    font-family: "PixelArial", Arial, sans-serif;
+    color: #76428a;
+}
+
+.success-percentile {
+    font-size: 1.2em;
+    font-family: "PixelArial", Arial, sans-serif;
+    color: #76428a;
+    margin-bottom: 12px;
+}
+
+.success-graph-container {
+    display: flex;
+    justify-content: center;
+    margin: 12px 0;
+}
+
+.success-graph-canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    border: 3px solid #76428a;
+    box-shadow: 0 0 0 2px #76428a;
+    background-color: #ffffff;
+}
+
+#success-popup-close-btn {
+    margin-top: 20px;
 }
