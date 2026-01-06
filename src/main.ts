@@ -1182,6 +1182,29 @@ async function init() {
 
   const posKey = (p: Pos) => `${p.x},${p.y}`;
 
+  type StandDir = "left" | "right" | "up" | "down";
+  const standDirs: StandDir[] = ["left", "up", "right", "down"];
+
+  const standPosFor = (p: Pos, dir: StandDir): Pos => {
+    if (dir === "left") return { x: p.x - 1, y: p.y };
+    if (dir === "right") return { x: p.x + 1, y: p.y };
+    if (dir === "up") return { x: p.x, y: p.y - 1 };
+    return { x: p.x, y: p.y + 1 };
+  };
+
+  const hasWallAt = (p: Pos) =>
+    builderData.walls.some((w) => w.x === p.x && w.y === p.y);
+  const hasCustomerAt = (p: Pos) =>
+    builderData.customers.some((c) => c.x === p.x && c.y === p.y);
+
+  const isValidStandTile = (p: Pos): boolean => {
+    if (!inBounds(builderData.width, builderData.height, p)) return false;
+    if (isBorderTile(builderData.width, builderData.height, p)) return false;
+    if (hasWallAt(p)) return false;
+    if (hasCustomerAt(p)) return false;
+    return true;
+  };
+
   const enforceBorderWalls = () => {
     const w = builderData.width;
     const h = builderData.height;
@@ -1321,20 +1344,20 @@ async function init() {
       (c) => `${c.x},${c.y}` === key,
     );
     if (existingHere && existingHere.id === id) {
-      const nextStand = existingHere.standHere === "left" ? "right" : "left";
-      const standX = nextStand === "left" ? existingHere.x - 1 : existingHere.x + 1;
-      const standY = existingHere.y;
-      const standPos = { x: standX, y: standY };
-      if (!inBounds(builderData.width, builderData.height, standPos)) {
-        setBuilderStatus("stand tile would be out of bounds");
-        return;
-      }
-      if (isBorderTile(builderData.width, builderData.height, standPos)) {
-        setBuilderStatus("stand tile can’t be on border walls");
-        return;
+      const current = existingHere.standHere as StandDir;
+      const startIdx = standDirs.indexOf(current);
+      const baseIdx = startIdx >= 0 ? startIdx : 0;
+
+      for (let i = 1; i <= standDirs.length; i++) {
+        const next = standDirs[(baseIdx + i) % standDirs.length];
+        const standPos = standPosFor({ x: existingHere.x, y: existingHere.y }, next);
+        if (isValidStandTile(standPos)) {
+          existingHere.standHere = next;
+          return;
+        }
       }
 
-      existingHere.standHere = nextStand;
+      setBuilderStatus("no valid stand direction here");
       return;
     }
 
@@ -1344,25 +1367,22 @@ async function init() {
     );
     // ensure unique per id
     builderData.customers = builderData.customers.filter((c) => c.id !== id);
-    // avoid collision 
-    const leftStand = { x: p.x - 1, y: p.y };
-    const rightStand = { x: p.x + 1, y: p.y };
 
-    const leftOk =
-      inBounds(builderData.width, builderData.height, leftStand) &&
-      !isBorderTile(builderData.width, builderData.height, leftStand);
-    const rightOk =
-      inBounds(builderData.width, builderData.height, rightStand) &&
-      !isBorderTile(builderData.width, builderData.height, rightStand);
+    let chosen: StandDir | null = null;
+    for (const dir of standDirs) {
+      const standPos = standPosFor(p, dir);
+      if (isValidStandTile(standPos)) {
+        chosen = dir;
+        break;
+      }
+    }
 
-    if (!leftOk && !rightOk) {
-      setBuilderStatus("customer needs a stand tile inside the border");
+    if (!chosen) {
+      setBuilderStatus("customer needs a valid stand tile");
       return;
     }
 
-    const standHere: "left" | "right" = leftOk ? "left" : "right";
-
-    builderData.customers = [...builderData.customers, { x: p.x, y: p.y, id, standHere }];
+    builderData.customers = [...builderData.customers, { x: p.x, y: p.y, id, standHere: chosen }];
   };
 
   const resizeBuilderLevel = (nextW: number, nextH: number) => {

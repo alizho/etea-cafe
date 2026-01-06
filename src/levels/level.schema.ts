@@ -17,7 +17,7 @@ export type LevelData = {
     x: number;
     y: number;
     id: "A" | "B" | "C";
-    standHere: "left" | "right"; 
+    standHere: "left" | "right" | "up" | "down";
   }[];
 
   orders: Record<"A" | "B" | "C", ("D1" | "D2")[]>;

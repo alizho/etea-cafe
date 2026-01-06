@@ -44,8 +44,12 @@ export function validateLevelData(data: LevelData): LevelValidation {
     if (customerPosById[c.id]) errors.push(`customer ${c.id} appears multiple times`);
     customerPosById[c.id] = key;
 
-    const standX = c.standHere === "left" ? c.x - 1 : c.x + 1;
-    const standY = c.y;
+    let standX = c.x;
+    let standY = c.y;
+    if (c.standHere === "left") standX = c.x - 1;
+    else if (c.standHere === "right") standX = c.x + 1;
+    else if (c.standHere === "up") standY = c.y - 1;
+    else if (c.standHere === "down") standY = c.y + 1;
     if (!inBounds(standX, standY)) errors.push(`customer ${c.id} stand tile is out of bounds`);
     const standKey = k(standX, standY);
     if (wallSet.has(standKey)) errors.push(`customer ${c.id} stand tile overlaps wall`);

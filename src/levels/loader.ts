@@ -8,8 +8,12 @@ export function buildLevel(data: LevelData): Level {
   // build standHere map: calculate position based on customer position and standHere direction
   const standHereMap: Record<string, CustomerId> = {};
   for (const customer of data.customers) {
-    const standX = customer.standHere === "left" ? customer.x - 1 : customer.x + 1;
-    const standY = customer.y;
+    let standX = customer.x;
+    let standY = customer.y;
+    if (customer.standHere === "left") standX = customer.x - 1;
+    else if (customer.standHere === "right") standX = customer.x + 1;
+    else if (customer.standHere === "up") standY = customer.y - 1;
+    else if (customer.standHere === "down") standY = customer.y + 1;
     standHereMap[k(standX, standY)] = customer.id;
   }
 
