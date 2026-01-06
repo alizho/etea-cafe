@@ -40,11 +40,11 @@ function servedMaskKey(mask: number): string {
   return mask.toString(16);
 }
 
-const CUSTOMER_BITS: Record<CustomerId, number> = { "1": 1, "2": 2, "3": 4 };
+const CUSTOMER_BITS: Record<CustomerId, number> = { "A": 1, "B": 2, "C": 4 };
 
 function allCustomersMask(): number {
   // assuming we stick w 3 customers 
-  return CUSTOMER_BITS["1"] | CUSTOMER_BITS["2"] | CUSTOMER_BITS["3"];
+  return CUSTOMER_BITS["A"] | CUSTOMER_BITS["B"] | CUSTOMER_BITS["C"];
 }
 
 export type SolveResult =

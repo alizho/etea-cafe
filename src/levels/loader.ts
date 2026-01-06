@@ -24,10 +24,17 @@ export function buildLevel(data: LevelData): Level {
       data.drinkStations.map((d) => [k(d.x, d.y), d.drink])
     ),
 
-    customers: Object.fromEntries(data.customers.map((c) => [k(c.x, c.y), c.id])),
+    customers: Object.fromEntries(
+      data.customers.map((c) => [k(c.x, c.y), c.id])
+    ),
 
     standHere: standHereMap,
 
-    orders: data.orders,
+    orders: Object.fromEntries(
+      Object.entries(data.orders).map(([id, drinks]) => [
+        id,
+        drinks,
+      ])
+    ) as Record<CustomerId, ("D1" | "D2")[]>,
   };
 }

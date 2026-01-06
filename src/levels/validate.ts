@@ -30,7 +30,7 @@ export function validateLevelData(data: LevelData): LevelValidation {
     stationsSet.add(key);
   }
 
-  const customerPosById: Partial<Record<"1" | "2" | "3", string>> = {};
+  const customerPosById: Partial<Record<"A" | "B" | "C", string>> = {};
   const customerSet = new Set<string>();
 
   for (const c of data.customers) {
@@ -52,7 +52,7 @@ export function validateLevelData(data: LevelData): LevelValidation {
     if (customerSet.has(standKey)) errors.push(`customer ${c.id} stand tile overlaps a customer`);
   }
 
-  for (const id of ["1", "2", "3"] as const) {
+  for (const id of ["A", "B", "C"] as const) {
     if (!customerPosById[id]) errors.push(`missing customer ${id}`);
   }
 
@@ -60,7 +60,7 @@ export function validateLevelData(data: LevelData): LevelValidation {
   if (wallSet.has(startKey)) errors.push("start overlaps a wall");
   if (customerSet.has(startKey)) errors.push("start overlaps a customer");
 
-  for (const id of ["1", "2", "3"] as const) {
+  for (const id of ["A", "B", "C"] as const) {
     const order = data.orders[id];
     if (!order) {
       errors.push(`missing order for ${id}`);

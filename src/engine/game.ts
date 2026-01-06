@@ -22,7 +22,7 @@ export type GameState = {
 };
 
 function initServed(level: Level): Record<CustomerId, boolean> {
-  const served: Record<CustomerId, boolean> = { "1": false, "2": false, "3": false };
+  const served: Record<CustomerId, boolean> = { "A": false, "B": false, "C": false };
   for (const id of Object.keys(level.orders) as CustomerId[]) {
     served[id] = false;
   }

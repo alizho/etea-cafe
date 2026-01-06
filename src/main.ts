@@ -7,7 +7,7 @@ import {
   type GameState,
 } from "./engine/game";
 import { buildLevel } from "./levels/loader";
-import { getDailyLevelData } from "./levels/daily";
+import { getTodayLevelFromSupabase } from "./levels/daily";
 import type { LevelData } from "./levels/level.schema";
 import { validateLevelData } from "./levels/validate";
 import { solveLevel } from "./engine/solver";
@@ -114,15 +114,15 @@ function getCustomerIconDataUrl(customerSprite: HTMLImageElement, quadrant: 2 | 
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) return "";
-  
+
   const spriteWidth = customerSprite.width / 2;
   const spriteHeight = customerSprite.height / 2;
   canvas.width = spriteWidth;
   canvas.height = spriteHeight;
-  
+
   const sourceX = quadrant === 2 ? 0 : spriteWidth;
   const sourceY = spriteHeight;
-  
+
   ctx.drawImage(
     customerSprite,
     sourceX,
@@ -132,9 +132,9 @@ function getCustomerIconDataUrl(customerSprite: HTMLImageElement, quadrant: 2 | 
     0,
     0,
     spriteWidth,
-    spriteHeight
+    spriteHeight,
   );
-  
+
   return canvas.toDataURL();
 }
 
@@ -299,7 +299,8 @@ class GameRenderer {
     if (!pos) return;
 
     if (this.uiMode === "build") {
-      if (!inBounds(this.state.level.width, this.state.level.height, pos)) return;
+      if (!inBounds(this.state.level.width, this.state.level.height, pos))
+        return;
       this.isDrawing = true;
       this.lastBuildPaintKey = null;
 
@@ -322,7 +323,8 @@ class GameRenderer {
 
       const pos = getTilePos(this.canvas, e.clientX, e.clientY);
       if (!pos) return;
-      if (!inBounds(this.state.level.width, this.state.level.height, pos)) return;
+      if (!inBounds(this.state.level.width, this.state.level.height, pos))
+        return;
 
       const key = `${pos.x},${pos.y}`;
       if (this.lastBuildPaintKey === key) return;
@@ -516,9 +518,9 @@ class GameRenderer {
       // Ok wait is there a better way to do this or are we just gonna have a million diff customers in this
       // big ahh if statement...... yandev core
       let customerSprite: HTMLImageElement;
-      if (customerId === "1") customerSprite = customerA;
-      else if (customerId === "2") customerSprite = customerB;
-      else if (customerId === "3") customerSprite = customerC;
+      if (customerId === "A") customerSprite = customerA;
+      else if (customerId === "B") customerSprite = customerB;
+      else if (customerId === "C") customerSprite = customerC;
       else continue;
 
       // check if customer is served
@@ -600,9 +602,15 @@ class GameRenderer {
         // check if hovering over the last path tile (where you can grab from)
         const lastPathTile = this.state.path[this.state.path.length - 1];
         const isLastPathTile =
-          lastPathTile && this.hoverTile.x === lastPathTile.x && this.hoverTile.y === lastPathTile.y;
+          lastPathTile &&
+          this.hoverTile.x === lastPathTile.x &&
+          this.hoverTile.y === lastPathTile.y;
 
-        spriteToUse = isLastPathTile ? hoverYepSprite : (isUnwalkable ? hoverNopeSprite : hoverSprite);
+        spriteToUse = isLastPathTile
+          ? hoverYepSprite
+          : isUnwalkable
+            ? hoverNopeSprite
+            : hoverSprite;
       }
 
       // hover sprite has 2 frames split in half horizontally
@@ -652,10 +660,12 @@ class GameRenderer {
       if (inventory.length === 0) {
         inventoryEl.innerHTML = `in hand: (empty)`;
       } else {
-        const drinkImages = inventory.map(drinkId => {
-          const imageSrc = drinkId === "D1" ? drinkAItem.src : drinkBItem.src;
-          return `<img src="${imageSrc}" alt="${drinkId}" class="inventory-drink-icon" />`;
-        }).join("");
+        const drinkImages = inventory
+          .map((drinkId) => {
+            const imageSrc = drinkId === "D1" ? drinkAItem.src : drinkBItem.src;
+            return `<img src="${imageSrc}" alt="${drinkId}" class="inventory-drink-icon" />`;
+          })
+          .join("");
         inventoryEl.innerHTML = `in hand: ${drinkImages}`;
       }
     }
@@ -663,11 +673,13 @@ class GameRenderer {
     this.updateOrdersDisplay();
 
     if (runButton) {
-      runButton.disabled = this.uiMode === "build" || this.state.status !== "idle";
+      runButton.disabled =
+        this.uiMode === "build" || this.state.status !== "idle";
     }
 
     if (retryButton) {
-      retryButton.disabled = this.uiMode === "build" || this.state.status === "running";
+      retryButton.disabled =
+        this.uiMode === "build" || this.state.status === "running";
     }
   }
 
@@ -692,33 +704,39 @@ class GameRenderer {
     const { level, served } = this.state;
     const entries = Object.entries(level.orders);
     entries.sort(([a], [b]) => a.localeCompare(b));
-    
+
     const getCustomerSprite = (customerId: string): HTMLImageElement | null => {
-      if (customerId === "1") return customerA;
-      if (customerId === "2") return customerB;
-      if (customerId === "3") return customerC;
+      if (customerId === "A") return customerA;
+      if (customerId === "B") return customerB;
+      if (customerId === "C") return customerC;
       return null;
     };
-    
+
     const getDrinkItemImage = (drinkId: string): string => {
       if (drinkId === "D1") return drinkAItem.src;
       if (drinkId === "D2") return drinkBItem.src;
       return "";
     };
-    
-    const ordersHTML = entries.map(([customerId, drinks], index) => {
-      const customerSprite = getCustomerSprite(customerId);
-      const isServed = served[customerId as keyof typeof served] || false;
-      const quadrant: 2 | 3 = isServed ? 3 : 2;
-      const customerIconUrl = customerSprite ? getCustomerIconDataUrl(customerSprite, quadrant) : "";
-      
-      const drinkImages = drinks.map(drinkId => 
-        `<img src="${getDrinkItemImage(drinkId)}" alt="${drinkId}" class="drink-item-icon" />`
-      ).join("");
-      
-      const servedClass = isServed ? "order-served" : "";
-      
-      return `
+
+    const ordersHTML = entries
+      .map(([customerId, drinks], index) => {
+        const customerSprite = getCustomerSprite(customerId);
+        const isServed = served[customerId as keyof typeof served] || false;
+        const quadrant: 2 | 3 = isServed ? 3 : 2;
+        const customerIconUrl = customerSprite
+          ? getCustomerIconDataUrl(customerSprite, quadrant)
+          : "";
+
+        const drinkImages = drinks
+          .map(
+            (drinkId) =>
+              `<img src="${getDrinkItemImage(drinkId)}" alt="${drinkId}" class="drink-item-icon" />`,
+          )
+          .join("");
+
+        const servedClass = isServed ? "order-served" : "";
+
+        return `
         <li class="order-item ${servedClass}" data-customer-id="${customerId}">
           <div class="order-header">order #${index + 1}</div>
           <div class="order-row">
@@ -727,8 +745,9 @@ class GameRenderer {
           </div>
         </li>
       `;
-    }).join("");
-    
+      })
+      .join("");
+
     ordersEl.innerHTML = ordersHTML;
   }
 }
@@ -738,21 +757,31 @@ async function init() {
   await imagesLoaded;
 
   // builder tool icons
-  const startIcon = document.getElementById("builder-start-icon") as HTMLImageElement | null;
-  const b1 = document.getElementById("builder-cust1-icon") as HTMLImageElement | null;
-  const b2 = document.getElementById("builder-cust2-icon") as HTMLImageElement | null;
-  const b3 = document.getElementById("builder-cust3-icon") as HTMLImageElement | null;
+  const startIcon = document.getElementById(
+    "builder-start-icon",
+  ) as HTMLImageElement | null;
+  const b1 = document.getElementById(
+    "builder-cust1-icon",
+  ) as HTMLImageElement | null;
+  const b2 = document.getElementById(
+    "builder-cust2-icon",
+  ) as HTMLImageElement | null;
+  const b3 = document.getElementById(
+    "builder-cust3-icon",
+  ) as HTMLImageElement | null;
   if (startIcon) startIcon.src = getGlorboIcon(glorboSpriteSheet);
   if (b1) b1.src = getCustomerIconDataUrl(customerA, 2);
   if (b2) b2.src = getCustomerIconDataUrl(customerB, 2);
   if (b3) b3.src = getCustomerIconDataUrl(customerC, 2);
 
-  const levelData: LevelData = getDailyLevelData();
+  const levelData: LevelData = await getTodayLevelFromSupabase();
 
   const level = buildLevel(levelData);
   const state = initGame(level);
 
-  let currentLevelData: LevelData = JSON.parse(JSON.stringify(levelData)) as LevelData;
+  let currentLevelData: LevelData = JSON.parse(
+    JSON.stringify(levelData),
+  ) as LevelData;
 
   // setup day text
   const dayTextEl = document.getElementById("day-text");
@@ -769,17 +798,31 @@ async function init() {
   const renderer = new GameRenderer(canvas, state);
 
   // builder mode starts based off the day's level
-  type BuilderTool = "erase" | "wall" | "start" | "d1" | "d2" | "cust1" | "cust2" | "cust3";
+  type BuilderTool =  "erase" | "wall" | "start" | "d1" | "d2" | "cust1" | "cust2" | "cust3";
   let builderMode = false;
-  let builderData: LevelData = JSON.parse(JSON.stringify(currentLevelData)) as LevelData;
+  let builderData: LevelData = JSON.parse(
+    JSON.stringify(currentLevelData),
+  ) as LevelData;
   let builderTool: BuilderTool = "wall";
 
-  const builderButton = document.getElementById("builder-btn") as HTMLButtonElement | null;
-  const builderPanel = document.getElementById("builder-panel") as HTMLDivElement | null;
-  const builderStatusEl = document.getElementById("builder-status") as HTMLDivElement | null;
-  const toolButtons = Array.from(document.querySelectorAll(".builder-tool-btn")) as HTMLButtonElement[];
-  const checkBtn = document.getElementById("builder-check-btn") as HTMLButtonElement | null;
-  const sidebarOrdersEl = document.getElementById("orders") as HTMLUListElement | null;
+  const builderButton = document.getElementById(
+    "builder-btn",
+  ) as HTMLButtonElement | null;
+  const builderPanel = document.getElementById(
+    "builder-panel",
+  ) as HTMLDivElement | null;
+  const builderStatusEl = document.getElementById(
+    "builder-status",
+  ) as HTMLDivElement | null;
+  const toolButtons = Array.from(
+    document.querySelectorAll(".builder-tool-btn"),
+  ) as HTMLButtonElement[];
+  const checkBtn = document.getElementById(
+    "builder-check-btn",
+  ) as HTMLButtonElement | null;
+  const sidebarOrdersEl = document.getElementById(
+    "orders",
+  ) as HTMLUListElement | null;
 
   const setBuilderStatus = (text: string) => {
     if (builderStatusEl) builderStatusEl.textContent = text;
@@ -795,9 +838,15 @@ async function init() {
   const normalizeOrders = () => {
     // ensure every customer has at least drink 1
     builderData.orders = {
-      "1": builderData.orders?.["1"]?.length ? builderData.orders["1"].slice(0, 2) : ["D1"],
-      "2": builderData.orders?.["2"]?.length ? builderData.orders["2"].slice(0, 2) : ["D1"],
-      "3": builderData.orders?.["3"]?.length ? builderData.orders["3"].slice(0, 2) : ["D1"],
+      A: builderData.orders?.A?.length
+        ? builderData.orders.A.slice(0, 2)
+        : ["D1"],
+      B: builderData.orders?.B?.length
+        ? builderData.orders.B.slice(0, 2)
+        : ["D1"],
+      C: builderData.orders?.C?.length
+        ? builderData.orders.C.slice(0, 2)
+        : ["D1"],
     };
   };
 
@@ -816,7 +865,9 @@ async function init() {
     // replace normal orders list w button ver... idk if i like this approach but whatever
 
     const drinkIconSrc = (drink: "D1" | "D2") =>
-      drink === "D1" ? "/src/assets/drink_a_item.png" : "/src/assets/drink_b_item.png";
+      drink === "D1"
+        ? "/src/assets/drink_a_item.png"
+        : "/src/assets/drink_b_item.png";
 
     const renderDrinkButtonContent = (value: "D1" | "D2" | "") => {
       if (value === "") {
@@ -868,15 +919,15 @@ async function init() {
     };
 
     const getCustomerSprite = (customerId: string): HTMLImageElement | null => {
-      if (customerId === "1") return customerA;
-      if (customerId === "2") return customerB;
-      if (customerId === "3") return customerC;
+      if (customerId === "A") return customerA;
+      if (customerId === "B") return customerB;
+      if (customerId === "C") return customerC;
       return null;
     };
 
     sidebarOrdersEl.innerHTML = "";
 
-    for (const id of ["1", "2", "3"] as const) {
+    for (const id of ["A", "B", "C"] as const) {
       const li = document.createElement("li");
       li.className = "order-item";
 
@@ -935,9 +986,15 @@ async function init() {
   const posKey = (p: Pos) => `${p.x},${p.y}`;
   const removeAt = (p: Pos) => {
     const key = posKey(p);
-    builderData.walls = builderData.walls.filter((w) => `${w.x},${w.y}` !== key);
-    builderData.drinkStations = builderData.drinkStations.filter((d) => `${d.x},${d.y}` !== key);
-    builderData.customers = builderData.customers.filter((c) => `${c.x},${c.y}` !== key);
+    builderData.walls = builderData.walls.filter(
+      (w) => `${w.x},${w.y}` !== key,
+    );
+    builderData.drinkStations = builderData.drinkStations.filter(
+      (d) => `${d.x},${d.y}` !== key,
+    );
+    builderData.customers = builderData.customers.filter(
+      (c) => `${c.x},${c.y}` !== key,
+    );
   };
 
   const toggleWallAt = (p: Pos) => {
@@ -947,7 +1004,10 @@ async function init() {
       return;
     }
     const has = builderData.walls.some((w) => `${w.x},${w.y}` === key);
-    if (has) builderData.walls = builderData.walls.filter((w) => `${w.x},${w.y}` !== key);
+    if (has)
+      builderData.walls = builderData.walls.filter(
+        (w) => `${w.x},${w.y}` !== key,
+      );
     else {
       removeAt(p);
       builderData.walls = [...builderData.walls, { x: p.x, y: p.y }];
@@ -965,34 +1025,55 @@ async function init() {
       // allow start to overlap station (pickup immediately)
     }
     // remove wall/customer; station can overwrite station
-    builderData.walls = builderData.walls.filter((w) => `${w.x},${w.y}` !== key);
-    builderData.customers = builderData.customers.filter((c) => `${c.x},${c.y}` !== key);
-    builderData.drinkStations = builderData.drinkStations.filter((d) => `${d.x},${d.y}` !== key);
-    builderData.drinkStations = [...builderData.drinkStations, { x: p.x, y: p.y, drink }];
+    builderData.walls = builderData.walls.filter(
+      (w) => `${w.x},${w.y}` !== key,
+    );
+    builderData.customers = builderData.customers.filter(
+      (c) => `${c.x},${c.y}` !== key,
+    );
+    builderData.drinkStations = builderData.drinkStations.filter(
+      (d) => `${d.x},${d.y}` !== key,
+    );
+    builderData.drinkStations = [
+      ...builderData.drinkStations,
+      { x: p.x, y: p.y, drink },
+    ];
   };
 
-  const setCustomerAt = (p: Pos, id: "1" | "2" | "3") => {
+  const setCustomerAt = (p: Pos, id: "A" | "B" | "C") => {
     const key = posKey(p);
     if (key === posKey(builderData.start)) {
-      setBuilderStatus("can’t place a customer on start");
+      setBuilderStatus("can't place a customer on start");
       return;
     }
     // remove wall/station at tile
-    builderData.walls = builderData.walls.filter((w) => `${w.x},${w.y}` !== key);
-    builderData.drinkStations = builderData.drinkStations.filter((d) => `${d.x},${d.y}` !== key);
+    builderData.walls = builderData.walls.filter(
+      (w) => `${w.x},${w.y}` !== key,
+    );
+    builderData.drinkStations = builderData.drinkStations.filter(
+      (d) => `${d.x},${d.y}` !== key,
+    );
 
     // if clicking same customer, toggle standHere
-    const existingHere = builderData.customers.find((c) => `${c.x},${c.y}` === key);
+    const existingHere = builderData.customers.find(
+      (c) => `${c.x},${c.y}` === key,
+    );
     if (existingHere && existingHere.id === id) {
-      existingHere.standHere = existingHere.standHere === "left" ? "right" : "left";
+      existingHere.standHere =
+        existingHere.standHere === "left" ? "right" : "left";
       return;
     }
 
     // remove any other customer at tile
-    builderData.customers = builderData.customers.filter((c) => `${c.x},${c.y}` !== key);
+    builderData.customers = builderData.customers.filter(
+      (c) => `${c.x},${c.y}` !== key,
+    );
     // ensure unique per id
     builderData.customers = builderData.customers.filter((c) => c.id !== id);
-    builderData.customers = [...builderData.customers, { x: p.x, y: p.y, id, standHere: "left" }];
+    builderData.customers = [
+      ...builderData.customers,
+      { x: p.x, y: p.y, id, standHere: "left" },
+    ];
   };
 
   const handleBuildTileClick = (p: Pos) => {
@@ -1016,13 +1097,13 @@ async function init() {
         setDrinkAt(p, "D2");
         break;
       case "cust1":
-        setCustomerAt(p, "1");
+        setCustomerAt(p, "A");
         break;
       case "cust2":
-        setCustomerAt(p, "2");
+        setCustomerAt(p, "B");
         break;
       case "cust3":
-        setCustomerAt(p, "3");
+        setCustomerAt(p, "C");
         break;
     }
 
@@ -1040,7 +1121,7 @@ async function init() {
   }
 
   const checkSolvableNow = () => {
-    // first validate for quick immediate errors. Then bfs algo (slowerish) 
+    // first validate for quick immediate errors. Then bfs algo (slowerish)
     const validation = validateLevelData(builderData);
     if (!validation.ok) {
       setBuilderStatus(`invalid:\n${validation.errors.join("\n")}`);
@@ -1052,7 +1133,9 @@ async function init() {
     if (solved.solvable) {
       setBuilderStatus(`solvable! (searched ${solved.visitedStates} states)`);
     } else {
-      setBuilderStatus(`not solvable (searched ${solved.visitedStates} states)`);
+      setBuilderStatus(
+        `not solvable (searched ${solved.visitedStates} states)`,
+      );
     }
   };
 
