@@ -21,6 +21,14 @@ export function validateLevelData(data: LevelData): LevelValidation {
     wallSet.add(k(w.x, w.y));
   }
 
+  const obstacleSet = new Set<string>();
+  for (const o of data.obstacles) {
+    if (!inBounds(o.x, o.y)) errors.push(`obstacle out of bounds at (${o.x},${o.y})`);
+    const key = k(o.x, o.y);
+    if (wallSet.has(key)) errors.push(`obstacle overlaps wall at (${o.x},${o.y})`);
+    obstacleSet.add(key);
+  }
+
   const stationsSet = new Set<string>();
   for (const s of data.drinkStations) {
     if (!inBounds(s.x, s.y)) errors.push(`drink station out of bounds at (${s.x},${s.y})`);

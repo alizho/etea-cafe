@@ -7,10 +7,16 @@ export type LevelData = {
 
   walls: { x: number; y: number }[];
 
+  obstacles: {
+    x: number;
+    y: number;
+    type: "plant_a" | "plant_b" | "table_single";
+  }[];
+
   drinkStations: {
     x: number;
     y: number;
-    drink: "D1" | "D2";
+    drink: "D1" | "D2" | "F1" | "F2" | "F3";
   }[];
 
   customers: {

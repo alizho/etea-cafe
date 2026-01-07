@@ -27,11 +27,59 @@ import "./style.css";
 const floorOpen = new Image();
 floorOpen.src = "/src/assets/floor_open.png";
 
+const wallTop = new Image();
+wallTop.src = "/src/assets/wall_top.png";
+
+const wallBot = new Image();
+wallBot.src = "/src/assets/wall_bot.png";
+
+const wallLeftTop = new Image();
+wallLeftTop.src = "/src/assets/wall_left_top.png";
+
+const wallLeftMid = new Image();
+wallLeftMid.src = "/src/assets/wall_left_mid.png";
+
+const wallLeftBot = new Image();
+wallLeftBot.src = "/src/assets/wall_left_bot.png";
+
+const wallLeftCorner = new Image();
+wallLeftCorner.src = "/src/assets/wall_left_corner.png";
+
+const wallRightTop = new Image();
+wallRightTop.src = "/src/assets/wall_right_top.png";
+
+const wallRightMid = new Image();
+wallRightMid.src = "/src/assets/wall_right_mid.png";
+
+const wallRightBot = new Image();
+wallRightBot.src = "/src/assets/wall_right_bot.png";
+
+const wallRightCorner = new Image();
+wallRightCorner.src = "/src/assets/wall_right_corner.png";
+
 const drinkA = new Image();
 drinkA.src = "/src/assets/drink_a.png";
 
 const drinkB = new Image();
 drinkB.src = "/src/assets/drink_b.png";
+
+const foodA = new Image();
+foodA.src = "/src/assets/food_a.png";
+
+const foodB = new Image();
+foodB.src = "/src/assets/food_b.png";
+
+const foodC = new Image();
+foodC.src = "/src/assets/food_c.png";
+
+const foodAItem = new Image();
+foodAItem.src = "/src/assets/food_a_item.png";
+
+const foodBItem = new Image();
+foodBItem.src = "/src/assets/food_b_item.png";
+
+const foodCItem = new Image();
+foodCItem.src = "/src/assets/food_c_item.png";
 
 const drinkPressed = new Image();
 drinkPressed.src = "/src/assets/drink_pressed.png";
@@ -66,16 +114,73 @@ drinkAItem.src = "/src/assets/drink_a_item.png";
 const drinkBItem = new Image();
 drinkBItem.src = "/src/assets/drink_b_item.png";
 
+const plantA = new Image();
+plantA.src = "/src/assets/plant_a.png";
+
+const plantB = new Image();
+plantB.src = "/src/assets/plant_b.png";
+
+const tableSingle = new Image();
+tableSingle.src = "/src/assets/table_single.png";
+
 // images have to load :(
 const imagesLoaded = Promise.all([
   new Promise<void>((resolve) => {
     floorOpen.onload = () => resolve();
   }),
   new Promise<void>((resolve) => {
+    wallTop.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    wallBot.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    wallLeftTop.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    wallLeftMid.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    wallLeftBot.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    wallLeftCorner.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    wallRightTop.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    wallRightMid.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    wallRightBot.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    wallRightCorner.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
     drinkA.onload = () => resolve();
   }),
   new Promise<void>((resolve) => {
     drinkB.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    foodA.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    foodB.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    foodC.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    foodAItem.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    foodBItem.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    foodCItem.onload = () => resolve();
   }),
   new Promise<void>((resolve) => {
     drinkPressed.onload = () => resolve();
@@ -110,6 +215,15 @@ const imagesLoaded = Promise.all([
   }),
   new Promise<void>((resolve) => {
     drinkBItem.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    plantA.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    plantB.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    tableSingle.onload = () => resolve();
   }),
 ]);
 
@@ -558,8 +672,8 @@ class GameRenderer {
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     // draw floor for all tiles
-    for (let y = 0; y < level.height; y++) {
-      for (let x = 0; x < level.width; x++) {
+    for (let y = 1; y < level.height - 1; y++) {
+      for (let x = 1; x < level.width - 1; x++) {
         const px = x * TILE_SIZE;
         const py = y * TILE_SIZE;
         ctx.drawImage(floorOpen, px, py, TILE_SIZE, TILE_SIZE);
@@ -567,12 +681,65 @@ class GameRenderer {
     }
 
     // draw walls
-    ctx.fillStyle = "#333";
+    const isFloor = (x: number, y: number): boolean => {
+      if (x < 0 || x >= level.width || y < 0 || y >= level.height) return false;
+      return !level.walls.has(`${x},${y}`);
+    };
+
     for (const wallKey of level.walls) {
       const [x, y] = wallKey.split(",").map(Number);
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
-      ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+
+      let wallSprite: HTMLImageElement = wallTop; // default fallback
+
+      if (isFloor(x, y + 1)) {
+        wallSprite = wallTop;
+      }
+      else if (isFloor(x, y - 1)) {
+        wallSprite = wallBot;
+      }
+      else if (!isFloor(x - 1, y + 1) && isFloor(x - 1, y)) {
+        wallSprite = wallRightBot;
+      }
+      else if (isFloor(x - 1, y)) {
+        wallSprite = wallRightMid;
+      }
+      else if (isFloor(x - 1, y + 1)) {
+        wallSprite = wallRightTop;
+      }
+      else if (!isFloor(x + 1, y + 1) && isFloor(x + 1, y)) {
+        wallSprite = wallLeftBot;
+      }
+      else if (isFloor(x + 1, y)) {
+        wallSprite = wallLeftMid;
+      }
+      else if (isFloor(x + 1, y + 1)) {
+        wallSprite = wallLeftTop;
+      }
+      else if (isFloor(x + 1, y - 1)) {
+        wallSprite = wallLeftCorner;
+      }
+      else if (isFloor(x - 1, y - 1)) {
+        wallSprite = wallRightCorner;
+      }
+
+      ctx.drawImage(wallSprite, px, py, TILE_SIZE, TILE_SIZE);
+    }
+
+    // draw obstacles
+    for (const [key, type] of Object.entries(level.obstacles)) {
+      const [x, y] = key.split(",").map(Number);
+      const px = x * TILE_SIZE;
+      const py = y * TILE_SIZE;
+
+      let obstacleSprite: HTMLImageElement;
+      if (type === "plant_a") obstacleSprite = plantA;
+      else if (type === "plant_b") obstacleSprite = plantB;
+      else if (type === "table_single") obstacleSprite = tableSingle;
+      else continue;
+
+      ctx.drawImage(obstacleSprite, px, py, TILE_SIZE, TILE_SIZE);
     }
 
     // draw drink stations
@@ -592,6 +759,14 @@ class GameRenderer {
         // use pressed sprite if glorbo is on it, otherwise normal sprite
         const spriteToUse = isGlorboOnStation ? drinkPressed : drinkB;
         ctx.drawImage(spriteToUse, px, py, TILE_SIZE, TILE_SIZE);
+
+        // to add pressed sprite for food - alicia
+      } else if (drink === "F1") {
+        ctx.drawImage(foodA, px, py, TILE_SIZE, TILE_SIZE);
+      } else if (drink === "F2") {
+        ctx.drawImage(foodB, px, py, TILE_SIZE, TILE_SIZE);
+      } else if (drink === "F3") {
+        ctx.drawImage(foodC, px, py, TILE_SIZE, TILE_SIZE);
       }
     }
 
@@ -703,11 +878,12 @@ class GameRenderer {
 
       let spriteToUse = hoverSprite;
       if (this.uiMode === "play") {
-        // check if tile is unwalkable (wall or customer)
+        // check if tile is unwalkable (wall, customer, or obstacle)
         const hoverKey = `${this.hoverTile.x},${this.hoverTile.y}`;
         const isUnwalkable =
           this.state.level.walls.has(hoverKey) ||
-          this.state.level.customers[hoverKey];
+          this.state.level.customers[hoverKey] ||
+          this.state.level.obstacles[hoverKey];
 
         // check if hovering over the last path tile (where you can grab from)
         const lastPathTile = this.state.path[this.state.path.length - 1];
@@ -786,7 +962,10 @@ class GameRenderer {
       } else {
         const drinkImages = inventory
           .map((drinkId) => {
-            const imageSrc = drinkId === "D1" ? drinkAItem.src : drinkBItem.src;
+            let imageSrc = drinkId === "D1" ? drinkAItem.src : drinkBItem.src;
+            if (drinkId === "F1") imageSrc = foodAItem.src;
+            if (drinkId === "F2") imageSrc = foodBItem.src;
+            if (drinkId === "F3") imageSrc = foodCItem.src;
             return `<img src="${imageSrc}" alt="${drinkId}" class="inventory-drink-icon" />`;
           })
           .join("");
@@ -839,6 +1018,9 @@ class GameRenderer {
     const getDrinkItemImage = (drinkId: string): string => {
       if (drinkId === "D1") return drinkAItem.src;
       if (drinkId === "D2") return drinkBItem.src;
+      if (drinkId === "F1") return foodAItem.src;
+      if (drinkId === "F2") return foodBItem.src;
+      if (drinkId === "F3") return foodCItem.src;
       return "";
     };
 

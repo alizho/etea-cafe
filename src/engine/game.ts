@@ -50,6 +50,8 @@ export function canAppendToPath(state: GameState, next: Pos): boolean {
   if (state.level.walls.has(keyOf(next))) return false;
   // can't step on customers
   if (state.level.customers[keyOf(next)]) return false;
+  // can't step on obstacles
+  if (state.level.obstacles[keyOf(next)]) return false;
   return true; // allow revisits
 }
 
@@ -72,7 +74,7 @@ function pickDrink(inv: DrinkId[], drink: DrinkId): DrinkId[] {
 }
 
 function canServe(inv: DrinkId[], needs: DrinkId[]): boolean {
-  const counts: Record<DrinkId, number> = { D1: 0, D2: 0 };
+  const counts: Record<DrinkId, number> = { D1: 0, D2: 0, F1: 0, F2: 0, F3: 0 };
   for (const d of inv) counts[d]++;
 
   for (const need of needs) {
@@ -109,8 +111,8 @@ export function stepSimulation(state: GameState): GameState {
   const nextPos = state.path[nextIndex];
   const posKey = keyOf(nextPos);
 
-  // can't step on walls or customers (but floor still shows under customers)
-  if (state.level.walls.has(posKey) || state.level.customers[posKey]) {
+  // can't step on walls, customers, or obstacles (but floor still shows under customers)
+  if (state.level.walls.has(posKey) || state.level.customers[posKey] || state.level.obstacles[posKey]) {
     return {
       ...state,
       stepIndex: nextIndex,

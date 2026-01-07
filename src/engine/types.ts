@@ -1,5 +1,6 @@
-export type DrinkId = "D1" | "D2";
+export type DrinkId = "D1" | "D2" | "F1" | "F2" | "F3";
 export type CustomerId = "A" | "B" | "C";
+export type ObstacleId = "plant_a" | "plant_b" | "table_single";
 
 export type Pos = { x: number; y: number };
 
@@ -7,6 +8,7 @@ export type Level = {
   width: number;
   height: number;
   walls: Set<string>; // "x,y"
+  obstacles: Record<string, ObstacleId>; // key "x,y" -> obstacle type
   start: Pos;
 
   drinkStations: Record<string, DrinkId>; // key "x,y" -> drink id
