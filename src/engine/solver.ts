@@ -13,7 +13,13 @@ function pickDrink(inv: Inv, drink: DrinkId): Inv {
 }
 
 function canServe(inv: Inv, needs: DrinkId[]): boolean {
-  const counts: Record<DrinkId, number> = { D1: 0, D2: 0 };
+  const counts: Record<DrinkId, number> = {
+    D1: 0,
+    D2: 0,
+    F1: 0,
+    F2: 0,
+    F3: 0,
+  };
   for (const d of inv) counts[d]++;
 
   for (const need of needs) {

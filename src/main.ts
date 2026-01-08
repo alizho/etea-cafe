@@ -21,6 +21,7 @@ import { validateLevelData } from "./levels/validate";
 import { solveLevel } from "./engine/solver";
 import { pathImagesLoaded, renderPath, renderPathArrow } from "./paths";
 import { TILE_SIZE } from "./config/constants";
+import { ensureAudioStartedOnFirstGesture, playPathTileSfx } from "./audio";
 import "./style.css";
 
 // load sprites
@@ -534,7 +535,11 @@ class GameRenderer {
     if (!pos) return;
     if (!inBounds(this.state.level.width, this.state.level.height, pos)) return;
 
+    const prevLen = this.state.path.length;
     this.state = tryAppendPath(this.state, pos);
+    if (this.state.path.length > prevLen) {
+      playPathTileSfx();
+    }
     this.render();
     this.updateUI();
   }
@@ -1060,6 +1065,7 @@ class GameRenderer {
 
 // initialize game
 async function init() {
+  ensureAudioStartedOnFirstGesture();
   await imagesLoaded;
 
   // builder tool icons
