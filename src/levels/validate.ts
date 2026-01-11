@@ -9,6 +9,8 @@ export type LevelValidation = { ok: true } | { ok: false; errors: string[] };
 export function validateLevelData(data: LevelData): LevelValidation {
   const errors: string[] = [];
 
+  const validDrinkIds = new Set(["D1", "D2", "F1", "F2", "F3"]);
+
   if (data.width <= 0 || data.height <= 0) errors.push("width/height must be > 0");
 
   const inBounds = (x: number, y: number) => x >= 0 && x < data.width && y >= 0 && y < data.height;
@@ -80,6 +82,12 @@ export function validateLevelData(data: LevelData): LevelValidation {
     }
     if (order.length < 1) errors.push(`order for ${id} must have at least 1 drink`);
     if (order.length > 2) errors.push(`order for ${id} must be 1 or 2 drinks`);
+
+    for (const item of order) {
+      if (!validDrinkIds.has(item)) {
+        errors.push(`order for ${id} has invalid item: ${String(item)}`);
+      }
+    }
   }
 
   return errors.length ? { ok: false, errors } : { ok: true };

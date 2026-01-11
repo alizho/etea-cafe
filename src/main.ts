@@ -1,4 +1,4 @@
-import { type Pos } from "./engine/types";
+import { type DrinkId, type Pos } from "./engine/types";
 import {
   clearPath,
   initGame,
@@ -1156,12 +1156,22 @@ async function init() {
   });
 
   // builder mode starts based off the day's level
-  type BuilderTool =  "erase" | "wall" | "start" | "d1" | "d2" | "cust1" | "cust2" | "cust3";
+  type BuilderTool =
+    | "erase"
+    | "wall"
+    | "start"
+    | "station"
+    | "cust1"
+    | "cust2"
+    | "cust3";
   let builderMode = false;
   let builderData: LevelData = JSON.parse(
     JSON.stringify(currentLevelData),
   ) as LevelData;
   let builderTool: BuilderTool = "wall";
+
+  const stationCycle: DrinkId[] = ["D1", "D2", "F1", "F2", "F3"];
+  let stationToolDefault: DrinkId = "D1";
 
   const builderButton = document.getElementById(
     "builder-btn",
@@ -1249,12 +1259,15 @@ async function init() {
 
     // replace normal orders list w button ver... idk if i like this approach but whatever
 
-    const drinkIconSrc = (drink: "D1" | "D2") =>
-      drink === "D1"
-        ? "/src/assets/drink_a_item.png"
-        : "/src/assets/drink_b_item.png";
+    const drinkIconSrc = (drink: DrinkId) => {
+      if (drink === "D1") return "/src/assets/drink_a_item.png";
+      if (drink === "D2") return "/src/assets/drink_b_item.png";
+      if (drink === "F1") return "/src/assets/food_a_item.png";
+      if (drink === "F2") return "/src/assets/food_b_item.png";
+      return "/src/assets/food_c_item.png";
+    };
 
-    const renderDrinkButtonContent = (value: "D1" | "D2" | "") => {
+    const renderDrinkButtonContent = (value: DrinkId | "") => {
       if (value === "") {
         const placeholder = document.createElement("div");
         placeholder.className = "builder-none-placeholder";
@@ -1269,16 +1282,16 @@ async function init() {
     };
 
     const makeDrinkButton = (
-      value: "D1" | "D2" | "",
+      value: DrinkId | "",
       allowNone: boolean,
-      onPick: (v: "D1" | "D2" | "") => void,
+      onPick: (v: DrinkId | "") => void,
     ) => {
       const btn = document.createElement("button");
       btn.className = "game-button builder-drink-btn";
       btn.type = "button";
-      btn.ariaLabel = "pick drink";
+      btn.ariaLabel = "pick item";
 
-      const setValue = (v: "D1" | "D2" | "") => {
+      const setValue = (v: DrinkId | "") => {
         btn.innerHTML = "";
         btn.appendChild(renderDrinkButtonContent(v));
       };
@@ -1286,18 +1299,20 @@ async function init() {
       setValue(value);
 
       btn.addEventListener("click", () => {
+        const items: DrinkId[] = ["D1", "D2", "F1", "F2", "F3"];
         if (allowNone) {
-          // cycle none -> D1 -> D2 -> none
-          const next = value === "" ? "D1" : value === "D1" ? "D2" : "";
+          const extended: (DrinkId | "")[] = ["", ...items];
+          const idx = extended.indexOf(value);
+          const next = extended[(idx + 1) % extended.length] ?? "D1";
           value = next;
-          setValue(value);
-          onPick(value);
         } else {
-          const next = value === "D1" ? "D2" : "D1";
+          const idx = items.indexOf(value as DrinkId);
+          const next = items[(idx + 1) % items.length] ?? "D1";
           value = next;
-          setValue(value);
-          onPick(value);
         }
+
+        setValue(value);
+        onPick(value);
       });
 
       return btn;
@@ -1336,8 +1351,8 @@ async function init() {
       const first = builderData.orders[id][0] ?? "D1";
       const second = builderData.orders[id][1] ?? "";
 
-      let a = first as "D1" | "D2";
-      let b = second as "D1" | "D2" | "";
+      let a = first as DrinkId;
+      let b = second as DrinkId | "";
 
       const commit = () => {
         // write to builder data and rebuild preview
@@ -1347,7 +1362,7 @@ async function init() {
       };
 
       const btn1 = makeDrinkButton(a, false, (v) => {
-        a = v as "D1" | "D2";
+        a = v as DrinkId;
         commit();
       });
       const btn2 = makeDrinkButton(b, true, (v) => {
@@ -1484,7 +1499,7 @@ async function init() {
     builderData.start = { x: p.x, y: p.y };
   };
 
-  const setDrinkAt = (p: Pos, drink: "D1" | "D2") => {
+  const setDrinkAt = (p: Pos, drink: DrinkId) => {
     if (isBorderTile(builderData.width, builderData.height, p)) {
       setBuilderStatus("border tiles are walls (can’t place here)");
       return;
@@ -1507,6 +1522,22 @@ async function init() {
       ...builderData.drinkStations,
       { x: p.x, y: p.y, drink },
     ];
+  };
+
+  const cycleStationAt = (p: Pos) => {
+    const key = posKey(p);
+    const idx = builderData.drinkStations.findIndex((d) => `${d.x},${d.y}` === key);
+    if (idx < 0) {
+      setDrinkAt(p, stationToolDefault);
+      return;
+    }
+
+    const current = builderData.drinkStations[idx]?.drink as DrinkId | undefined;
+    const currentIndex = current ? stationCycle.indexOf(current) : -1;
+    const next = stationCycle[(currentIndex + 1) % stationCycle.length] ?? "D1";
+
+    builderData.drinkStations[idx] = { x: p.x, y: p.y, drink: next };
+    stationToolDefault = next;
   };
 
   const setCustomerAt = (p: Pos, id: "A" | "B" | "C") => {
@@ -1631,11 +1662,8 @@ async function init() {
       case "start":
         setStartAt(p);
         break;
-      case "d1":
-        setDrinkAt(p, "D1");
-        break;
-      case "d2":
-        setDrinkAt(p, "D2");
+      case "station":
+        cycleStationAt(p);
         break;
       case "cust1":
         setCustomerAt(p, "A");

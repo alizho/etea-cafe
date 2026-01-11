@@ -1,3 +1,5 @@
+import type { DrinkId } from "../engine/types";
+
 export type LevelData = {
   id: string;
   width: number;
@@ -10,7 +12,16 @@ export type LevelData = {
   obstacles: {
     x: number;
     y: number;
-    type: "plant_a" | "plant_b" | "table_single";
+    type:
+      | "plant_a"
+      | "plant_b"
+      | "plant_two"
+      | "shelf_a"
+      | "table_single"
+      | "table_l"
+      | "table_m"
+      | "table_r"
+      | "window_single_a";
   }[];
 
   drinkStations: {
@@ -26,5 +37,5 @@ export type LevelData = {
     standHere: "left" | "right" | "up" | "down";
   }[];
 
-  orders: Record<"A" | "B" | "C", ("D1" | "D2")[]>;
+  orders: Record<"A" | "B" | "C", DrinkId[]>;
 };
