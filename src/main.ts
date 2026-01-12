@@ -769,17 +769,36 @@ class GameRenderer {
     }
 
     // draw obstacles
+
+    const plantTwoXsByRow = new Map<number, number[]>();
+    for (const [key, type] of Object.entries(level.obstacles)) {
+      if (type !== "plant_two") continue;
+      const [x, y] = key.split(",").map(Number);
+      const xs = plantTwoXsByRow.get(y) ?? [];
+      xs.push(x);
+      plantTwoXsByRow.set(y, xs);
+    }
+
+    for (const [y, xsRaw] of plantTwoXsByRow.entries()) {
+      const xs = Array.from(new Set(xsRaw)).sort((a, b) => a - b);
+      for (let i = 0; i < xs.length - 1; ) {
+        const x = xs[i]!;
+        const x2 = xs[i + 1]!;
+        if (x2 === x + 1) {
+          ctx.drawImage(plantTwo, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE);
+          i += 2;
+        } else {
+          i += 1;
+        }
+      }
+    }
+
     for (const [key, type] of Object.entries(level.obstacles)) {
       const [x, y] = key.split(",").map(Number);
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
 
-      // chungus sprite
-      if (type === "plant_two") {
-        if (level.obstacles[`${x - 1},${y}`] === "plant_two") continue;
-        ctx.drawImage(plantTwo, px, py, TILE_SIZE * 2, TILE_SIZE);
-        continue;
-      }
+      if (type === "plant_two") continue;
 
       let obstacleSprite: HTMLImageElement;
       if (type === "plant_a") obstacleSprite = plantA;
@@ -1499,13 +1518,27 @@ async function init() {
     const keep = new Set<string>();
 
     // plant_two pairs
+    const plantTwoXsByRow = new Map<number, number[]>();
     for (const [key, type] of byKey.entries()) {
       if (type !== "plant_two") continue;
       const [x, y] = key.split(",").map(Number);
-      const rightKey = `${x + 1},${y}`;
-      if (byKey.get(rightKey) === "plant_two") {
-        keep.add(key);
-        keep.add(rightKey);
+      const xs = plantTwoXsByRow.get(y) ?? [];
+      xs.push(x);
+      plantTwoXsByRow.set(y, xs);
+    }
+
+    for (const [y, xsRaw] of plantTwoXsByRow.entries()) {
+      const xs = Array.from(new Set(xsRaw)).sort((a, b) => a - b);
+      for (let i = 0; i < xs.length - 1; ) {
+        const x = xs[i]!;
+        const x2 = xs[i + 1]!;
+        if (x2 === x + 1) {
+          keep.add(`${x},${y}`);
+          keep.add(`${x2},${y}`);
+          i += 2;
+        } else {
+          i += 1;
+        }
       }
     }
 
@@ -1614,9 +1647,23 @@ async function init() {
     const type = o.type as ObstacleId;
 
     if (type === "plant_two") {
-      const left = { x: p.x - 1, y: p.y };
-      if (obstacleAt(left)?.type === "plant_two") return [left, p];
-      return [p, { x: p.x + 1, y: p.y }];
+      const xs = builderData.obstacles
+        .filter((ob) => ob.type === "plant_two" && ob.y === p.y)
+        .map((ob) => ob.x)
+        .sort((a, b) => a - b);
+
+      for (let i = 0; i < xs.length - 1; ) {
+        const x = xs[i]!;
+        const x2 = xs[i + 1]!;
+        if (x2 === x + 1) {
+          if (p.x === x || p.x === x2) return [{ x, y: p.y }, { x: x2, y: p.y }];
+          i += 2;
+        } else {
+          i += 1;
+        }
+      }
+
+      return [p];
     }
 
     if (type === "table_l") return [p, { x: p.x + 1, y: p.y }, { x: p.x + 2, y: p.y }];
@@ -1653,6 +1700,7 @@ async function init() {
   };
 
   const canPlaceDecorAt = (p: Pos, kind: DecorKind): boolean => {
+    if (!inBounds(builderData.width, builderData.height, p)) return false;
     if (isBorderTile(builderData.width, builderData.height, p)) return false;
     if (posKey(p) === posKey(builderData.start)) return false;
 
@@ -1687,6 +1735,10 @@ async function init() {
       if (!silent) setBuilderStatus(msg);
       return false;
     };
+
+    if (!inBounds(builderData.width, builderData.height, p)) {
+      return fail("out of bounds");
+    }
 
     if (isBorderTile(builderData.width, builderData.height, p)) {
       return fail("border tiles must be walls");
@@ -1754,6 +1806,38 @@ async function init() {
     return t;
   };
 
+  const decorWidth = (kind: DecorKind): number => {
+    if (kind === "plant_two") return 2;
+    if (kind === "table_triple") return 3;
+    return 1;
+  };
+
+  const candidateAnchorsForClick = (
+    click: Pos,
+    kind: DecorKind,
+    preferredIndex: number,
+  ): Pos[] => {
+    const width = decorWidth(kind);
+    const clampedPreferred = clamp(preferredIndex, 0, width - 1);
+
+    const offsets = Array.from({ length: width }, (_, i) => i).sort(
+      (a, b) => Math.abs(a - clampedPreferred) - Math.abs(b - clampedPreferred),
+    );
+
+    return offsets.map((offset) => ({ x: click.x - offset, y: click.y }));
+  };
+
+  const findPlaceableAnchorForCandidate = (
+    click: Pos,
+    kind: DecorKind,
+    preferredIndex: number,
+  ): Pos | null => {
+    for (const anchor of candidateAnchorsForClick(click, kind, preferredIndex)) {
+      if (canPlaceDecorAt(anchor, kind)) return anchor;
+    }
+    return null;
+  };
+
   const toggleWindowAtTopBorder = (p: Pos) => {
     if (p.y !== 0 || p.x <= 0 || p.x >= builderData.width - 1) {
       setBuilderStatus("windows only go on the top wall (not corners)");
@@ -1781,11 +1865,17 @@ async function init() {
   const cycleDecorAt = (p: Pos) => {
     const currentKind = decorKindAt(p);
 
-    const group = getObstacleGroupAt(p);
-    const anchor = group.reduce(
-      (min, cur) => (cur.x < min.x ? cur : min),
-      group[0] ?? p,
-    );
+    // multi tile replacement 
+    
+    let preferredIndex = 0;
+    if (currentKind) {
+      const group = getObstacleGroupAt(p);
+      const leftmost = group.reduce(
+        (min, cur) => (cur.x < min.x ? cur : min),
+        group[0] ?? p,
+      );
+      preferredIndex = p.x - leftmost.x;
+    }
 
     if (!currentKind) {
       if (hasWallAt(p)) removeAt(p);
@@ -1793,7 +1883,8 @@ async function init() {
       const startIndex = Math.max(0, decorCycle.indexOf(decorToolDefault));
       for (let i = 0; i < decorCycle.length; i++) {
         const candidate = decorCycle[(startIndex + i) % decorCycle.length] ?? "plant_a";
-        if (!canPlaceDecorAt(anchor, candidate)) continue;
+        const anchor = findPlaceableAnchorForCandidate(p, candidate, preferredIndex);
+        if (!anchor) continue;
         if (setDecorAt(anchor, candidate)) {
           decorToolDefault = candidate;
         }
@@ -1809,7 +1900,9 @@ async function init() {
 
     for (let i = 0; i < decorCycle.length; i++) {
       const candidate = decorCycle[(startIndex + i) % decorCycle.length] ?? "plant_a";
-      if (!canPlaceDecorAt(anchor, candidate)) continue;
+      const anchor = findPlaceableAnchorForCandidate(p, candidate, preferredIndex);
+      if (!anchor) continue;
+
       removeAt(p);
       if (setDecorAt(anchor, candidate)) {
         decorToolDefault = candidate;
