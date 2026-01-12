@@ -123,6 +123,7 @@ export function solveLevel(level: Level, opts?: { maxVisited?: number }): SolveR
       const posKey = keyOf(nextPos);
       if (level.walls.has(posKey)) continue;
       if (level.customers[posKey]) continue;
+      if (level.obstacles[posKey]) continue;
 
       let inv = cur.inv;
       let servedMask = cur.servedMask;

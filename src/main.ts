@@ -1,4 +1,4 @@
-import { type DrinkId, type Pos } from "./engine/types";
+import { type DrinkId, type ObstacleId, type Pos } from "./engine/types";
 import {
   clearPath,
   initGame,
@@ -121,8 +121,26 @@ plantA.src = "/src/assets/plant_a.png";
 const plantB = new Image();
 plantB.src = "/src/assets/plant_b.png";
 
+const plantTwo = new Image();
+plantTwo.src = "/src/assets/plant_two.png";
+
+const shelfA = new Image();
+shelfA.src = "/src/assets/shelf_a.png";
+
 const tableSingle = new Image();
 tableSingle.src = "/src/assets/table_single.png";
+
+const tableL = new Image();
+tableL.src = "/src/assets/table_l.png";
+
+const tableM = new Image();
+tableM.src = "/src/assets/table_m.png";
+
+const tableR = new Image();
+tableR.src = "/src/assets/table_r.png";
+
+const windowSingleA = new Image();
+windowSingleA.src = "/src/assets/window_single_a.png";
 
 // images have to load :(
 const imagesLoaded = Promise.all([
@@ -224,7 +242,25 @@ const imagesLoaded = Promise.all([
     plantB.onload = () => resolve();
   }),
   new Promise<void>((resolve) => {
+    plantTwo.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    shelfA.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
     tableSingle.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    tableL.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    tableM.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    tableR.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    windowSingleA.onload = () => resolve();
   }),
 ]);
 
@@ -738,10 +774,22 @@ class GameRenderer {
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
 
+      // chungus sprite
+      if (type === "plant_two") {
+        if (level.obstacles[`${x - 1},${y}`] === "plant_two") continue;
+        ctx.drawImage(plantTwo, px, py, TILE_SIZE * 2, TILE_SIZE);
+        continue;
+      }
+
       let obstacleSprite: HTMLImageElement;
       if (type === "plant_a") obstacleSprite = plantA;
       else if (type === "plant_b") obstacleSprite = plantB;
+      else if (type === "shelf_a") obstacleSprite = shelfA;
       else if (type === "table_single") obstacleSprite = tableSingle;
+      else if (type === "table_l") obstacleSprite = tableL;
+      else if (type === "table_m") obstacleSprite = tableM;
+      else if (type === "table_r") obstacleSprite = tableR;
+      else if (type === "window_single_a") obstacleSprite = windowSingleA;
       else continue;
 
       ctx.drawImage(obstacleSprite, px, py, TILE_SIZE, TILE_SIZE);
@@ -1069,6 +1117,9 @@ async function init() {
   await imagesLoaded;
 
   // builder tool icons
+  const decorIcon = document.getElementById(
+    "builder-decor-icon",
+  ) as HTMLImageElement | null;
   const startIcon = document.getElementById(
     "builder-start-icon",
   ) as HTMLImageElement | null;
@@ -1085,6 +1136,7 @@ async function init() {
   if (b1) b1.src = getCustomerIconDataUrl(customerA, 2);
   if (b2) b2.src = getCustomerIconDataUrl(customerB, 2);
   if (b3) b3.src = getCustomerIconDataUrl(customerC, 2);
+  if (decorIcon) decorIcon.src = "/src/assets/plant_a.png";
 
   const { levelData, levelId } = await getTodayLevelFromSupabase();
 
@@ -1158,7 +1210,7 @@ async function init() {
   // builder mode starts based off the day's level
   type BuilderTool =
     | "erase"
-    | "wall"
+    | "decor"
     | "start"
     | "station"
     | "cust1"
@@ -1168,7 +1220,19 @@ async function init() {
   let builderData: LevelData = JSON.parse(
     JSON.stringify(currentLevelData),
   ) as LevelData;
-  let builderTool: BuilderTool = "wall";
+  let builderTool: BuilderTool = "decor";
+
+  type DecorKind = "table_triple" | ObstacleId;
+  const decorCycle: DecorKind[] = [
+    "plant_a",
+    "plant_b",
+    "plant_two",
+    "shelf_a",
+    "table_single",
+    "table_triple",
+    "window_single_a",
+  ];
+  let decorToolDefault: DecorKind = "plant_a";
 
   const stationCycle: DrinkId[] = ["D1", "D2", "F1", "F2", "F3"];
   let stationToolDefault: DrinkId = "D1";
@@ -1399,12 +1463,74 @@ async function init() {
     builderData.walls.some((w) => w.x === p.x && w.y === p.y);
   const hasCustomerAt = (p: Pos) =>
     builderData.customers.some((c) => c.x === p.x && c.y === p.y);
+  const obstacleAt = (p: Pos) =>
+    builderData.obstacles.find((o) => o.x === p.x && o.y === p.y);
+
+  const normalizeObstacles = () => {
+    const inB = (p: Pos) => inBounds(builderData.width, builderData.height, p);
+    const startKey = posKey(builderData.start);
+
+    const byKey = new Map<string, ObstacleId>();
+    for (const o of builderData.obstacles) {
+      const p = { x: o.x, y: o.y };
+      if (!inB(p)) continue;
+      if (isBorderTile(builderData.width, builderData.height, p)) continue;
+      if (posKey(p) === startKey) continue;
+      byKey.set(posKey(p), o.type as ObstacleId);
+    }
+
+    const keep = new Set<string>();
+
+    // plant_two pairs
+    for (const [key, type] of byKey.entries()) {
+      if (type !== "plant_two") continue;
+      const [x, y] = key.split(",").map(Number);
+      const rightKey = `${x + 1},${y}`;
+      if (byKey.get(rightKey) === "plant_two") {
+        keep.add(key);
+        keep.add(rightKey);
+      }
+    }
+
+    // chungus tables
+    for (const [key, type] of byKey.entries()) {
+      if (type !== "table_l") continue;
+      const [x, y] = key.split(",").map(Number);
+      const midKey = `${x + 1},${y}`;
+      const rightKey = `${x + 2},${y}`;
+      if (byKey.get(midKey) === "table_m" && byKey.get(rightKey) === "table_r") {
+        keep.add(key);
+        keep.add(midKey);
+        keep.add(rightKey);
+      }
+    }
+
+    // 1x1 stuff
+    for (const [key, type] of byKey.entries()) {
+      if (
+        type === "plant_a" ||
+        type === "plant_b" ||
+        type === "shelf_a" ||
+        type === "table_single" ||
+        type === "window_single_a"
+      ) {
+        keep.add(key);
+      }
+    }
+
+    builderData.obstacles = Array.from(keep).map((key) => {
+      const [x, y] = key.split(",").map(Number);
+      const type = byKey.get(key) as ObstacleId;
+      return { x, y, type };
+    });
+  };
 
   const isValidStandTile = (p: Pos): boolean => {
     if (!inBounds(builderData.width, builderData.height, p)) return false;
     if (isBorderTile(builderData.width, builderData.height, p)) return false;
     if (hasWallAt(p)) return false;
     if (hasCustomerAt(p)) return false;
+    if (obstacleAt(p)) return false;
     return true;
   };
 
@@ -1433,6 +1559,11 @@ async function init() {
       return key !== startKey && !isBorderTile(w, h, { x: c.x, y: c.y });
     });
 
+    builderData.obstacles = builderData.obstacles.filter((o) => {
+      const key = `${o.x},${o.y}`;
+      return key !== startKey && !isBorderTile(w, h, { x: o.x, y: o.y });
+    });
+
     const wallSet = new Set(builderData.walls.map((wall) => `${wall.x},${wall.y}`));
 
     for (let x = 0; x < w; x++) {
@@ -1450,6 +1581,26 @@ async function init() {
       const [x, y] = key.split(",").map(Number);
       return { x, y };
     });
+
+    normalizeObstacles();
+  };
+
+  const getObstacleGroupAt = (p: Pos): Pos[] => {
+    const o = obstacleAt(p);
+    if (!o) return [p];
+    const type = o.type as ObstacleId;
+
+    if (type === "plant_two") {
+      const left = { x: p.x - 1, y: p.y };
+      if (obstacleAt(left)?.type === "plant_two") return [left, p];
+      return [p, { x: p.x + 1, y: p.y }];
+    }
+
+    if (type === "table_l") return [p, { x: p.x + 1, y: p.y }, { x: p.x + 2, y: p.y }];
+    if (type === "table_m") return [{ x: p.x - 1, y: p.y }, p, { x: p.x + 1, y: p.y }];
+    if (type === "table_r") return [{ x: p.x - 2, y: p.y }, { x: p.x - 1, y: p.y }, p];
+
+    return [p];
   };
 
   const removeAt = (p: Pos) => {
@@ -1457,37 +1608,163 @@ async function init() {
       setBuilderStatus("border tiles are always walls");
       return;
     }
-    const key = posKey(p);
-    builderData.walls = builderData.walls.filter(
-      (w) => `${w.x},${w.y}` !== key,
-    );
-    builderData.drinkStations = builderData.drinkStations.filter(
-      (d) => `${d.x},${d.y}` !== key,
-    );
-    builderData.customers = builderData.customers.filter(
-      (c) => `${c.x},${c.y}` !== key,
-    );
+
+    const keys = new Set(getObstacleGroupAt(p).map(posKey));
+    builderData.walls = builderData.walls.filter((w) => !keys.has(`${w.x},${w.y}`));
+    builderData.drinkStations = builderData.drinkStations.filter((d) => !keys.has(`${d.x},${d.y}`));
+    builderData.customers = builderData.customers.filter((c) => !keys.has(`${c.x},${c.y}`));
+    builderData.obstacles = builderData.obstacles.filter((o) => !keys.has(`${o.x},${o.y}`));
   };
 
-  const toggleWallAt = (p: Pos) => {
+  const setObstacleTiles = (tiles: { p: Pos; type: ObstacleId }[]) => {
+    const keys = new Set(tiles.map((t) => posKey(t.p)));
+    builderData.obstacles = builderData.obstacles.filter((o) => !keys.has(`${o.x},${o.y}`));
+    builderData.walls = builderData.walls.filter((w) => !keys.has(`${w.x},${w.y}`));
+    builderData.drinkStations = builderData.drinkStations.filter((d) => !keys.has(`${d.x},${d.y}`));
+    builderData.customers = builderData.customers.filter((c) => !keys.has(`${c.x},${c.y}`));
+
+    builderData.obstacles = [
+      ...builderData.obstacles,
+      ...tiles.map((t) => ({ x: t.p.x, y: t.p.y, type: t.type })),
+    ];
+  };
+
+  const canPlaceDecorAt = (p: Pos, kind: DecorKind): boolean => {
+    if (isBorderTile(builderData.width, builderData.height, p)) return false;
+    if (posKey(p) === posKey(builderData.start)) return false;
+
+    if (kind === "plant_two") {
+      const right = { x: p.x + 1, y: p.y };
+      if (!inBounds(builderData.width, builderData.height, right)) return false;
+      if (isBorderTile(builderData.width, builderData.height, right)) return false;
+      if (posKey(right) === posKey(builderData.start)) return false;
+      return true;
+    }
+
+    if (kind === "table_triple") {
+      const mid = { x: p.x + 1, y: p.y };
+      const right = { x: p.x + 2, y: p.y };
+      if (!inBounds(builderData.width, builderData.height, mid)) return false;
+      if (!inBounds(builderData.width, builderData.height, right)) return false;
+      if (isBorderTile(builderData.width, builderData.height, mid)) return false;
+      if (isBorderTile(builderData.width, builderData.height, right)) return false;
+      const startKey = posKey(builderData.start);
+      if (posKey(mid) === startKey || posKey(right) === startKey) return false;
+      return true;
+    }
+
+    return true;
+  };
+
+  const setDecorAt = (p: Pos, kind: DecorKind, opts?: { silent?: boolean }): boolean => {
+    const silent = opts?.silent ?? false;
+    const fail = (msg: string) => {
+      if (!silent) setBuilderStatus(msg);
+      return false;
+    };
+
     if (isBorderTile(builderData.width, builderData.height, p)) {
-      setBuilderStatus("border tiles are always walls");
-      return;
+      return fail("border tiles must be walls");
     }
-    const key = posKey(p);
-    if (key === posKey(builderData.start)) {
-      setBuilderStatus("start tile can’t be a wall");
-      return;
+    if (posKey(p) === posKey(builderData.start)) {
+      return fail("can’t place decor on start");
     }
-    const has = builderData.walls.some((w) => `${w.x},${w.y}` === key);
-    if (has)
-      builderData.walls = builderData.walls.filter(
-        (w) => `${w.x},${w.y}` !== key,
+
+    const tiles: { p: Pos; type: ObstacleId }[] = [];
+
+    if (kind === "plant_two") {
+      const right = { x: p.x + 1, y: p.y };
+      if (!inBounds(builderData.width, builderData.height, right)) {
+        return fail("not enough space");
+      }
+      if (isBorderTile(builderData.width, builderData.height, right)) {
+        return fail("not enough space");
+      }
+      if (posKey(right) === posKey(builderData.start)) {
+        return fail("can’t place decor on start");
+      }
+      tiles.push({ p, type: "plant_two" }, { p: right, type: "plant_two" });
+    } else if (kind === "table_triple") {
+      const mid = { x: p.x + 1, y: p.y };
+      const right = { x: p.x + 2, y: p.y };
+      if (
+        !inBounds(builderData.width, builderData.height, mid) ||
+        !inBounds(builderData.width, builderData.height, right)
+      ) {
+        return fail("not enough space");
+      }
+      if (
+        isBorderTile(builderData.width, builderData.height, mid) ||
+        isBorderTile(builderData.width, builderData.height, right)
+      ) {
+        return fail("not enough space");
+      }
+      const startKey = posKey(builderData.start);
+      if (posKey(mid) === startKey || posKey(right) === startKey) {
+        return fail("can’t place decor on start");
+      }
+      tiles.push(
+        { p, type: "table_l" },
+        { p: mid, type: "table_m" },
+        { p: right, type: "table_r" },
       );
-    else {
-      removeAt(p);
-      builderData.walls = [...builderData.walls, { x: p.x, y: p.y }];
+    } else {
+      tiles.push({ p, type: kind as ObstacleId });
     }
+
+    setObstacleTiles(tiles);
+    normalizeObstacles();
+    return true;
+  };
+
+  const decorKindAt = (p: Pos): DecorKind | null => {
+    const o = obstacleAt(p);
+    if (!o) return null;
+    const t = o.type as ObstacleId;
+    if (t === "table_l" || t === "table_m" || t === "table_r") return "table_triple";
+    return t;
+  };
+
+  const cycleDecorAt = (p: Pos) => {
+    const currentKind = decorKindAt(p);
+
+    const group = getObstacleGroupAt(p);
+    const anchor = group.reduce(
+      (min, cur) => (cur.x < min.x ? cur : min),
+      group[0] ?? p,
+    );
+
+    if (!currentKind) {
+      if (hasWallAt(p)) removeAt(p);
+
+      const startIndex = Math.max(0, decorCycle.indexOf(decorToolDefault));
+      for (let i = 0; i < decorCycle.length; i++) {
+        const candidate = decorCycle[(startIndex + i) % decorCycle.length] ?? "plant_a";
+        if (!canPlaceDecorAt(anchor, candidate)) continue;
+        if (setDecorAt(anchor, candidate)) {
+          decorToolDefault = candidate;
+        }
+        return;
+      }
+
+      setBuilderStatus("no decor fits here");
+      return;
+    }
+
+    const currentIndex = decorCycle.indexOf(currentKind);
+    const startIndex = currentIndex >= 0 ? (currentIndex + 1) % decorCycle.length : 0;
+
+    for (let i = 0; i < decorCycle.length; i++) {
+      const candidate = decorCycle[(startIndex + i) % decorCycle.length] ?? "plant_a";
+      if (!canPlaceDecorAt(anchor, candidate)) continue;
+      removeAt(p);
+      if (setDecorAt(anchor, candidate)) {
+        decorToolDefault = candidate;
+      }
+      return;
+    }
+
+    setBuilderStatus("no other decor fits here");
   };
 
   const setStartAt = (p: Pos) => {
@@ -1508,12 +1785,16 @@ async function init() {
     if (key === posKey(builderData.start)) {
       // allow start to overlap station (pickup immediately)
     }
+    removeAt(p);
     // remove wall/customer; station can overwrite station
     builderData.walls = builderData.walls.filter(
       (w) => `${w.x},${w.y}` !== key,
     );
     builderData.customers = builderData.customers.filter(
       (c) => `${c.x},${c.y}` !== key,
+    );
+    builderData.obstacles = builderData.obstacles.filter(
+      (o) => `${o.x},${o.y}` !== key,
     );
     builderData.drinkStations = builderData.drinkStations.filter(
       (d) => `${d.x},${d.y}` !== key,
@@ -1550,12 +1831,16 @@ async function init() {
       setBuilderStatus("can't place a customer on start");
       return;
     }
+    removeAt(p);
     // remove wall/station at tile
     builderData.walls = builderData.walls.filter(
       (w) => `${w.x},${w.y}` !== key,
     );
     builderData.drinkStations = builderData.drinkStations.filter(
       (d) => `${d.x},${d.y}` !== key,
+    );
+    builderData.obstacles = builderData.obstacles.filter(
+      (o) => `${o.x},${o.y}` !== key,
     );
 
     // if clicking same customer, toggle standHere
@@ -1630,6 +1915,7 @@ async function init() {
     builderData.walls = builderData.walls.filter((w) => !wasPrevBorder(w)).filter((w) => inB(w.x, w.y));
     builderData.drinkStations = builderData.drinkStations.filter((d) => inB(d.x, d.y));
     builderData.customers = builderData.customers.filter((c) => inB(c.x, c.y));
+    builderData.obstacles = builderData.obstacles.filter((o) => inB(o.x, o.y));
     
     builderData.start = {
       x: clamp(builderData.start.x, 0, builderData.width - 1),
@@ -1656,8 +1942,8 @@ async function init() {
       case "erase":
         removeAt(p);
         break;
-      case "wall":
-        toggleWallAt(p);
+      case "decor":
+        cycleDecorAt(p);
         break;
       case "start":
         setStartAt(p);
@@ -1718,7 +2004,9 @@ async function init() {
   const enterBuilderMode = () => {
     builderMode = true;
     builderData = JSON.parse(JSON.stringify(currentLevelData)) as LevelData;
-    builderTool = "wall";
+    builderTool = "decor";
+
+    decorToolDefault = "plant_a";
 
     enforceBorderWalls();
     syncBuilderSizeInputs();

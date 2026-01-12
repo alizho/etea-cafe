@@ -23,11 +23,15 @@ export function validateLevelData(data: LevelData): LevelValidation {
     wallSet.add(k(w.x, w.y));
   }
 
+  const startKey = k(data.start.x, data.start.y);
+
   const obstacleSet = new Set<string>();
   for (const o of data.obstacles) {
     if (!inBounds(o.x, o.y)) errors.push(`obstacle out of bounds at (${o.x},${o.y})`);
     const key = k(o.x, o.y);
     if (wallSet.has(key)) errors.push(`obstacle overlaps wall at (${o.x},${o.y})`);
+    if (key === startKey) errors.push(`obstacle overlaps start at (${o.x},${o.y})`);
+    if (obstacleSet.has(key)) errors.push(`multiple obstacles on (${o.x},${o.y})`);
     obstacleSet.add(key);
   }
 
@@ -37,6 +41,7 @@ export function validateLevelData(data: LevelData): LevelValidation {
     const key = k(s.x, s.y);
     // stations can't overlap walls because the player can never step
     if (wallSet.has(key)) errors.push(`drink station overlaps wall at (${s.x},${s.y})`);
+    if (obstacleSet.has(key)) errors.push(`drink station overlaps obstacle at (${s.x},${s.y})`);
     stationsSet.add(key);
   }
 
@@ -47,6 +52,7 @@ export function validateLevelData(data: LevelData): LevelValidation {
     if (!inBounds(c.x, c.y)) errors.push(`customer ${c.id} out of bounds at (${c.x},${c.y})`);
     const key = k(c.x, c.y);
     if (wallSet.has(key)) errors.push(`customer ${c.id} overlaps wall at (${c.x},${c.y})`);
+    if (obstacleSet.has(key)) errors.push(`customer ${c.id} overlaps obstacle at (${c.x},${c.y})`);
     if (stationsSet.has(key)) errors.push(`customer ${c.id} overlaps drink station at (${c.x},${c.y})`);
     if (customerSet.has(key)) errors.push(`multiple customers on (${c.x},${c.y})`);
     customerSet.add(key);
@@ -63,6 +69,7 @@ export function validateLevelData(data: LevelData): LevelValidation {
     if (!inBounds(standX, standY)) errors.push(`customer ${c.id} stand tile is out of bounds`);
     const standKey = k(standX, standY);
     if (wallSet.has(standKey)) errors.push(`customer ${c.id} stand tile overlaps wall`);
+    if (obstacleSet.has(standKey)) errors.push(`customer ${c.id} stand tile overlaps obstacle`);
     if (customerSet.has(standKey)) errors.push(`customer ${c.id} stand tile overlaps a customer`);
   }
 
@@ -70,9 +77,11 @@ export function validateLevelData(data: LevelData): LevelValidation {
     if (!customerPosById[id]) errors.push(`missing customer ${id}`);
   }
 
-  const startKey = k(data.start.x, data.start.y);
   if (wallSet.has(startKey)) errors.push("start overlaps a wall");
   if (customerSet.has(startKey)) errors.push("start overlaps a customer");
+  if (stationsSet.has(startKey)) {
+    // start can overlap stations
+  }
 
   for (const id of ["A", "B", "C"] as const) {
     const order = data.orders[id];
