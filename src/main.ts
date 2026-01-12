@@ -1230,7 +1230,6 @@ async function init() {
     "shelf_a",
     "table_single",
     "table_triple",
-    "window_single_a",
   ];
   let decorToolDefault: DecorKind = "plant_a";
 
@@ -1470,11 +1469,29 @@ async function init() {
     const inB = (p: Pos) => inBounds(builderData.width, builderData.height, p);
     const startKey = posKey(builderData.start);
 
+    // special case for windows
+    const topBorderWindows: { x: number; y: number; type: ObstacleId }[] = [];
+    const topBorderWindowsSet = new Set<string>();
+
     const byKey = new Map<string, ObstacleId>();
     for (const o of builderData.obstacles) {
       const p = { x: o.x, y: o.y };
       if (!inB(p)) continue;
-      if (isBorderTile(builderData.width, builderData.height, p)) continue;
+      if (isBorderTile(builderData.width, builderData.height, p)) {
+        if (
+          o.type === "window_single_a" &&
+          p.y === 0 &&
+          p.x > 0 &&
+          p.x < builderData.width - 1
+        ) {
+          const key = posKey(p);
+          if (key !== startKey && !topBorderWindowsSet.has(key)) {
+            topBorderWindowsSet.add(key);
+            topBorderWindows.push({ x: p.x, y: p.y, type: "window_single_a" });
+          }
+        }
+        continue;
+      }
       if (posKey(p) === startKey) continue;
       byKey.set(posKey(p), o.type as ObstacleId);
     }
@@ -1511,18 +1528,19 @@ async function init() {
         type === "plant_a" ||
         type === "plant_b" ||
         type === "shelf_a" ||
-        type === "table_single" ||
-        type === "window_single_a"
+        type === "table_single"
       ) {
         keep.add(key);
       }
     }
 
-    builderData.obstacles = Array.from(keep).map((key) => {
+    const interior = Array.from(keep).map((key) => {
       const [x, y] = key.split(",").map(Number);
       const type = byKey.get(key) as ObstacleId;
       return { x, y, type };
     });
+
+    builderData.obstacles = [...interior, ...topBorderWindows];
   };
 
   const isValidStandTile = (p: Pos): boolean => {
@@ -1561,7 +1579,12 @@ async function init() {
 
     builderData.obstacles = builderData.obstacles.filter((o) => {
       const key = `${o.x},${o.y}`;
-      return key !== startKey && !isBorderTile(w, h, { x: o.x, y: o.y });
+      if (key === startKey) return false;
+
+      const isBorder = isBorderTile(w, h, { x: o.x, y: o.y });
+      if (!isBorder) return true;
+
+      return o.type === "window_single_a" && o.y === 0 && o.x > 0 && o.x < w - 1;
     });
 
     const wallSet = new Set(builderData.walls.map((wall) => `${wall.x},${wall.y}`));
@@ -1633,6 +1656,8 @@ async function init() {
     if (isBorderTile(builderData.width, builderData.height, p)) return false;
     if (posKey(p) === posKey(builderData.start)) return false;
 
+    if (kind === "window_single_a") return false;
+
     if (kind === "plant_two") {
       const right = { x: p.x + 1, y: p.y };
       if (!inBounds(builderData.width, builderData.height, right)) return false;
@@ -1668,6 +1693,10 @@ async function init() {
     }
     if (posKey(p) === posKey(builderData.start)) {
       return fail("can’t place decor on start");
+    }
+
+    if (kind === "window_single_a") {
+      return fail("windows can only go on the top wall");
     }
 
     const tiles: { p: Pos; type: ObstacleId }[] = [];
@@ -1723,6 +1752,30 @@ async function init() {
     const t = o.type as ObstacleId;
     if (t === "table_l" || t === "table_m" || t === "table_r") return "table_triple";
     return t;
+  };
+
+  const toggleWindowAtTopBorder = (p: Pos) => {
+    if (p.y !== 0 || p.x <= 0 || p.x >= builderData.width - 1) {
+      setBuilderStatus("windows only go on the top wall (not corners)");
+      return;
+    }
+    //  overlay window on wall
+    const key = posKey(p);
+    const hasWindow = obstacleAt(p)?.type === "window_single_a";
+    if (hasWindow) {
+      builderData.obstacles = builderData.obstacles.filter(
+        (o) => `${o.x},${o.y}` !== key,
+      );
+      return;
+    }
+
+    builderData.obstacles = builderData.obstacles.filter(
+      (o) => `${o.x},${o.y}` !== key,
+    );
+    builderData.obstacles = [
+      ...builderData.obstacles,
+      { x: p.x, y: p.y, type: "window_single_a" },
+    ];
   };
 
   const cycleDecorAt = (p: Pos) => {
@@ -1934,6 +1987,26 @@ async function init() {
 
     // border tiles are fixed walls
     if (isBorderTile(builderData.width, builderData.height, p)) {
+
+      if (p.y === 0 && builderTool === "decor") {
+        toggleWindowAtTopBorder(p);
+        rebuildPreview();
+        setBuilderStatus("edited! check again");
+        return;
+      }
+
+      // erase windows
+      if (p.y === 0 && builderTool === "erase") {
+        if (obstacleAt(p)?.type === "window_single_a") {
+          toggleWindowAtTopBorder(p);
+          rebuildPreview();
+          setBuilderStatus("edited! check again");
+        } else {
+          setBuilderStatus("border tiles are always walls");
+        }
+        return;
+      }
+
       setBuilderStatus("border tiles are always walls");
       return;
     }

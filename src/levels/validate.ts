@@ -29,7 +29,18 @@ export function validateLevelData(data: LevelData): LevelValidation {
   for (const o of data.obstacles) {
     if (!inBounds(o.x, o.y)) errors.push(`obstacle out of bounds at (${o.x},${o.y})`);
     const key = k(o.x, o.y);
-    if (wallSet.has(key)) errors.push(`obstacle overlaps wall at (${o.x},${o.y})`);
+    if (o.type === "window_single_a") {
+      const isTopBorder = o.y === 0;
+      const isNonCorner = o.x > 0 && o.x < data.width - 1;
+      if (!isTopBorder || !isNonCorner) {
+        errors.push(`window must be on the top wall at (${o.x},${o.y})`);
+      }
+      if (!wallSet.has(key)) {
+        errors.push(`window must overlap a wall at (${o.x},${o.y})`);
+      }
+    } else if (wallSet.has(key)) {
+      errors.push(`obstacle overlaps wall at (${o.x},${o.y})`);
+    }
     if (key === startKey) errors.push(`obstacle overlaps start at (${o.x},${o.y})`);
     if (obstacleSet.has(key)) errors.push(`multiple obstacles on (${o.x},${o.y})`);
     obstacleSet.add(key);
