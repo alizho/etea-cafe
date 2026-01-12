@@ -1977,22 +1977,8 @@ async function init() {
       setBuilderStatus("can't place a customer on start");
       return;
     }
-    removeAt(p);
-    // remove wall/station at tile
-    builderData.walls = builderData.walls.filter(
-      (w) => `${w.x},${w.y}` !== key,
-    );
-    builderData.drinkStations = builderData.drinkStations.filter(
-      (d) => `${d.x},${d.y}` !== key,
-    );
-    builderData.obstacles = builderData.obstacles.filter(
-      (o) => `${o.x},${o.y}` !== key,
-    );
-
     // if clicking same customer, toggle standHere
-    const existingHere = builderData.customers.find(
-      (c) => `${c.x},${c.y}` === key,
-    );
+    const existingHere = builderData.customers.find((c) => `${c.x},${c.y}` === key);
     if (existingHere && existingHere.id === id) {
       const current = existingHere.standHere as StandDir;
       const startIdx = standDirs.indexOf(current);
@@ -2010,6 +1996,12 @@ async function init() {
       setBuilderStatus("no valid stand direction here");
       return;
     }
+
+    removeAt(p);
+  
+    builderData.walls = builderData.walls.filter((w) => `${w.x},${w.y}` !== key);
+    builderData.drinkStations = builderData.drinkStations.filter((d) => `${d.x},${d.y}` !== key);
+    builderData.obstacles = builderData.obstacles.filter((o) => `${o.x},${o.y}` !== key);
 
     // remove any other customer at tile
     builderData.customers = builderData.customers.filter(
