@@ -318,6 +318,12 @@ body {
     align-items: center;
 }
 
+.builder-share-disabled {
+    opacity: 0.55;
+    filter: grayscale(0.2);
+    cursor: not-allowed;
+}
+
 .builder-dimensions {
     display: flex;
     gap: 6px;

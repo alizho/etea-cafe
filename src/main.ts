@@ -22,6 +22,12 @@ import { solveLevel } from "./engine/solver";
 import { pathImagesLoaded, renderPath, renderPathArrow } from "./paths";
 import { TILE_SIZE } from "./config/constants";
 import { ensureAudioStartedOnFirstGesture, playPathTileSfx } from "./audio";
+import {
+  decodeLevelShareToken,
+  encodeLevelShareToken,
+  getShareTokenFromUrlHash,
+  makeShareUrlFromToken,
+} from "./share";
 import "./style.css";
 
 // load sprites
@@ -1159,23 +1165,36 @@ async function init() {
 
   const { levelData, levelId } = await getTodayLevelFromSupabase();
 
-  const level = buildLevel(levelData);
+  // url hash? shared level time
+  const sharedToken = getShareTokenFromUrlHash();
+  const sharedDecoded = sharedToken ? await decodeLevelShareToken(sharedToken) : null;
+  const sharedValidation = sharedDecoded ? validateLevelData(sharedDecoded) : null;
+  const hasSharedLevel = !!sharedDecoded && !!sharedValidation && sharedValidation.ok;
+
+  const initialLevelData = hasSharedLevel ? (sharedDecoded as LevelData) : levelData;
+  const initialLevelId = hasSharedLevel ? null : levelId;
+
+  const level = buildLevel(initialLevelData);
   const state = initGame(level);
 
   let currentLevelData: LevelData = JSON.parse(
-    JSON.stringify(levelData),
+    JSON.stringify(initialLevelData),
   ) as LevelData;
   
   // store level ID for submitting runs
-  let currentLevelId: string | null = levelId;
+  let currentLevelId: string | null = initialLevelId;
 
   // setup day text
   const dayTextEl = document.getElementById("day-text");
   if (dayTextEl) {
-    // extract day number from
-    const dayMatch = levelData.id.match(/day-(\d+)/);
-    const dayNumber = dayMatch ? parseInt(dayMatch[1], 10) : 1;
-    dayTextEl.textContent = `day ${dayNumber}`;
+    if (hasSharedLevel) {
+      dayTextEl.textContent = "shared level";
+    } else {
+      // extract day number from
+      const dayMatch = levelData.id.match(/day-(\d+)/);
+      const dayNumber = dayMatch ? parseInt(dayMatch[1], 10) : 1;
+      dayTextEl.textContent = `day ${dayNumber}`;
+    }
   }
 
   const canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
@@ -1279,6 +1298,9 @@ async function init() {
   const checkBtn = document.getElementById(
     "builder-check-btn",
   ) as HTMLButtonElement | null;
+  const shareBtn = document.getElementById(
+    "builder-share-btn",
+  ) as HTMLButtonElement | null;
   const sidebarOrdersEl = document.getElementById(
     "orders",
   ) as HTMLUListElement | null;
@@ -1286,6 +1308,23 @@ async function init() {
   const setBuilderStatus = (text: string) => {
     if (builderStatusEl) builderStatusEl.textContent = text;
   };
+
+  let builderShareReady = false;
+  const updateShareUI = () => {
+    if (!shareBtn) return;
+   
+    shareBtn.disabled = false;
+    shareBtn.classList.toggle("builder-share-disabled", !builderShareReady);
+    shareBtn.setAttribute("aria-disabled", builderShareReady ? "false" : "true");
+    shareBtn.title = builderShareReady
+      ? "share this level"
+      : "run check first";
+  };
+  const markBuilderDirty = () => {
+    builderShareReady = false;
+    updateShareUI();
+  };
+  updateShareUI();
 
   const clamp = (n: number, min: number, max: number) =>
     Math.min(Math.max(n, min), max);
@@ -1333,6 +1372,8 @@ async function init() {
     if (builderMode) {
       renderBuilderOrdersInSidebar();
     }
+
+    if (builderMode) markBuilderDirty();
   };
 
   const renderBuilderOrdersInSidebar = () => {
@@ -2138,8 +2179,13 @@ async function init() {
     const validation = validateLevelData(builderData);
     if (!validation.ok) {
       setBuilderStatus(`invalid:\n${validation.errors.join("\n")}`);
+      builderShareReady = false;
+      updateShareUI();
       return;
     }
+
+    builderShareReady = true;
+    updateShareUI();
 
     const built = buildLevel(builderData);
     const solved = solveLevel(built);
@@ -2156,6 +2202,61 @@ async function init() {
     checkBtn.addEventListener("click", () => {
       if (!builderMode) return;
       checkSolvableNow();
+    });
+  }
+
+  const copyTextToClipboard = async (text: string): Promise<boolean> => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {
+      // fall through
+    }
+
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      ta.style.top = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return ok;
+    } catch {
+      return false;
+    }
+  };
+
+  if (shareBtn) {
+    shareBtn.addEventListener("click", async () => {
+      if (!builderMode) return;
+
+      if (!builderShareReady) {
+        setBuilderStatus("check the level first");
+        return;
+      }
+
+      const validation = validateLevelData(builderData);
+      if (!validation.ok) {
+        builderShareReady = false;
+        updateShareUI();
+        setBuilderStatus(`invalid:\n${validation.errors.join("\n")}`);
+        return;
+      }
+      
+      normalizeOrders();
+      enforceBorderWalls();
+
+      const token = await encodeLevelShareToken(builderData);
+      const url = makeShareUrlFromToken(token);
+
+      const copied = await copyTextToClipboard(url);
+      setBuilderStatus(copied ? "copied share link!" : "couldn’t copy link :(");
     });
   }
 
