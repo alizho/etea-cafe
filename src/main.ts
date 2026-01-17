@@ -1164,6 +1164,8 @@ async function init() {
   if (decorIcon) decorIcon.src = "/src/assets/plant_a.png";
 
   const { levelData, levelId } = await getTodayLevelFromSupabase();
+  const dailyLevelData: LevelData = levelData;
+  const dailyLevelId: string | null = levelId;
 
   // url hash? shared level time
   const sharedToken = getShareTokenFromUrlHash();
@@ -1206,6 +1208,26 @@ async function init() {
   // extract day number for popup
   const dayMatch = levelData.id.match(/day-(\d+)/);
   const dayNumber = dayMatch ? parseInt(dayMatch[1], 10) : 1;
+
+  const setDayText = (mode: "shared" | "daily" | "custom") => {
+    const dayTextEl = document.getElementById("day-text");
+    if (!dayTextEl) return;
+    if (mode === "shared") dayTextEl.textContent = "shared level";
+    else if (mode === "custom") dayTextEl.textContent = "your level";
+    else dayTextEl.textContent = `day ${dayNumber}`;
+  };
+
+  const applyLevelDataToRenderer = (data: LevelData, id: string | null, mode: "shared" | "daily" | "custom") => {
+    hideSuccessPopup();
+    renderer.hideFailurePopup();
+
+    currentLevelData = JSON.parse(JSON.stringify(data)) as LevelData;
+    currentLevelId = id;
+
+    renderer.setLevelId(currentLevelId);
+    renderer.setState(initGame(buildLevel(currentLevelData)));
+    setDayText(mode);
+  };
 
   // submit run and show top score
   renderer.setOnSuccess(async (moves: number) => {
@@ -2184,11 +2206,12 @@ async function init() {
       return;
     }
 
-    builderShareReady = true;
-    updateShareUI();
-
     const built = buildLevel(builderData);
     const solved = solveLevel(built);
+
+    builderShareReady = solved.solvable;
+    updateShareUI();
+
     if (solved.solvable) {
       setBuilderStatus(`solvable! (searched ${solved.visitedStates} states)`);
     } else {
@@ -2252,11 +2275,15 @@ async function init() {
       normalizeOrders();
       enforceBorderWalls();
 
-      const token = await encodeLevelShareToken(builderData);
-      const url = makeShareUrlFromToken(token);
-
-      const copied = await copyTextToClipboard(url);
-      setBuilderStatus(copied ? "copied share link!" : "couldn’t copy link :(");
+      try {
+        const token = await encodeLevelShareToken(builderData);
+        const url = makeShareUrlFromToken(token);
+        const copied = await copyTextToClipboard(url);
+        setBuilderStatus(copied ? "copied share link!" : "couldn’t copy link :(");
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        setBuilderStatus(`couldn’t share: ${msg}`);
+      }
     });
   }
 
@@ -2291,9 +2318,41 @@ async function init() {
     currentLevelData = JSON.parse(JSON.stringify(builderData)) as LevelData;
     renderer.setState(initGame(buildLevel(currentLevelData)));
 
-    const dayTextEl2 = document.getElementById("day-text");
-    if (dayTextEl2) dayTextEl2.textContent = "your level";
+    setDayText("custom");
   };
+
+  const forceExitBuilderMode = () => {
+    if (!builderMode) return;
+    builderMode = false;
+    renderer.setOnBuildTileClick(null);
+    renderer.setUIMode("play");
+    if (builderPanel) builderPanel.style.display = "none";
+  };
+
+  const applyFromHash = async () => {
+    const token = getShareTokenFromUrlHash();
+    if (token) {
+      const decoded = await decodeLevelShareToken(token);
+      const validation = decoded ? validateLevelData(decoded) : null;
+      if (decoded && validation && validation.ok) {
+        forceExitBuilderMode();
+        applyLevelDataToRenderer(decoded as LevelData, null, "shared");
+        return;
+      }
+
+      console.warn("Invalid share link", validation && !validation.ok ? validation.errors : decoded);
+      const s = renderer.getState();
+      renderer.setState({ ...s, message: "invalid share link" });
+      return;
+    }
+
+    forceExitBuilderMode();
+    applyLevelDataToRenderer(dailyLevelData, dailyLevelId, "daily");
+  };
+
+  window.addEventListener("hashchange", () => {
+    void applyFromHash();
+  });
 
   if (builderButton) {
     builderButton.addEventListener("click", () => {
