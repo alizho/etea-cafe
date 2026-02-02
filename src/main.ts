@@ -24,9 +24,7 @@ import { TILE_SIZE } from "./config/constants";
 import { ensureAudioStartedOnFirstGesture, playPathTileSfx } from "./audio";
 import {
   decodeLevelShareToken,
-  encodeLevelShareToken,
   getShareTokenFromUrlHash,
-  makeShareUrlFromToken,
 } from "./share";
 import "./style.css";
 
@@ -1339,7 +1337,7 @@ async function init() {
     shareBtn.classList.toggle("builder-share-disabled", !builderShareReady);
     shareBtn.setAttribute("aria-disabled", builderShareReady ? "false" : "true");
     shareBtn.title = builderShareReady
-      ? "share this level"
+      ? "copy level json"
       : "run check first";
   };
   const markBuilderDirty = () => {
@@ -2276,13 +2274,16 @@ async function init() {
       enforceBorderWalls();
 
       try {
-        const token = await encodeLevelShareToken(builderData);
-        const url = makeShareUrlFromToken(token);
-        const copied = await copyTextToClipboard(url);
-        setBuilderStatus(copied ? "copied share link!" : "couldn’t copy link :(");
+        const json = JSON.stringify(builderData, null, 2);
+        const copied = await copyTextToClipboard(json);
+        if (copied) {
+          setBuilderStatus("copied level JSON to clipboard");
+        } else {
+          setBuilderStatus("couldn’t copy link :()");
+        }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        setBuilderStatus(`couldn’t share: ${msg}`);
+        setBuilderStatus(`couldn’t export: ${msg}`);
       }
     });
   }
