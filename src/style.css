@@ -646,3 +646,33 @@ body {
     background-color: #76428a;
     color: #ffffff;
 }
+
+@media (max-width: 768px) {
+    .game-container {
+        flex-direction: column;
+    }
+    
+    .game-section {
+        width: 100%;
+        order: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .game-canvas {
+        width: 110% !important;
+        max-width: 100vw;
+        height: auto !important;
+        margin-left: -5%;
+    }
+    
+    .game-controls {
+        order: -1;
+        margin-bottom: 10px;
+    }
+    
+    .sidebar {
+        width: 100%;
+        order: 2;
+    }
+}
