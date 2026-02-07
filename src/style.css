@@ -110,17 +110,35 @@ body {
     font-family: "PixelArial", Arial, sans-serif;
     cursor: pointer;
     background-color: #f3f2ed;
-    color: #76428a;
-    border: 2px solid #76428a;
-    box-shadow: 0 0 0 1px #76428a;
+    color: #8000ff;
+    border: 2px solid #8000ff;
+    box-shadow: 0 0 0 1px #8000ff;
     image-rendering: pixelated;
     image-rendering: crisp-edges;
     border-radius: 0;
+    z-index: 2000;
 }
 
-.game-button:hover {
-    background-color: #76428a;
+.game-button:hover:not(:disabled) {
+    background-color: #8000ff;
     color: #ffffff;
+}
+
+.game-button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-3px); }
+    40% { transform: translateX(3px); }
+    60% { transform: translateX(-2px); }
+    80% { transform: translateX(2px); }
+}
+
+.game-button:disabled:hover {
+    animation: shake 0.4s ease-in-out;
 }
 
 .game-canvas {
@@ -283,7 +301,7 @@ body {
 }
 
 .builder-tool-btn.builder-tool-active {
-    background-color: #76428a;
+    background-color: #8000ff;
     color: #ffffff;
 }
 
@@ -370,8 +388,8 @@ body {
 .popup-content {
     color: #000;
     background-color: #f3f2ed;
-    border: 3px solid #76428a;
-    box-shadow: 0 0 0 2px #76428a;
+    border: 3px solid #8000ff;
+    box-shadow: 0 0 0 2px #8000ff;
     padding: 24px 32px;
     text-align: center;
     min-width: 300px;
@@ -388,7 +406,7 @@ body {
 
 .success-day-text {
     font-family: "PixelArial", Arial, sans-serif;
-    color: #76428a;
+    color: #8000ff;
     margin-top: 0;
 }
 
@@ -407,13 +425,13 @@ body {
     font-size: 2em;
     font-weight: bold;
     font-family: "PixelArial", Arial, sans-serif;
-    color: #76428a;
+    color: #8000ff;
 }
 
 .success-optimal-score {
     font-family: "PixelArial", Arial, sans-serif;
     font-size: 0.9em;
-    color: #76428a;
+    color: #8000ff;
     margin-top: 6px;
     display: none;
 }
@@ -422,7 +440,7 @@ body {
     font-family: "PixelArial", Arial, sans-serif;
     font-size: 1.2em;
     font-weight: bold;
-    color: #76428a;
+    color: #8000ff;
     margin-top: 8px;
     text-transform: uppercase;
     display: none;
@@ -440,13 +458,13 @@ body {
     font-weight: bold;
     margin-bottom: 8px;
     font-family: "PixelArial", Arial, sans-serif;
-    color: #76428a;
+    color: #8000ff;
 }
 
 .success-percentile {
     font-size: 1.2em;
     font-family: "PixelArial", Arial, sans-serif;
-    color: #76428a;
+    color: #8000ff;
     margin-bottom: 12px;
 }
 
@@ -459,13 +477,13 @@ body {
 .success-graph-canvas {
     image-rendering: pixelated;
     image-rendering: crisp-edges;
-    border: 3px solid #76428a;
-    box-shadow: 0 0 0 2px #76428a;
+    border: 3px solid #8000ff;
+    box-shadow: 0 0 0 2px #8000ff;
     background-color: #ffffff;
 }
 
 #success-popup-close-btn {
-    margin-top: 20px;
+    margin-top: 20px; 
 }
 
 
@@ -479,8 +497,8 @@ body {
 .hamburger-btn {
     z-index: 2000;
     background: #f3f2ed;
-    border: 2px solid #76428a;
-    box-shadow: 0 0 0 1px #76428a;
+    border: 2px solid #8000ff;
+    box-shadow: 0 0 0 1px #8000ff;
     padding: 8px 7px;
     cursor: pointer;
     display: flex;
@@ -493,14 +511,14 @@ body {
 
 .hamburger-btn:hover,
 .hamburger-btn--active {
-    background: #76428a;
+    background: #8000ff;
 }
 
 .hamburger-line {
     display: block;
     width: 18px;
     height: 3px;
-    background: #76428a;
+    background: #8000ff;
 }
 
 .hamburger-btn:hover .hamburger-line,
@@ -515,8 +533,8 @@ body {
     margin-top: 4px;
     z-index: 2001;
     background: #f3f2ed;
-    border: 2px solid #76428a;
-    box-shadow: 0 0 0 1px #76428a;
+    border: 2px solid #8000ff;
+    box-shadow: 0 0 0 1px #8000ff;
     flex-direction: column;
     min-width: 160px;
     image-rendering: pixelated;
@@ -529,7 +547,7 @@ body {
     padding: 12px 16px;
     font-family: "PixelArial", Arial, sans-serif;
     font-size: 14px;
-    color: #76428a;
+    color: #8000ff;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -539,7 +557,7 @@ body {
 }
 
 .menu-item:hover {
-    background: #76428a;
+    background: #8000ff;
     color: #f3f2ed;
 }
 
@@ -553,7 +571,7 @@ body {
 
 .menu-panel-title {
     font-family: "PixelArial", Arial, sans-serif;
-    color: #76428a;
+    color: #8000ff;
     margin: 0 0 20px 0;
     font-size: 22px;
 }
@@ -575,7 +593,7 @@ body {
 }
 
 .menu-link {
-    color: #76428a;
+    color: #8000ff;
     text-decoration: underline;
     font-family: "PixelArial", Arial, sans-serif;
 }
@@ -620,9 +638,9 @@ body {
     padding: 8px 12px;
     font-family: "PixelArial", Arial, sans-serif;
     font-size: 14px;
-    color: #76428a;
+    color: #8000ff;
     background: transparent;
-    border: 2px solid #76428a;
+    border: 2px solid #8000ff;
     cursor: pointer;
     text-align: left;
     border-radius: 0;
@@ -630,7 +648,7 @@ body {
 }
 
 .puzzle-list-item:hover {
-    background: #76428a;
+    background: #8000ff;
     color: #f3f2ed;
 }
 
@@ -643,7 +661,7 @@ body {
 }
 
 ::selection {
-    background-color: #76428a;
+    background-color: #8000ff;
     color: #ffffff;
 }
 
