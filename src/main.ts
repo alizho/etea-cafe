@@ -2359,6 +2359,7 @@ async function init() {
     renderBuilderOrdersInSidebar();
     rebuildPreview();
     setBuilderStatus("builder mode. click tiles to edit");
+    setDayText("custom");
   };
 
   const exitBuilderMode = () => {
