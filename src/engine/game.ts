@@ -39,7 +39,7 @@ export function initGame(level: Level): GameState {
     glorboPos: level.start,
     inventory: [],
     served: initServed(level),
-    message: "yea",
+    message: "---",
   };
 }
 

@@ -1036,7 +1036,7 @@ class GameRenderer {
     if (inventoryEl) {
       const inventory = this.state.inventory;
       if (inventory.length === 0) {
-        inventoryEl.innerHTML = `in hand: (empty)`;
+        inventoryEl.innerHTML = `in hand: [ 0/2 ]`;
       } else {
         const drinkImages = inventory
           .map((drinkId) => {
@@ -2441,5 +2441,61 @@ async function init() {
   renderer.render();
   renderer.updateUI();
 }
+
+function scatterDecorations(): void {
+  const count: number = 30;
+  const container: HTMLElement = document.body;
+  const animationPairs: [string, string][] = [
+    ['src/assets/bg1-1.png', 'src/assets/bg1-2.png'],
+    ['src/assets/bg2-1.png', 'src/assets/bg2-2.png'],
+    ['src/assets/bg3-1.png', 'src/assets/bg3-2.png'],
+    ['src/assets/bg4-1.png', 'src/assets/bg4-2.png'],
+    ['src/assets/bg5-1.png', 'src/assets/bg5-2.png'],
+    ['src/assets/bg6-1.png', 'src/assets/bg6-2.png'],
+    ['src/assets/bg7-1.png', 'src/assets/bg7-2.png'],
+    ['src/assets/bg8-1.png', 'src/assets/bg8-2.png'],
+    ['src/assets/bg9-1.png', 'src/assets/bg9-2.png'],
+    ['src/assets/bg10-1.png', 'src/assets/bg10-2.png'],
+  ];
+  
+  const cols = Math.ceil(Math.sqrt(count));
+  const rows = Math.ceil(count / cols);
+
+  const cellWidth = 100 / cols;
+  const cellHeight = 100 / rows;
+
+  for (let i = 0; i < count; i++) {
+    const deco = document.createElement('img');
+
+    const randomPair = animationPairs[Math.floor(Math.random() * animationPairs.length)];
+    deco.src = randomPair[0];
+
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+
+    const jitterX = Math.random();
+    const jitterY = Math.random();
+
+    deco.style.position = 'fixed';
+    deco.style.left = `${(col + jitterX) * cellWidth}%`;
+    deco.style.top = `${(row + jitterY) * cellHeight}%`;
+    deco.style.width = '30px';
+    deco.style.pointerEvents = 'none';
+    deco.style.zIndex = '0';
+
+    container.appendChild(deco);
+
+    let currentFrame = 0;
+    setInterval(() => {
+      currentFrame = (currentFrame + 1) % 2;
+      deco.src = randomPair[currentFrame];
+    }, 500);
+  }
+
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  scatterDecorations();
+});
 
 init().catch(console.error);
