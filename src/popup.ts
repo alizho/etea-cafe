@@ -202,7 +202,8 @@ export function showSuccessPopup(
   score: number,
   levelId: string,
   optimalMoves?: number,
-  onViewOptimal?: () => void
+  onViewOptimal?: () => void,
+  hideGraph?: boolean
 ): void {
   const popup = document.getElementById("success-popup");
   if (!popup) return;
@@ -254,6 +255,29 @@ export function showSuccessPopup(
     }
   }
 
+  // hide or show the distribution section
+  const distributionSection = popup.querySelector(".success-distribution-section");
+  if (distributionSection && distributionSection instanceof HTMLElement) {
+    distributionSection.style.display = hideGraph ? "none" : "block";
+  }
+
+  // show popup immediately, even before data loads
+  popup.style.display = "flex";
+
+  if (hideGraph) {
+    // no graph to show — just determine message from BFS optimal alone
+    const message = getScoreMessage(score, [], optimalMoves);
+    if (messageEl && messageEl instanceof HTMLElement) {
+      if (message) {
+        messageEl.textContent = message;
+        messageEl.style.display = "block";
+      } else {
+        messageEl.style.display = "none";
+      }
+    }
+    return;
+  }
+
   // calculate and display percentile with graph
   const percentileEl = popup.querySelector(".success-percentile");
   const graphContainer = popup.querySelector(".success-graph-container");
@@ -265,9 +289,6 @@ export function showSuccessPopup(
   if (graphContainer) {
     graphContainer.innerHTML = "<div style='color: #76428a; font-family: PixelArial;'>loading graph...</div>";
   }
-  
-  // show popup immediately, even before data loads
-  popup.style.display = "flex";
 
   getAllScoresForLevel(levelId)
     .then((allScores) => {

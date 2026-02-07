@@ -371,6 +371,9 @@ class GameRenderer {
   private tempCanvas: HTMLCanvasElement;
   private tempCtx: CanvasRenderingContext2D;
   private hoverTile: Pos | null = null;
+  private buildCursor: string = "crosshair";
+  private dragGhostRenderer: ((ctx: CanvasRenderingContext2D, tileX: number, tileY: number, animFrame: number) => void) | null = null;
+  private glorboHidden: boolean = false;
 
   private uiMode: "play" | "build" = "play";
   private onBuildTileClick: ((pos: Pos) => void) | null = null;
@@ -498,10 +501,9 @@ class GameRenderer {
     this.canvas.addEventListener("touchmove", (e) => {
       e.preventDefault();
       const touch = e.touches[0];
-      this.handlePointerMove({
-        clientX: touch.clientX,
-        clientY: touch.clientY,
-      });
+      const coords = { clientX: touch.clientX, clientY: touch.clientY };
+      this.handlePointerMove(coords);
+      this.handleHover(coords);
     });
     this.canvas.addEventListener("touchend", () => this.stopDrawing());
 
@@ -608,7 +610,7 @@ class GameRenderer {
       }
 
       if (this.uiMode === "build") {
-        this.canvas.style.cursor = "crosshair";
+        this.canvas.style.cursor = this.buildCursor;
         return;
       }
 
@@ -636,6 +638,9 @@ class GameRenderer {
     this.uiMode = mode;
     this.isDrawing = false;
     this.lastBuildPaintKey = null;
+    this.buildCursor = "crosshair";
+    this.dragGhostRenderer = null;
+    this.glorboHidden = false;
     if (this.uiMode === "build") {
       // stop sim while editing
       if (this.simInterval) {
@@ -649,6 +654,22 @@ class GameRenderer {
 
   public setOnBuildTileClick(handler: ((pos: Pos) => void) | null) {
     this.onBuildTileClick = handler;
+  }
+
+  public setBuildCursor(cursor: string) {
+    this.buildCursor = cursor;
+    if (this.uiMode === "build") {
+      this.canvas.style.cursor = cursor;
+    }
+  }
+
+  public setDragGhost(fn: ((ctx: CanvasRenderingContext2D, tileX: number, tileY: number, animFrame: number) => void) | null) {
+    this.dragGhostRenderer = fn;
+    this.render();
+  }
+
+  public setGlorboHidden(hidden: boolean) {
+    this.glorboHidden = hidden;
   }
 
   public setOnSuccess(handler: ((moves: number) => void) | null) {
@@ -951,32 +972,34 @@ class GameRenderer {
       renderPathArrow(ctx, this.state, this.animationFrame);
     }
 
-    // draw glorbo (on top of path)
-    const gx = glorboPos.x * TILE_SIZE;
-    const gy = glorboPos.y * TILE_SIZE;
+    // draw glorbo (on top of path) — hidden when being dragged
+    if (!this.glorboHidden) {
+      const gx = glorboPos.x * TILE_SIZE;
+      const gy = glorboPos.y * TILE_SIZE;
 
-    // determine which sprite to use based on inventory count
-    const drinkCount = this.state.inventory.length;
-    const spriteIndex = Math.min(drinkCount, 2); // 0, 1, or 2
+      // determine which sprite to use based on inventory count
+      const drinkCount = this.state.inventory.length;
+      const spriteIndex = Math.min(drinkCount, 2); // 0, 1, or 2
 
-    const spriteSheetWidth = glorboSpriteSheet.width;
-    const spriteSheetHeight = glorboSpriteSheet.height;
-    const spriteWidth = spriteSheetWidth / 3;
-    const spriteHeight = spriteSheetHeight / 2; // 2 rows
-    const sourceY = this.animationFrame * spriteHeight; // 0 for static, spriteHeight for animation
+      const spriteSheetWidth = glorboSpriteSheet.width;
+      const spriteSheetHeight = glorboSpriteSheet.height;
+      const spriteWidth = spriteSheetWidth / 3;
+      const spriteHeight = spriteSheetHeight / 2; // 2 rows
+      const sourceY = this.animationFrame * spriteHeight; // 0 for static, spriteHeight for animation
 
-    // draw the appropriate sprite from the sprite sheet
-    ctx.drawImage(
-      glorboSpriteSheet,
-      spriteIndex * spriteWidth,
-      sourceY,
-      spriteWidth,
-      spriteHeight, // source rectangle
-      gx,
-      gy,
-      TILE_SIZE,
-      TILE_SIZE, // destination rectangle
-    );
+      // draw the appropriate sprite from the sprite sheet
+      ctx.drawImage(
+        glorboSpriteSheet,
+        spriteIndex * spriteWidth,
+        sourceY,
+        spriteWidth,
+        spriteHeight, // source rectangle
+        gx,
+        gy,
+        TILE_SIZE,
+        TILE_SIZE, // destination rectangle
+      );
+    }
 
     // draw hover sprite on hovered tile (only during idle state)
     if (this.state.status === "idle" && this.hoverTile) {
@@ -1025,6 +1048,14 @@ class GameRenderer {
         TILE_SIZE,
         TILE_SIZE, // destination rectangle
       );
+    }
+
+    // draw drag ghost at hover tile
+    if (this.dragGhostRenderer && this.hoverTile) {
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+      this.dragGhostRenderer(ctx, this.hoverTile.x, this.hoverTile.y, this.animationFrame);
+      ctx.restore();
     }
   }
 
@@ -1237,8 +1268,10 @@ async function init() {
   // extract day number for popup
   const dayMatch = levelData.id.match(/day-(\d+)/);
   let dayNumber = dayMatch ? parseInt(dayMatch[1], 10) : 1;
+  let currentMode: "shared" | "daily" | "custom" = hasSharedLevel ? "shared" : "daily";
 
   const setDayText = (mode: "shared" | "daily" | "custom") => {
+    currentMode = mode;
     const dayTextEl = document.getElementById("day-text");
     if (!dayTextEl) return;
     if (mode === "shared") dayTextEl.textContent = "shared level";
@@ -1304,11 +1337,13 @@ async function init() {
       }
 
       // show success popup on every playthrough
-      showSuccessPopup(dayNumber, moves, currentLevelId, optimalMoves, viewOptimalCallback);
+      const isCustom = currentMode === "custom";
+      showSuccessPopup(dayNumber, moves, currentLevelId, optimalMoves, viewOptimalCallback, isCustom);
     } catch (error) {
       console.error("Error submitting run:", error);
       // still show popup even if API call fails
-      showSuccessPopup(dayNumber, moves, currentLevelId, optimalMoves, viewOptimalCallback);
+      const isCustom = currentMode === "custom";
+      showSuccessPopup(dayNumber, moves, currentLevelId, optimalMoves, viewOptimalCallback, isCustom);
     }
   });
 
@@ -1320,7 +1355,8 @@ async function init() {
     | "station"
     | "cust1"
     | "cust2"
-    | "cust3";
+    | "cust3"
+    | "drag";
   let builderMode = false;
   let builderData: LevelData = JSON.parse(
     JSON.stringify(currentLevelData),
@@ -1340,6 +1376,15 @@ async function init() {
 
   const stationCycle: DrinkId[] = ["D1", "D2", "F1", "F2", "F3"];
   let stationToolDefault: DrinkId = "D1";
+
+  // drag tool state
+  type DraggedItem =
+    | { kind: "start" }
+    | { kind: "station"; drink: DrinkId }
+    | { kind: "customer"; id: "A" | "B" | "C"; standHere: string }
+    | { kind: "decor"; decorKind: DecorKind; clickOffset: number };
+  let draggedItem: DraggedItem | null = null;
+  let dragOrigin: Pos | null = null;
 
   const builderButton = document.getElementById(
     "builder-btn",
@@ -1407,10 +1452,16 @@ async function init() {
     if (builderHeightInput) builderHeightInput.value = String(builderData.height);
   };
 
+  const builderTipEl = document.getElementById("builder-tip");
+
   const applyToolActiveUI = () => {
     for (const btn of toolButtons) {
       const tool = btn.dataset.tool as BuilderTool | undefined;
       btn.classList.toggle("builder-tool-active", tool === builderTool);
+    }
+    if (builderTipEl) {
+      builderTipEl.style.display =
+        builderTool === "station" || builderTool === "decor" ? "" : "none";
     }
   };
 
@@ -2174,6 +2225,242 @@ async function init() {
     setBuilderStatus(`resized to ${builderData.width}x${builderData.height}`);
   };
 
+  // --- drag tool helpers ---
+
+  const makeGhostRenderer = (item: DraggedItem): ((ctx: CanvasRenderingContext2D, tx: number, ty: number, animFrame: number) => void) => {
+    switch (item.kind) {
+      case "start":
+        return (ctx, tx, ty, animFrame) => {
+          const px = tx * TILE_SIZE;
+          const py = ty * TILE_SIZE;
+          const sw = glorboSpriteSheet.width / 3;
+          const sh = glorboSpriteSheet.height / 2;
+          const sy = animFrame * sh;
+          ctx.drawImage(glorboSpriteSheet, 0, sy, sw, sh, px, py, TILE_SIZE, TILE_SIZE);
+        };
+      case "station": {
+        let sprite: HTMLImageElement;
+        if (item.drink === "D1") sprite = drinkA;
+        else if (item.drink === "D2") sprite = drinkB;
+        else if (item.drink === "F1") sprite = foodA;
+        else if (item.drink === "F2") sprite = foodB;
+        else sprite = foodC;
+        return (ctx, tx, ty) => {
+          ctx.drawImage(sprite, tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        };
+      }
+      case "customer": {
+        let sprite: HTMLImageElement;
+        if (item.id === "A") sprite = customerA;
+        else if (item.id === "B") sprite = customerB;
+        else sprite = customerC;
+        return (ctx, tx, ty, animFrame) => {
+          const sw = sprite.width / 2;
+          const sh = sprite.height / 2;
+          const sx = (animFrame % 2) * sw;
+          ctx.drawImage(sprite, sx, 0, sw, sh, tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        };
+      }
+      case "decor": {
+        const { decorKind, clickOffset } = item;
+        if (decorKind === "plant_two") {
+          return (ctx, tx, ty) => {
+            const ax = (tx - clickOffset) * TILE_SIZE;
+            ctx.drawImage(plantTwo, ax, ty * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE);
+          };
+        }
+        if (decorKind === "table_triple") {
+          return (ctx, tx, ty) => {
+            const ax = tx - clickOffset;
+            ctx.drawImage(tableL, ax * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            ctx.drawImage(tableM, (ax + 1) * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            ctx.drawImage(tableR, (ax + 2) * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          };
+        }
+        let sprite: HTMLImageElement;
+        if (decorKind === "plant_a") sprite = plantA;
+        else if (decorKind === "plant_b") sprite = plantB;
+        else if (decorKind === "shelf_a") sprite = shelfA;
+        else if (decorKind === "table_single") sprite = tableSingle;
+        else sprite = plantA; // fallback
+        return (ctx, tx, ty) => {
+          ctx.drawImage(sprite, tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        };
+      }
+    }
+  };
+
+  const detectItemAt = (p: Pos): DraggedItem | null => {
+    const key = posKey(p);
+
+    // start position
+    if (key === posKey(builderData.start)) {
+      return { kind: "start" };
+    }
+
+    // drink station
+    const station = builderData.drinkStations.find(
+      (d) => `${d.x},${d.y}` === key,
+    );
+    if (station) {
+      return { kind: "station", drink: station.drink as DrinkId };
+    }
+
+    // customer
+    const customer = builderData.customers.find(
+      (c) => `${c.x},${c.y}` === key,
+    );
+    if (customer) {
+      return {
+        kind: "customer",
+        id: customer.id as "A" | "B" | "C",
+        standHere: customer.standHere as string,
+      };
+    }
+
+    // obstacle/decor (excluding border windows)
+    const obstacle = obstacleAt(p);
+    if (obstacle && obstacle.type !== "window_single_a") {
+      const dKind = decorKindAt(p);
+      if (dKind) {
+        const group = getObstacleGroupAt(p);
+        const leftmost = group.reduce(
+          (min, cur) => (cur.x < min.x ? cur : min),
+          group[0] ?? p,
+        );
+        const clickOffset = p.x - leftmost.x;
+        return { kind: "decor", decorKind: dKind, clickOffset };
+      }
+    }
+
+    return null;
+  };
+
+  const restoreItem = (origin: Pos, item: DraggedItem) => {
+    switch (item.kind) {
+      case "start":
+        builderData.start = { x: origin.x, y: origin.y };
+        break;
+      case "station":
+        setDrinkAt(origin, item.drink);
+        break;
+      case "customer":
+        setCustomerAt(origin, item.id);
+        break;
+      case "decor":
+        setDecorAt(origin, item.decorKind, { silent: true });
+        break;
+    }
+  };
+
+  const cancelDrag = () => {
+    if (!draggedItem || !dragOrigin) {
+      draggedItem = null;
+      dragOrigin = null;
+      renderer.setDragGhost(null);
+      renderer.setGlorboHidden(false);
+      return;
+    }
+    restoreItem(dragOrigin, draggedItem);
+    draggedItem = null;
+    dragOrigin = null;
+    renderer.setDragGhost(null);
+    renderer.setGlorboHidden(false);
+    rebuildPreview();
+    renderer.setBuildCursor("grab");
+  };
+
+  const pickUpItem = (p: Pos): boolean => {
+    const item = detectItemAt(p);
+    if (!item) return false;
+
+    draggedItem = item;
+    dragOrigin = { x: p.x, y: p.y };
+
+    // remove item from level data so it disappears visually
+    if (item.kind === "start") {
+      renderer.setGlorboHidden(true);
+    } else {
+      removeAt(p);
+    }
+
+    // show ghost sprite following the cursor
+    renderer.setDragGhost(makeGhostRenderer(item));
+    return true;
+  };
+
+  const dropItem = (p: Pos | null) => {
+    if (!draggedItem || !dragOrigin) {
+      draggedItem = null;
+      dragOrigin = null;
+      renderer.setDragGhost(null);
+      renderer.setGlorboHidden(false);
+      return;
+    }
+
+    const item = draggedItem;
+    const origin = dragOrigin;
+    draggedItem = null;
+    dragOrigin = null;
+    renderer.setDragGhost(null);
+    renderer.setGlorboHidden(false);
+
+    // invalid drop position → cancel
+    if (
+      !p ||
+      !inBounds(builderData.width, builderData.height, p) ||
+      isBorderTile(builderData.width, builderData.height, p)
+    ) {
+      restoreItem(origin, item);
+      rebuildPreview();
+      renderer.setBuildCursor("grab");
+      setBuilderStatus("can't place here");
+      return;
+    }
+
+    // same position → just put it back
+    if (p.x === origin.x && p.y === origin.y) {
+      restoreItem(origin, item);
+      rebuildPreview();
+      renderer.setBuildCursor("grab");
+      return;
+    }
+
+    let success = false;
+
+    switch (item.kind) {
+      case "start":
+        removeAt(p);
+        builderData.start = { x: p.x, y: p.y };
+        success = true;
+        break;
+      case "station":
+        setDrinkAt(p, item.drink);
+        success = true;
+        break;
+      case "customer":
+        setCustomerAt(p, item.id);
+        success = builderData.customers.some((c) => c.id === item.id);
+        break;
+      case "decor": {
+        const anchor = { x: p.x - item.clickOffset, y: p.y };
+        success = setDecorAt(anchor, item.decorKind, { silent: true });
+        break;
+      }
+    }
+
+    if (!success) {
+      restoreItem(origin, item);
+      setBuilderStatus("can't place here");
+    } else {
+      markBuilderDirty();
+      setBuilderStatus("moved! check again");
+    }
+
+    rebuildPreview();
+    renderer.setBuildCursor("grab");
+  };
+
   const handleBuildTileClick = (p: Pos) => {
     if (!builderMode) return;
     if (!inBounds(builderData.width, builderData.height, p)) return;
@@ -2201,6 +2488,20 @@ async function init() {
       }
 
       setBuilderStatus("border tiles are always walls");
+      return;
+    }
+
+    // handle drag tool: pick up on first click, ignore during move
+    if (builderTool === "drag") {
+      if (!draggedItem) {
+        if (!pickUpItem(p)) {
+          setBuilderStatus("nothing to drag here");
+        } else {
+          renderer.setBuildCursor("grabbing");
+          rebuildPreview();
+          setBuilderStatus("drop on a tile");
+        }
+      }
       return;
     }
 
@@ -2236,10 +2537,47 @@ async function init() {
     btn.addEventListener("click", () => {
       const tool = btn.dataset.tool as BuilderTool | undefined;
       if (!tool) return;
+      // cancel active drag when switching tools
+      if (draggedItem) cancelDrag();
       builderTool = tool;
       applyToolActiveUI();
+      renderer.setBuildCursor(tool === "drag" ? "grab" : "crosshair");
     });
   }
+
+  // canvas listeners for drag-and-drop
+  canvas.addEventListener("mouseup", (e) => {
+    if (!builderMode || builderTool !== "drag" || !draggedItem) return;
+    const pos = getTilePos(
+      canvas,
+      builderData.width,
+      builderData.height,
+      e.clientX,
+      e.clientY,
+    );
+    dropItem(pos);
+  });
+
+  canvas.addEventListener("touchend", (e) => {
+    if (!builderMode || builderTool !== "drag" || !draggedItem) return;
+    const touch = e.changedTouches[0];
+    const pos = touch
+      ? getTilePos(
+          canvas,
+          builderData.width,
+          builderData.height,
+          touch.clientX,
+          touch.clientY,
+        )
+      : null;
+    dropItem(pos);
+  });
+
+  canvas.addEventListener("mouseleave", () => {
+    if (builderTool === "drag" && draggedItem) {
+      cancelDrag();
+    }
+  });
 
   const checkSolvableNow = () => {
     // first validate for quick immediate errors. Then bfs algo (slowerish)
@@ -2340,6 +2678,8 @@ async function init() {
     builderMode = true;
     builderData = JSON.parse(JSON.stringify(currentLevelData)) as LevelData;
     builderTool = "decor";
+    draggedItem = null;
+    dragOrigin = null;
 
     decorToolDefault = "plant_a";
 
@@ -2363,6 +2703,7 @@ async function init() {
   };
 
   const exitBuilderMode = () => {
+    if (draggedItem) cancelDrag();
     builderMode = false;
     renderer.setOnBuildTileClick(null);
     renderer.setUIMode("play");
@@ -2380,6 +2721,8 @@ async function init() {
 
   const forceExitBuilderMode = () => {
     if (!builderMode) return;
+    draggedItem = null;
+    dragOrigin = null;
     builderMode = false;
     renderer.setOnBuildTileClick(null);
     renderer.setUIMode("play");
