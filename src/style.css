@@ -1,3 +1,9 @@
+:root {
+    --primary-color: #8000ff;
+    --secondary-color: #f3f2ed;
+    --bg-color: #000000;
+}
+
 @font-face {
     font-family: "PixelArial";
     src: url("/font/pixel-arial-14.woff") format("woff");
@@ -110,9 +116,9 @@ body {
     font-family: "PixelArial", Arial, sans-serif;
     cursor: pointer;
     background-color: #f3f2ed;
-    color: #8000ff;
-    border: 2px solid #8000ff;
-    box-shadow: 0 0 0 1px #8000ff;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+    box-shadow: 0 0 0 1px var(--primary-color);
     image-rendering: pixelated;
     image-rendering: crisp-edges;
     border-radius: 0;
@@ -120,7 +126,7 @@ body {
 }
 
 .game-button:hover:not(:disabled) {
-    background-color: #8000ff;
+    background-color: var(--primary-color);
     color: #ffffff;
 }
 
@@ -173,16 +179,18 @@ body {
     margin-bottom: 12px;
     padding: 8px;
     width: 70%;
-    background-color: #f3f2ed;
-    border: 2px solid #000000;
-    box-shadow: 0 0 0 1px #000;
+    background-color: var(--accent-color);
+    border: 2px solid var(--secondary-color);
+    border-radius: 0;
+    box-shadow: 0 0 0 1px var(--secondary-color);
     image-rendering: pixelated;
     image-rendering: crisp-edges;
     transition: opacity 0.3s ease;
 }
 
 .order-item.order-served {
-    opacity: 0.6;
+    border: 2px solid var(--primary-color);
+    box-shadow: 0 0 0 1px var(--primary-color);
     position: relative;
 }
 
@@ -192,18 +200,22 @@ body {
     top: 8px;
     right: 8px;
     font-size: 18px;
-    color: #000;
+    color: var(--secondary-color);
     font-weight: bold;
 }
 
 .order-header {
     font-family: "PixelArial", Arial, sans-serif;
     font-size: 14px;
-    color: #000;
+    color: var(--secondary-color);
     margin-bottom: 4px;
     font-weight: bold;
     letter-spacing: 0.5px;
 }
+
+/* .order-item.order-served .order-header {
+    color: var(--primary-color);
+} */
 
 .order-row {
     display: flex;
@@ -239,10 +251,10 @@ body {
 .builder-panel {
     margin-top: 10px;
     padding: 8px;
-    background-color: #f3f2ed;
-    border: 2px solid #000000;
-    box-shadow: 0 0 0 1px #000;
-    color: #000;
+    background-color: transparent;
+    border: 2px solid var(--secondary-color);
+    box-shadow: 0 0 0 1px var(--secondary-color);
+    color: var(--secondary-color);
 }
 
 .builder-row {
@@ -263,11 +275,19 @@ body {
 }
 
 .builder-tool-btn {
-    padding: 4px 8px;
+    padding: 4px 4px;
     font-size: 13px;
 }
 
 .builder-drink-icon {
+    width: 32px;
+    height: 32px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    display: block;
+}
+
+.builder-erase-icon {
     width: 32px;
     height: 32px;
     image-rendering: pixelated;
@@ -301,7 +321,7 @@ body {
 }
 
 .builder-tool-btn.builder-tool-active {
-    background-color: #8000ff;
+    background-color: var(--primary-color);
     color: #ffffff;
 }
 
@@ -388,8 +408,8 @@ body {
 .popup-content {
     color: #000;
     background-color: #f3f2ed;
-    border: 3px solid #8000ff;
-    box-shadow: 0 0 0 2px #8000ff;
+    border: 3px solid var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-color);
     padding: 24px 32px;
     text-align: center;
     min-width: 300px;
@@ -406,7 +426,7 @@ body {
 
 .success-day-text {
     font-family: "PixelArial", Arial, sans-serif;
-    color: #8000ff;
+    color: var(--primary-color);
     margin-top: 0;
 }
 
@@ -425,13 +445,13 @@ body {
     font-size: 2em;
     font-weight: bold;
     font-family: "PixelArial", Arial, sans-serif;
-    color: #8000ff;
+    color: var(--primary-color);
 }
 
 .success-optimal-score {
     font-family: "PixelArial", Arial, sans-serif;
     font-size: 0.9em;
-    color: #8000ff;
+    color: var(--primary-color);
     margin-top: 6px;
     display: none;
 }
@@ -440,7 +460,7 @@ body {
     font-family: "PixelArial", Arial, sans-serif;
     font-size: 1.2em;
     font-weight: bold;
-    color: #8000ff;
+    color: var(--primary-color);
     margin-top: 8px;
     text-transform: uppercase;
     display: none;
@@ -458,13 +478,13 @@ body {
     font-weight: bold;
     margin-bottom: 8px;
     font-family: "PixelArial", Arial, sans-serif;
-    color: #8000ff;
+    color: var(--primary-color);
 }
 
 .success-percentile {
     font-size: 1.2em;
     font-family: "PixelArial", Arial, sans-serif;
-    color: #8000ff;
+    color: var(--primary-color);
     margin-bottom: 12px;
 }
 
@@ -477,8 +497,8 @@ body {
 .success-graph-canvas {
     image-rendering: pixelated;
     image-rendering: crisp-edges;
-    border: 3px solid #8000ff;
-    box-shadow: 0 0 0 2px #8000ff;
+    border: 3px solid var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-color);
     background-color: #ffffff;
 }
 
@@ -497,8 +517,8 @@ body {
 .hamburger-btn {
     z-index: 2000;
     background: #f3f2ed;
-    border: 2px solid #8000ff;
-    box-shadow: 0 0 0 1px #8000ff;
+    border: 2px solid var(--primary-color);
+    box-shadow: 0 0 0 1px var(--primary-color);
     padding: 8px 7px;
     cursor: pointer;
     display: flex;
@@ -511,14 +531,14 @@ body {
 
 .hamburger-btn:hover,
 .hamburger-btn--active {
-    background: #8000ff;
+    background: var(--primary-color);
 }
 
 .hamburger-line {
     display: block;
     width: 18px;
     height: 3px;
-    background: #8000ff;
+    background: var(--primary-color);
 }
 
 .hamburger-btn:hover .hamburger-line,
@@ -533,8 +553,8 @@ body {
     margin-top: 4px;
     z-index: 2001;
     background: #f3f2ed;
-    border: 2px solid #8000ff;
-    box-shadow: 0 0 0 1px #8000ff;
+    border: 2px solid var(--primary-color);
+    box-shadow: 0 0 0 1px var(--primary-color);
     flex-direction: column;
     min-width: 160px;
     image-rendering: pixelated;
@@ -547,7 +567,7 @@ body {
     padding: 12px 16px;
     font-family: "PixelArial", Arial, sans-serif;
     font-size: 14px;
-    color: #8000ff;
+    color: var(--primary-color);
     background: transparent;
     border: none;
     cursor: pointer;
@@ -557,7 +577,7 @@ body {
 }
 
 .menu-item:hover {
-    background: #8000ff;
+    background: var(--primary-color);
     color: #f3f2ed;
 }
 
@@ -571,7 +591,7 @@ body {
 
 .menu-panel-title {
     font-family: "PixelArial", Arial, sans-serif;
-    color: #8000ff;
+    color: var(--primary-color);
     margin: 0 0 20px 0;
     font-size: 22px;
 }
@@ -593,7 +613,7 @@ body {
 }
 
 .menu-link {
-    color: #8000ff;
+    color: var(--primary-color);
     text-decoration: underline;
     font-family: "PixelArial", Arial, sans-serif;
 }
@@ -638,9 +658,9 @@ body {
     padding: 8px 12px;
     font-family: "PixelArial", Arial, sans-serif;
     font-size: 14px;
-    color: #8000ff;
+    color: var(--primary-color);
     background: transparent;
-    border: 2px solid #8000ff;
+    border: 2px solid var(--primary-color);
     cursor: pointer;
     text-align: left;
     border-radius: 0;
@@ -648,7 +668,7 @@ body {
 }
 
 .puzzle-list-item:hover {
-    background: #8000ff;
+    background: var(--primary-color);
     color: #f3f2ed;
 }
 
@@ -660,8 +680,14 @@ body {
     font-size: 12px;
 }
 
+.game-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
 ::selection {
-    background-color: #8000ff;
+    background-color: var(--primary-color);
     color: #ffffff;
 }
 
