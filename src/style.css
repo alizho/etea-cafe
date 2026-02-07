@@ -442,6 +442,10 @@ body {
     margin: 0 0 20px 0;
 }
 
+.day-text {
+    margin-top: 24px;
+}
+
 .success-day-text {
     font-family: "PixelArial", Arial, sans-serif;
     color: var(--primary-color);

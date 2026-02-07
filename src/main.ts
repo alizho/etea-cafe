@@ -2902,7 +2902,7 @@ function scatterDecorations(): void {
     deco.style.position = 'fixed';
     deco.style.left = `${(col + jitterX) * cellWidth}%`;
     deco.style.top = `${(row + jitterY) * cellHeight}%`;
-    deco.style.width = '30px';
+    deco.style.width = '48px';
     deco.style.pointerEvents = 'none';
     deco.style.zIndex = '0';
 
