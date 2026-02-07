@@ -19,6 +19,7 @@
                         <button id="run-btn" class="game-button">run</button>
                         <button id="retry-btn" class="game-button">reset</button>
                         <button id="builder-btn" class="game-button" style="display:none">builder</button>
+                        <button id="exit-builder-btn" class="game-button" style="display:none">exit builder</button>
                     </div>
 
                     <canvas id="game-canvas" class="game-canvas"></canvas>
@@ -115,19 +116,20 @@
         </div>
 
         <!-- Hamburger Menu -->
-        <button id="hamburger-btn" class="hamburger-btn" aria-label="Open menu">
-            <span class="hamburger-line"></span>
-            <span class="hamburger-line"></span>
-            <span class="hamburger-line"></span>
-        </button>
-
-        <nav id="hamburger-menu" class="hamburger-menu" style="display: none">
-            <button class="menu-item" data-action="past-puzzles">past puzzles</button>
-            <button class="menu-item" data-action="builder">builder</button>
-            <button class="menu-item" data-action="tutorial">tutorial</button>
-            <button class="menu-item" data-action="settings">settings</button>
-            <button class="menu-item" data-action="about">about</button>
-        </nav>
+        <div class="hamburger-wrapper">
+            <button id="hamburger-btn" class="hamburger-btn" aria-label="Open menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+            <nav id="hamburger-menu" class="hamburger-menu" style="display: none">
+                <button class="menu-item" data-action="past-puzzles">past puzzles</button>
+                <button class="menu-item" data-action="builder">builder</button>
+                <button class="menu-item" data-action="tutorial">tutorial</button>
+                <button class="menu-item" data-action="settings">settings</button>
+                <button class="menu-item" data-action="about">about</button>
+            </nav>
+        </div>
 
         <!-- Menu Panel Overlay -->
         <div id="menu-panel" class="popup-overlay" style="display: none">

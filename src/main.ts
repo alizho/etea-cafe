@@ -1208,7 +1208,7 @@ async function init() {
 
   // extract day number for popup
   const dayMatch = levelData.id.match(/day-(\d+)/);
-  const dayNumber = dayMatch ? parseInt(dayMatch[1], 10) : 1;
+  let dayNumber = dayMatch ? parseInt(dayMatch[1], 10) : 1;
 
   const setDayText = (mode: "shared" | "daily" | "custom") => {
     const dayTextEl = document.getElementById("day-text");
@@ -2288,6 +2288,10 @@ async function init() {
     });
   }
 
+  const runBtn = document.getElementById("run-btn");
+  const retryBtn = document.getElementById("retry-btn");
+  const exitBuilderBtn = document.getElementById("exit-builder-btn");
+
   const enterBuilderMode = () => {
     builderMode = true;
     builderData = JSON.parse(JSON.stringify(currentLevelData)) as LevelData;
@@ -2303,6 +2307,10 @@ async function init() {
     renderer.setOnBuildTileClick(handleBuildTileClick);
 
     if (builderPanel) builderPanel.style.display = "block";
+    if (runBtn) runBtn.style.display = "none";
+    if (retryBtn) retryBtn.style.display = "none";
+    if (exitBuilderBtn) exitBuilderBtn.style.display = "";
+
     applyToolActiveUI();
     renderBuilderOrdersInSidebar();
     rebuildPreview();
@@ -2314,6 +2322,9 @@ async function init() {
     renderer.setOnBuildTileClick(null);
     renderer.setUIMode("play");
     if (builderPanel) builderPanel.style.display = "none";
+    if (runBtn) runBtn.style.display = "";
+    if (retryBtn) retryBtn.style.display = "";
+    if (exitBuilderBtn) exitBuilderBtn.style.display = "none";
 
     // keep playing the level you just built if leave
     currentLevelData = JSON.parse(JSON.stringify(builderData)) as LevelData;
@@ -2328,6 +2339,9 @@ async function init() {
     renderer.setOnBuildTileClick(null);
     renderer.setUIMode("play");
     if (builderPanel) builderPanel.style.display = "none";
+    if (runBtn) runBtn.style.display = "";
+    if (retryBtn) retryBtn.style.display = "";
+    if (exitBuilderBtn) exitBuilderBtn.style.display = "none";
   };
 
   const applyFromHash = async () => {
@@ -2359,6 +2373,12 @@ async function init() {
     builderButton.addEventListener("click", () => {
       if (builderMode) exitBuilderMode();
       else enterBuilderMode();
+    });
+  }
+
+  if (exitBuilderBtn) {
+    exitBuilderBtn.addEventListener("click", () => {
+      exitBuilderMode();
     });
   }
 
@@ -2440,6 +2460,17 @@ async function init() {
 
   // init hamburger menu
   initMenu();
+
+  // listen for level loads from the menu
+  document.addEventListener("loadLevel", ((e: CustomEvent) => {
+    const { levelData: ld, levelId: lid } = e.detail;
+    forceExitBuilderMode();
+
+    const m = (ld as LevelData).id?.match(/day-(\d+)/);
+    dayNumber = m ? parseInt(m[1], 10) : 1;
+
+    applyLevelDataToRenderer(ld as LevelData, lid as string, "daily");
+  }) as EventListener);
 
   // initial render and orders display
   renderer.render();

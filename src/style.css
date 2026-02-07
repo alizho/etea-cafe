@@ -456,10 +456,14 @@ body {
 }
 
 
-.hamburger-btn {
+.hamburger-wrapper {
     position: fixed;
     top: 12px;
     right: 12px;
+    z-index: 2000;
+}
+
+.hamburger-btn {
     z-index: 2000;
     background: #f3f2ed;
     border: 2px solid #76428a;
@@ -492,10 +496,11 @@ body {
 }
 
 .hamburger-menu {
-    position: fixed;
-    top: 50px;
-    right: 12px;
-    z-index: 2000;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    z-index: 2001;
     background: #f3f2ed;
     border: 2px solid #76428a;
     box-shadow: 0 0 0 1px #76428a;
@@ -535,7 +540,7 @@ body {
 .menu-panel-title {
     font-family: "PixelArial", Arial, sans-serif;
     color: #76428a;
-    margin: 0 0 16px 0;
+    margin: 0 0 20px 0;
     font-size: 18px;
 }
 
@@ -543,12 +548,16 @@ body {
     font-family: "PixelArial", Arial, sans-serif;
     font-size: 14px;
     color: #000;
-    margin: 0 0 12px 0;
+    margin: 0 0 16px 0;
     line-height: 1.6;
 }
 
 .menu-panel-text:last-of-type {
     margin-bottom: 0;
+}
+
+#menu-panel-close {
+    margin-top: 28px;
 }
 
 .menu-link {
@@ -579,4 +588,42 @@ body {
 .settings-toggle {
     min-width: 52px;
     text-align: center;
+}
+
+/* ── Puzzle List ── */
+
+.puzzle-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.puzzle-list-item {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    font-family: "PixelArial", Arial, sans-serif;
+    font-size: 14px;
+    color: #76428a;
+    background: transparent;
+    border: 2px solid #76428a;
+    cursor: pointer;
+    text-align: left;
+    border-radius: 0;
+    box-sizing: border-box;
+}
+
+.puzzle-list-item:hover {
+    background: #76428a;
+    color: #f3f2ed;
+}
+
+.puzzle-list-today {
+    font-weight: bold;
+}
+
+.puzzle-today-tag {
+    font-size: 12px;
 }

@@ -1,4 +1,6 @@
 import { toggleAudio, getAudioEnabled } from "./audio";
+import { getLevelHistory, getLevelByDate } from "./supabase/api";
+import type { LevelData } from "./levels/level.schema";
 
 export function initMenu(): void {
   const hamburgerBtn = document.getElementById("hamburger-btn");
@@ -94,9 +96,10 @@ export function initMenu(): void {
       switch (action) {
         case "past-puzzles":
           showPanel(
-            `<h3 class="menu-panel-title">past puzzles</h3>` +
-              `<p class="menu-panel-text">coming soon...</p>`,
+            `<h3 class="menu-panel-title">puzzles</h3>` +
+              `<p class="menu-panel-text">loading...</p>`,
           );
+          void loadPastPuzzles();
           break;
 
         case "builder":
@@ -121,8 +124,9 @@ export function initMenu(): void {
         case "about":
           showPanel(
             `<h3 class="menu-panel-title">about</h3>` +
-              `<p class="menu-panel-text">this game was made with &lt;3 by jamms</p>` +
-              `<p class="menu-panel-text"><a href="https://jam.ms" target="_blank" rel="noopener" class="menu-link">jam.ms</a></p>`,
+              `<p class="menu-panel-text">this game was made with &lt;3 by <a href="https://jam.ms" target="_blank" rel="noopener" class="menu-link">jamms</a></p>` +
+              `<p class="menu-panel-text">inspired by <a href="https://enclose.horse" target="_blank" rel="noopener" class="menu-link">enclose.horse</a></p>` +
+              `<p class="menu-panel-text"><a href="https://store.steampowered.com/app/3085040/ETea/" target="_blank" rel="noopener" class="menu-link">wishlist etea on steam!</a></p>`,
           );
           break;
       }
@@ -149,5 +153,90 @@ export function initMenu(): void {
       const newState = toggleAudio();
       btn.textContent = newState ? "on" : "off";
     });
+  }
+
+  /* ── past puzzles helpers ── */
+
+  function formatDateLabel(dateStr: string): string {
+    const [, month, day] = dateStr.split("-");
+    const months = [
+      "jan", "feb", "mar", "apr", "may", "jun",
+      "jul", "aug", "sep", "oct", "nov", "dec",
+    ];
+    return `${months[parseInt(month, 10) - 1]} ${parseInt(day, 10)}`;
+  }
+
+  async function loadPastPuzzles(): Promise<void> {
+    if (!menuPanelBody) return;
+
+    try {
+      const levels = await getLevelHistory(30);
+      const today = new Date().toISOString().split("T")[0];
+
+      if (!levels || levels.length === 0) {
+        menuPanelBody.innerHTML =
+          `<h3 class="menu-panel-title">puzzles</h3>` +
+          `<p class="menu-panel-text">no puzzles yet</p>`;
+        return;
+      }
+
+      const listItems = levels
+        .map((level) => {
+          const isToday = level.date === today;
+          const label = formatDateLabel(level.date);
+          const todayTag = isToday
+            ? ' <span class="puzzle-today-tag">(today)</span>'
+            : "";
+          return (
+            `<button class="puzzle-list-item${isToday ? " puzzle-list-today" : ""}"` +
+            ` data-date="${level.date}" data-id="${level.id}">` +
+            `${label}${todayTag}</button>`
+          );
+        })
+        .join("");
+
+      menuPanelBody.innerHTML =
+        `<h3 class="menu-panel-title">puzzles</h3>` +
+        `<div class="puzzle-list">${listItems}</div>`;
+
+      menuPanelBody
+        .querySelectorAll<HTMLElement>(".puzzle-list-item")
+        .forEach((btn) => {
+          btn.addEventListener("click", () => {
+            void loadPuzzleByDate(btn.dataset.date!, btn.dataset.id!);
+          });
+        });
+    } catch (err) {
+      console.error("Failed to load puzzle history:", err);
+      if (menuPanelBody) {
+        menuPanelBody.innerHTML =
+          `<h3 class="menu-panel-title">puzzles</h3>` +
+          `<p class="menu-panel-text">couldn't load puzzles</p>`;
+      }
+    }
+  }
+
+  async function loadPuzzleByDate(date: string, _levelId: string): Promise<void> {
+    try {
+      const level = await getLevelByDate(date);
+      if (!level || !level.json) return;
+
+      const jsonData = Array.isArray(level.json)
+        ? level.json[0]
+        : level.json;
+      if (!jsonData) return;
+
+      const levelData = jsonData as LevelData;
+
+      document.dispatchEvent(
+        new CustomEvent("loadLevel", {
+          detail: { levelData, levelId: level.id, date },
+        }),
+      );
+
+      hidePanel();
+    } catch (err) {
+      console.error("Failed to load puzzle:", err);
+    }
   }
 }
