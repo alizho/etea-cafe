@@ -59,7 +59,7 @@ export async function hasRunInDatabase(
     .from("runs")
     .select("id")
     .eq("level_id", levelId)
-    .eq("player_id", playerId)
+    .eq("player_anon_id", playerId)
     .limit(1)
     .single();
 
@@ -78,7 +78,7 @@ export async function submitRun(
     .from("runs")
     .insert({
       level_id: levelId,
-      player_id: playerId,
+      player_anon_id: playerId,
       moves,
       success,
     })
@@ -97,7 +97,7 @@ export async function getTopScoreForLevel(
     .from("runs")
     .select("moves")
     .eq("level_id", levelId)
-    .eq("player_id", playerId)
+    .eq("player_anon_id", playerId)
     .eq("success", true)
     .order("moves", { ascending: true })
     .limit(1)

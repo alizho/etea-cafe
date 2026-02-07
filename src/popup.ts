@@ -158,33 +158,41 @@ function createScoreGraph(
   redraw();
 }
 
-// determine message based on score position
-function getScoreMessage(userScore: number, allScores: number[]): string | null {
+// determine message based on score vs BFS optimal and other players
+function getScoreMessage(userScore: number, allScores: number[], optimalMoves?: number): string | null {
+  // if we know the true optimal (from BFS), check against that first
+  if (optimalMoves !== undefined && userScore === optimalMoves) {
+    return "optimal path!";
+  }
+
   if (allScores.length === 0) return null;
   
   const sortedScores = [...allScores].sort((a, b) => a - b);
-  const minScore = sortedScores[0];
   const maxScore = sortedScores[sortedScores.length - 1];
   
-  // optimal path - best (lowest) score
-  if (userScore === minScore) {
-    return "optimal path!";
+  // if we know the optimal, compare against it
+  if (optimalMoves !== undefined) {
+    if (userScore === optimalMoves + 1) {
+      return "almost perfect!";
+    }
+    if (userScore <= optimalMoves + 2) {
+      return "great job!";
+    }
+  } else {
+    // fallback: compare against other players (but never say "optimal path!" without BFS proof)
+    const minScore = sortedScores[0];
+    if (userScore === minScore + 1) {
+      return "almost perfect!";
+    }
+    if (userScore <= minScore + 2) {
+      return "great job!";
+    }
   }
   
-  // almost perfect - one above the best
-  if (userScore === minScore + 1) {
-    return "almost perfect!";
-  }
-  
-  // worst score
-  if (userScore === maxScore) {
+  // worst score among players
+  if (userScore === maxScore && allScores.length > 1) {
     return "oh...";
   }
-  
-  if (userScore <= minScore + 2) {
-    return "great job!";
-  }
-  // add as u please
   
   return null;
 }
@@ -192,7 +200,9 @@ function getScoreMessage(userScore: number, allScores: number[]): string | null 
 export function showSuccessPopup(
   dayNumber: number,
   score: number,
-  levelId: string
+  levelId: string,
+  optimalMoves?: number,
+  onViewOptimal?: () => void
 ): void {
   const popup = document.getElementById("success-popup");
   if (!popup) return;
@@ -209,11 +219,39 @@ export function showSuccessPopup(
     scoreEl.textContent = score.toString();
   }
 
+  // show optimal score reference
+  const optimalScoreEl = popup.querySelector(".success-optimal-score");
+  if (optimalScoreEl && optimalScoreEl instanceof HTMLElement) {
+    if (optimalMoves !== undefined && score !== optimalMoves) {
+      optimalScoreEl.textContent = `optimal: ${optimalMoves}`;
+      optimalScoreEl.style.display = "block";
+    } else {
+      optimalScoreEl.style.display = "none";
+    }
+  }
+
   // hide message initially
   const messageEl = popup.querySelector(".success-optimal-message");
   if (messageEl && messageEl instanceof HTMLElement) {
     messageEl.style.display = "none";
     messageEl.textContent = "";
+  }
+
+  // show/hide "view optimal path" button
+  const viewOptimalBtn = document.getElementById("success-popup-view-optimal-btn");
+  if (viewOptimalBtn) {
+    if (optimalMoves !== undefined && score !== optimalMoves && onViewOptimal) {
+      viewOptimalBtn.style.display = "inline-block";
+      // replace button to clear old listeners
+      const freshBtn = viewOptimalBtn.cloneNode(true) as HTMLElement;
+      viewOptimalBtn.parentNode?.replaceChild(freshBtn, viewOptimalBtn);
+      freshBtn.addEventListener("click", () => {
+        hideSuccessPopup();
+        onViewOptimal();
+      });
+    } else {
+      viewOptimalBtn.style.display = "none";
+    }
   }
 
   // calculate and display percentile with graph
@@ -234,8 +272,8 @@ export function showSuccessPopup(
   getAllScoresForLevel(levelId)
     .then((allScores) => {
       try {
-        // determine and show message based on score position
-        const message = getScoreMessage(score, allScores);
+        // determine and show message based on score vs BFS optimal and other players
+        const message = getScoreMessage(score, allScores, optimalMoves);
         if (messageEl && messageEl instanceof HTMLElement) {
           if (message) {
             messageEl.textContent = message;
