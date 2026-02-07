@@ -211,7 +211,7 @@ export function showSuccessPopup(
   // set day number
   const dayTextEl = popup.querySelector(".success-day-text");
   if (dayTextEl) {
-    dayTextEl.textContent = `Results - Day ${dayNumber}`;
+    dayTextEl.textContent = hideGraph ? "Results" : `Results - Day ${dayNumber}`;
   }
 
   // set score
