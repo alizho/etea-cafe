@@ -897,7 +897,8 @@ class GameRenderer {
     }
 
     // serve boxes
-    for (const [key] of Object.entries(level.standHere)) {
+    for (const [key, customerId] of Object.entries(level.standHere)) {
+      if (this.state.served[customerId as "A" | "B" | "C"]) continue;
       const [x, y] = key.split(",").map(Number);
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
