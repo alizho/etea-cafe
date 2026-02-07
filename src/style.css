@@ -695,6 +695,9 @@ body {
     flex-direction: column;
     gap: 12px;
 }
+.sidebar {
+    margin-top: -132px;
+}
 
 ::selection {
     background-color: var(--primary-color);
@@ -726,6 +729,7 @@ body {
     }
     
     .sidebar {
+        margin-top: 0;
         width: 100%;
         order: 2;
     }
