@@ -300,6 +300,14 @@ body {
     display: block;
 }
 
+.builder-drag-icon {
+    width: 32px;
+    height: 32px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    display: block;
+}
+
 .builder-customer-icon {
     width: 32px;
     height: 32px;
