@@ -7,6 +7,7 @@ import {
 } from "./config/constants";
 
 let hasStarted = false;
+let audioEnabled = true;
 
 let musicContext: AudioContext | null = null;
 let musicGain: GainNode | null = null;
@@ -105,8 +106,20 @@ export async function startBackgroundMusic(): Promise<void> {
   }
 }
 
+export function toggleAudio(): boolean {
+  audioEnabled = !audioEnabled;
+  if (musicGain) {
+    musicGain.gain.value = audioEnabled ? MUSIC_VOLUME : 0;
+  }
+  return audioEnabled;
+}
+
+export function getAudioEnabled(): boolean {
+  return audioEnabled;
+}
+
 export function playPathTileSfx(): void {
-  if (!hasStarted) return;
+  if (!hasStarted || !audioEnabled) return;
 
   const nowMs = performance.now();
   if (nowMs - lastPathTileSfxAtMs < PATH_TILE_SFX_MIN_INTERVAL_MS) return;

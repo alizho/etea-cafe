@@ -123,11 +123,19 @@ function isOppositeDirection(
   return false;
 }
 
+export type PathTint = { r: number; g: number; b: number };
+
+// default blue tint #85b6d7
+export const PATH_TINT_BLUE: PathTint = { r: 133, g: 182, b: 215 };
+// green tint for optimal path
+export const PATH_TINT_GREEN: PathTint = { r: 100, g: 190, b: 120 };
+
 export function renderPath(
   ctx: CanvasRenderingContext2D,
   tempCtx: CanvasRenderingContext2D,
   state: GameState,
   animationFrame: number,
+  tint: PathTint = PATH_TINT_BLUE,
 ): void {
   const { path, stepIndex } = state;
   const pathLength = path.length;
@@ -140,7 +148,7 @@ export function renderPath(
     const px = pos.x * TILE_SIZE;
     const py = pos.y * TILE_SIZE;
 
-    // calculate gradient: newest segment (highest index) = white, oldest (lowest index) = bluest
+    // calculate gradient: newest segment (highest index) = white, oldest (lowest index) = tint color
     const gradientValue =
       pathLength > 1 ? (pathLength - 1 - i) / (pathLength - 1) : 1;
 
@@ -156,10 +164,10 @@ export function renderPath(
       dirTo = getDirection(pos, path[i + 1]);
     }
 
-    // gradient color #85b6d7 (133,182,215)
-    const targetR = 133;
-    const targetG = 182;
-    const targetB = 215;
+    // gradient color from tint parameter
+    const targetR = tint.r;
+    const targetG = tint.g;
+    const targetB = tint.b;
     const r = Math.round(255 - (255 - targetR) * gradientValue);
     const g = Math.round(255 - (255 - targetG) * gradientValue);
     const b = Math.round(255 - (255 - targetB) * gradientValue);
