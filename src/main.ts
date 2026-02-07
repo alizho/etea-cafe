@@ -22,6 +22,7 @@ import { solveLevel } from "./engine/solver";
 import { pathImagesLoaded, renderPath, renderPathArrow } from "./paths";
 import { TILE_SIZE } from "./config/constants";
 import { ensureAudioStartedOnFirstGesture, playPathTileSfx } from "./audio";
+import { initMenu } from "./menu";
 import {
   decodeLevelShareToken,
   encodeLevelShareToken,
@@ -2436,6 +2437,9 @@ async function init() {
       hideSuccessPopup();
     });
   }
+
+  // init hamburger menu
+  initMenu();
 
   // initial render and orders display
   renderer.render();

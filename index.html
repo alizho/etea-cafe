@@ -18,7 +18,7 @@
                     <div class="game-controls">
                         <button id="run-btn" class="game-button">run</button>
                         <button id="retry-btn" class="game-button">reset</button>
-                        <button id="builder-btn" class="game-button">builder</button>
+                        <button id="builder-btn" class="game-button" style="display:none">builder</button>
                     </div>
 
                     <canvas id="game-canvas" class="game-canvas"></canvas>
@@ -111,6 +111,29 @@
                     <div class="success-graph-container"></div>
                 </div>
                 <button id="success-popup-close-btn" class="game-button">close</button>
+            </div>
+        </div>
+
+        <!-- Hamburger Menu -->
+        <button id="hamburger-btn" class="hamburger-btn" aria-label="Open menu">
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+        </button>
+
+        <nav id="hamburger-menu" class="hamburger-menu" style="display: none">
+            <button class="menu-item" data-action="past-puzzles">past puzzles</button>
+            <button class="menu-item" data-action="builder">builder</button>
+            <button class="menu-item" data-action="tutorial">tutorial</button>
+            <button class="menu-item" data-action="settings">settings</button>
+            <button class="menu-item" data-action="about">about</button>
+        </nav>
+
+        <!-- Menu Panel Overlay -->
+        <div id="menu-panel" class="popup-overlay" style="display: none">
+            <div class="popup-content menu-panel-content">
+                <div id="menu-panel-body"></div>
+                <button id="menu-panel-close" class="game-button">close</button>
             </div>
         </div>
 
