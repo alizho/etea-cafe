@@ -116,7 +116,7 @@ body {
     image-rendering: pixelated;
     image-rendering: crisp-edges;
     border-radius: 0;
-    z-index: 2000;
+    z-index: 1;
 }
 
 .game-button:hover:not(:disabled) {
@@ -126,7 +126,7 @@ body {
 
 .game-button:disabled {
     opacity: 0.55;
-    cursor: not-allowed;
+    cursor: default;
 }
 
 @keyframes shake {
@@ -249,11 +249,16 @@ body {
     margin-bottom: 8px;
 }
 
+.builder-label-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
 .builder-label {
     font-size: 13px;
     font-weight: bold;
-    margin-bottom: 6px;
-    display: block;
 }
 
 .builder-tools {
@@ -369,6 +374,11 @@ body {
     font-size: 14px;
     margin-top: 6px;
     white-space: pre-wrap;
+}
+
+.builder-tip {
+    font-size: 11px;
+    color: #888;
 }
 
 
