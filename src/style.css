@@ -409,6 +409,14 @@ body {
     color: #76428a;
 }
 
+.success-optimal-score {
+    font-family: "PixelArial", Arial, sans-serif;
+    font-size: 0.9em;
+    color: #76428a;
+    margin-top: 6px;
+    display: none;
+}
+
 .success-optimal-message {
     font-family: "PixelArial", Arial, sans-serif;
     font-size: 1.2em;
@@ -417,6 +425,10 @@ body {
     margin-top: 8px;
     text-transform: uppercase;
     display: none;
+}
+
+#success-popup-view-optimal-btn {
+    margin-top: 12px;
 }
 
 .success-distribution-section {
@@ -535,18 +547,19 @@ body {
 .menu-panel-content {
     max-width: 320px;
     min-width: 260px;
+    text-align: left;
 }
 
 .menu-panel-title {
     font-family: "PixelArial", Arial, sans-serif;
     color: #76428a;
     margin: 0 0 20px 0;
-    font-size: 18px;
+    font-size: 22px;
 }
 
 .menu-panel-text {
     font-family: "PixelArial", Arial, sans-serif;
-    font-size: 14px;
+    font-size: 16px;
     color: #000;
     margin: 0 0 16px 0;
     line-height: 1.6;
@@ -581,7 +594,7 @@ body {
 
 .settings-label {
     font-family: "PixelArial", Arial, sans-serif;
-    font-size: 14px;
+    font-size: 16px;
     color: #000;
 }
 

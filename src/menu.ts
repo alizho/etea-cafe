@@ -110,9 +110,12 @@ export function initMenu(): void {
         case "tutorial":
           showPanel(
             `<h3 class="menu-panel-title">how to play</h3>` +
-              `<p class="menu-panel-text">click to draw a path, then press run to see if everyone is satisfied.</p>` +
-              `<p class="menu-panel-text">you can only hold 2 drinks at a time.</p>` +
-              `<p class="menu-panel-text">try to find the shortest path possible.</p>`,
+              `<p class="menu-panel-text">click and drag to draw a path from glorbo.</p>` +
+              `<p class="menu-panel-text">make sure you serve everyone their order by stepping on the items they want before you reach them.</p>` +
+              `<p class="menu-panel-text">you can only hold 2 items at a time.</p>` +
+              `<p class="menu-panel-text">press run to see if you served everyone their order.</p>` +
+              `<p class="menu-panel-text">try to find the shortest path possible.</p>` +
+              `<p class="menu-panel-text">have fun!</p>`,
           );
           break;
 

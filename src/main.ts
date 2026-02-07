@@ -19,7 +19,7 @@ import { showSuccessPopup, hideSuccessPopup } from "./popup";
 import type { LevelData } from "./levels/level.schema";
 import { validateLevelData } from "./levels/validate";
 import { solveLevel } from "./engine/solver";
-import { pathImagesLoaded, renderPath, renderPathArrow } from "./paths";
+import { pathImagesLoaded, renderPath, renderPathArrow, PATH_TINT_GREEN } from "./paths";
 import { TILE_SIZE } from "./config/constants";
 import { ensureAudioStartedOnFirstGesture, playPathTileSfx } from "./audio";
 import { initMenu } from "./menu";
@@ -377,6 +377,7 @@ class GameRenderer {
   private onSuccess: ((moves: number) => void) | null = null;
   private successHandled: boolean = false;
   private currentLevelId: string | null = null;
+  private showingOptimalReplay: boolean = false;
 
   // avoid build mode spamming paint calls on same tile
   private lastBuildPaintKey: string | null = null;
@@ -675,12 +676,37 @@ class GameRenderer {
     if (newState.status !== "success") {
       this.successHandled = false;
     }
+    // clear optimal replay flag on retry/new level (idle), keep it when user presses run
+    if (newState.status === "idle") {
+      this.showingOptimalReplay = false;
+    }
     this.render();
     this.updateUI();
     this.startSimulation();
   }
 
   public updateBestScoreDisplay() {
+    this.updateUI();
+  }
+
+  /** Show the optimal path laid out on the board (idle, user presses run to play it) */
+  public showOptimalPath(path: Pos[]) {
+    this.showingOptimalReplay = true;
+    this.successHandled = true;
+    const level = this.state.level;
+    const replayState: GameState = {
+      level,
+      path,
+      status: "idle",
+      stepIndex: 0,
+      stepsTaken: 0,
+      glorboPos: path[0] ?? level.start,
+      inventory: [],
+      served: { A: false, B: false, C: false },
+      message: "optimal path",
+    };
+    this.state = replayState;
+    this.render();
     this.updateUI();
   }
 
@@ -705,7 +731,7 @@ class GameRenderer {
         }
         if (this.state.status === "failed") {
           this.showFailurePopup();
-        } else if (this.state.status === "success" && this.onSuccess && !this.successHandled) {
+        } else if (this.state.status === "success" && this.onSuccess && !this.successHandled && !this.showingOptimalReplay) {
           this.successHandled = true;
           this.onSuccess(this.state.stepsTaken);
         }
@@ -917,7 +943,9 @@ class GameRenderer {
 
     if (this.uiMode === "play") {
       // draw path with directional sprites and gradient overlay
-      renderPath(ctx, this.tempCtx, this.state, this.animationFrame);
+      // use green tint for optimal path replay, default blue otherwise
+      const tint = this.showingOptimalReplay ? PATH_TINT_GREEN : undefined;
+      renderPath(ctx, this.tempCtx, this.state, this.animationFrame, tint);
 
       // draw path arrow on the last tile (current point user is on)
       renderPathArrow(ctx, this.state, this.animationFrame);
@@ -1237,6 +1265,24 @@ async function init() {
       return;
     }
 
+    // compute optimal path via BFS solver
+    let optimalMoves: number | undefined;
+    let optimalPath: Pos[] | undefined;
+    try {
+      const level = buildLevel(currentLevelData);
+      const result = solveLevel(level);
+      if (result.solvable) {
+        optimalMoves = result.path.length - 1; // path includes start position
+        optimalPath = result.path;
+      }
+    } catch (e) {
+      console.error("Error computing optimal path:", e);
+    }
+
+    const viewOptimalCallback = optimalPath
+      ? () => renderer.showOptimalPath(optimalPath!)
+      : undefined;
+
     try {
       const playerId = getPlayerId();
       const storedBest = getBestScoreFromStorage(currentLevelId);
@@ -1257,14 +1303,12 @@ async function init() {
         renderer.updateBestScoreDisplay();
       }
 
-      // show success popup only on first play
-      if (!hasExistingRun) {
-        showSuccessPopup(dayNumber, moves, currentLevelId);
-      }
+      // show success popup on every playthrough
+      showSuccessPopup(dayNumber, moves, currentLevelId, optimalMoves, viewOptimalCallback);
     } catch (error) {
       console.error("Error submitting run:", error);
       // still show popup even if API call fails
-      showSuccessPopup(dayNumber, moves, currentLevelId);
+      showSuccessPopup(dayNumber, moves, currentLevelId, optimalMoves, viewOptimalCallback);
     }
   });
 
