@@ -1430,6 +1430,7 @@ async function init() {
   const sidebarOrdersEl = document.getElementById(
     "orders",
   ) as HTMLUListElement | null;
+  const ordersHeadingEl = document.getElementById("orders-heading");
 
   const setBuilderStatus = (text: string) => {
     if (builderStatusEl) builderStatusEl.textContent = text;
@@ -1446,11 +1447,21 @@ async function init() {
       ? "share this level"
       : "run check first";
   };
+  const updateExitUI = () => {
+    const exitBtn = document.getElementById("exit-builder-btn") as HTMLButtonElement | null;
+    if (!exitBtn) return;
+    exitBtn.disabled = !builderShareReady;
+    exitBtn.title = builderShareReady
+      ? "exit builder and save"
+      : "check level first";
+  };
   const markBuilderDirty = () => {
     builderShareReady = false;
     updateShareUI();
+    updateExitUI();
   };
   updateShareUI();
+  updateExitUI();
 
   const clamp = (n: number, min: number, max: number) =>
     Math.min(Math.max(n, min), max);
@@ -2600,6 +2611,7 @@ async function init() {
       setBuilderStatus(`invalid:\n${validation.errors.join("\n")}`);
       builderShareReady = false;
       updateShareUI();
+      updateExitUI();
       return;
     }
 
@@ -2608,6 +2620,7 @@ async function init() {
 
     builderShareReady = solved.solvable;
     updateShareUI();
+    updateExitUI();
 
     if (solved.solvable) {
       setBuilderStatus(`solvable! (searched ${solved.visitedStates} states)`);
@@ -2708,7 +2721,12 @@ async function init() {
     if (runBtn) runBtn.style.display = "none";
     if (retryBtn) retryBtn.style.display = "none";
     if (exitBuilderBtn) exitBuilderBtn.style.display = "";
+    
+    const exitHint = document.getElementById("exit-builder-hint");
+    if (exitHint) exitHint.style.display = "";
 
+    markBuilderDirty(); // require check before exit
+    if (ordersHeadingEl) ordersHeadingEl.textContent = "click to change their orders";
     applyToolActiveUI();
     renderBuilderOrdersInSidebar();
     rebuildPreview();
@@ -2725,8 +2743,15 @@ async function init() {
     if (runBtn) runBtn.style.display = "";
     if (retryBtn) retryBtn.style.display = "";
     if (exitBuilderBtn) exitBuilderBtn.style.display = "none";
+    
+    const exitHint = document.getElementById("exit-builder-hint");
+    if (exitHint) exitHint.style.display = "none";
+    
+    if (ordersHeadingEl) ordersHeadingEl.textContent = "today's orders:";
 
-    // keep playing the level you just built if leave
+    // keep playing the level you just built if leave (custom level = no stored best)
+    currentLevelId = null;
+    renderer.setLevelId(null);
     currentLevelData = JSON.parse(JSON.stringify(builderData)) as LevelData;
     renderer.setState(initGame(buildLevel(currentLevelData)));
 
@@ -2744,6 +2769,11 @@ async function init() {
     if (runBtn) runBtn.style.display = "";
     if (retryBtn) retryBtn.style.display = "";
     if (exitBuilderBtn) exitBuilderBtn.style.display = "none";
+    
+    const exitHint = document.getElementById("exit-builder-hint");
+    if (exitHint) exitHint.style.display = "none";
+    
+    if (ordersHeadingEl) ordersHeadingEl.textContent = "today's orders:";
   };
 
   const applyFromHash = async () => {
@@ -2773,13 +2803,24 @@ async function init() {
 
   if (builderButton) {
     builderButton.addEventListener("click", () => {
-      if (builderMode) exitBuilderMode();
-      else enterBuilderMode();
+      if (builderMode) {
+        if (!builderShareReady) {
+          setBuilderStatus("check the level first");
+          return;
+        }
+        exitBuilderMode();
+      } else {
+        enterBuilderMode();
+      }
     });
   }
 
   if (exitBuilderBtn) {
     exitBuilderBtn.addEventListener("click", () => {
+      if (!builderShareReady) {
+        setBuilderStatus("check the level first");
+        return;
+      }
       exitBuilderMode();
     });
   }
@@ -2921,6 +2962,9 @@ function scatterDecorations(): void {
     deco.style.width = '48px';
     deco.style.pointerEvents = 'none';
     deco.style.zIndex = '0';
+    deco.style.imageRendering = '-webkit-optimize-contrast';
+    deco.style.imageRendering = 'crisp-edges';
+    deco.style.imageRendering = 'pixelated';
 
     container.appendChild(deco);
 

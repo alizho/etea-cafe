@@ -110,6 +110,9 @@ body {
     display: flex;
     gap: 8px;
     order: 1;
+    position: relative;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 .game-button {
@@ -147,6 +150,19 @@ body {
 
 .game-button:disabled:hover {
     animation: shake 0.4s ease-in-out;
+}
+
+.exit-builder-hint {
+    color: var(--secondary-color);
+    font-size: 12px;
+    white-space: nowrap;
+    pointer-events: none;
+    font-weight: 400;
+    display: none;
+}
+
+#exit-builder-btn:disabled:hover + .exit-builder-hint {
+    display: inline;
 }
 
 .game-canvas {
