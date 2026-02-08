@@ -2962,6 +2962,9 @@ function scatterDecorations(): void {
     deco.style.width = '48px';
     deco.style.pointerEvents = 'none';
     deco.style.zIndex = '0';
+    deco.style.imageRendering = '-webkit-optimize-contrast';
+    deco.style.imageRendering = 'crisp-edges';
+    deco.style.imageRendering = 'pixelated';
 
     container.appendChild(deco);
 
