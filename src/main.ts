@@ -1,4 +1,4 @@
-import { type DrinkId, type ObstacleId, type Pos } from "./engine/types";
+import { type DrinkId, type ObstacleId, type Pos, type CustomerId } from "./engine/types";
 import {
   clearPath,
   initGame,
@@ -23,6 +23,14 @@ import { pathImagesLoaded, renderPath, renderPathArrow, PATH_TINT_GREEN } from "
 import { TILE_SIZE } from "./config/constants";
 import { ensureAudioStartedOnFirstGesture, playPathTileSfx } from "./audio";
 import { initMenu } from "./menu";
+import {
+  loadAllSprites,
+  type LoadedSprites,
+  type DecorKind,
+  PLACEABLE_DECOR,
+  ALL_DRINK_IDS,
+  getDecorWidth,
+} from "./config/items";
 
 const HAMMER_SFX_URL = "/audio/hammer.mp3";
 
@@ -38,7 +46,10 @@ import {
 } from "./share";
 import "./style.css";
 
-// load sprites
+// store loaded sprites
+let sprites: LoadedSprites;
+
+// wall and ui cuz they static
 const floorOpen = new Image();
 floorOpen.src = "/src/assets/floor_open.png";
 
@@ -72,33 +83,6 @@ wallRightBot.src = "/src/assets/wall_right_bot.png";
 const wallRightCorner = new Image();
 wallRightCorner.src = "/src/assets/wall_right_corner.png";
 
-const drinkA = new Image();
-drinkA.src = "/src/assets/drink_a.png";
-
-const drinkB = new Image();
-drinkB.src = "/src/assets/drink_b.png";
-
-const foodA = new Image();
-foodA.src = "/src/assets/food_a.png";
-
-const foodB = new Image();
-foodB.src = "/src/assets/food_b.png";
-
-const foodC = new Image();
-foodC.src = "/src/assets/food_c.png";
-
-const foodAItem = new Image();
-foodAItem.src = "/src/assets/food_a_item.png";
-
-const foodBItem = new Image();
-foodBItem.src = "/src/assets/food_b_item.png";
-
-const foodCItem = new Image();
-foodCItem.src = "/src/assets/food_c_item.png";
-
-const drinkPressed = new Image();
-drinkPressed.src = "/src/assets/drink_pressed.png";
-
 const glorboSpriteSheet = new Image();
 glorboSpriteSheet.src = "/src/assets/glorbo_sprite_sheet.png";
 
@@ -117,53 +101,12 @@ hoverNopeSprite.src = "/src/assets/hover_nope.png";
 const hoverYepSprite = new Image();
 hoverYepSprite.src = "/src/assets/hover_yep.png";
 
-const customerA = new Image();
-customerA.src = "/src/assets/customer_a.png";
-
-const customerB = new Image();
-customerB.src = "/src/assets/customer_b.png";
-
-const customerC = new Image();
-customerC.src = "/src/assets/customer_c.png";
-
 const standHere = new Image();
 standHere.src = "/src/assets/stand_here.png";
 
-const drinkAItem = new Image();
-drinkAItem.src = "/src/assets/drink_a_item.png";
-
-const drinkBItem = new Image();
-drinkBItem.src = "/src/assets/drink_b_item.png";
-
-const plantA = new Image();
-plantA.src = "/src/assets/plant_a.png";
-
-const plantB = new Image();
-plantB.src = "/src/assets/plant_b.png";
-
-const plantTwo = new Image();
-plantTwo.src = "/src/assets/plant_two.png";
-
-const shelfA = new Image();
-shelfA.src = "/src/assets/shelf_a.png";
-
-const tableSingle = new Image();
-tableSingle.src = "/src/assets/table_single.png";
-
-const tableL = new Image();
-tableL.src = "/src/assets/table_l.png";
-
-const tableM = new Image();
-tableM.src = "/src/assets/table_m.png";
-
-const tableR = new Image();
-tableR.src = "/src/assets/table_r.png";
-
-const windowSingleA = new Image();
-windowSingleA.src = "/src/assets/window_single_a.png";
-
-// images have to load :(
+// load dynamic stuff
 const imagesLoaded = Promise.all([
+  loadAllSprites().then(loaded => { sprites = loaded; }),
   new Promise<void>((resolve) => {
     floorOpen.onload = () => resolve();
   }),
@@ -197,33 +140,6 @@ const imagesLoaded = Promise.all([
   new Promise<void>((resolve) => {
     wallRightCorner.onload = () => resolve();
   }),
-  new Promise<void>((resolve) => {
-    drinkA.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    drinkB.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    foodA.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    foodB.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    foodC.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    foodAItem.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    foodBItem.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    foodCItem.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    drinkPressed.onload = () => resolve();
-  }),
   pathImagesLoaded,
   new Promise<void>((resolve) => {
     glorboSpriteSheet.onload = () => resolve();
@@ -244,49 +160,7 @@ const imagesLoaded = Promise.all([
     hoverYepSprite.onload = () => resolve();
   }),
   new Promise<void>((resolve) => {
-    customerA.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    customerB.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    customerC.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
     standHere.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    drinkAItem.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    drinkBItem.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    plantA.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    plantB.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    plantTwo.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    shelfA.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    tableSingle.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    tableL.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    tableM.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    tableR.onload = () => resolve();
-  }),
-  new Promise<void>((resolve) => {
-    windowSingleA.onload = () => resolve();
   }),
 ]);
 
@@ -294,7 +168,6 @@ function inBounds(levelW: number, levelH: number, p: Pos): boolean {
   return p.x >= 0 && p.x < levelW && p.y >= 0 && p.y < levelH;
 }
 
-// quadrant: 2 = bottom-left (animation 1 after drink), 3 = bottom-right (animation 2 after drink)
 function getCustomerIconDataUrl(customerSprite: HTMLImageElement, quadrant: 2 | 3 = 2): string {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -867,7 +740,7 @@ class GameRenderer {
         const x = xs[i]!;
         const x2 = xs[i + 1]!;
         if (x2 === x + 1) {
-          ctx.drawImage(plantTwo, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE);
+          ctx.drawImage(sprites.obstacles.plant_two, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE);
           i += 2;
         } else {
           i += 1;
@@ -882,16 +755,8 @@ class GameRenderer {
 
       if (type === "plant_two") continue;
 
-      let obstacleSprite: HTMLImageElement;
-      if (type === "plant_a") obstacleSprite = plantA;
-      else if (type === "plant_b") obstacleSprite = plantB;
-      else if (type === "shelf_a") obstacleSprite = shelfA;
-      else if (type === "table_single") obstacleSprite = tableSingle;
-      else if (type === "table_l") obstacleSprite = tableL;
-      else if (type === "table_m") obstacleSprite = tableM;
-      else if (type === "table_r") obstacleSprite = tableR;
-      else if (type === "window_single_a") obstacleSprite = windowSingleA;
-      else continue;
+      const obstacleSprite = sprites.obstacles[type as ObstacleId];
+      if (!obstacleSprite) continue;
 
       ctx.drawImage(obstacleSprite, px, py, TILE_SIZE, TILE_SIZE);
     }
@@ -905,23 +770,12 @@ class GameRenderer {
       // check if glorbo is on this drink station
       const isGlorboOnStation = glorboPos.x === x && glorboPos.y === y;
 
-      if (drink === "D1") {
-        // use pressed sprite if glorbo is on it, otherwise normal sprite
-        const spriteToUse = isGlorboOnStation ? drinkPressed : drinkA;
-        ctx.drawImage(spriteToUse, px, py, TILE_SIZE, TILE_SIZE);
-      } else if (drink === "D2") {
-        // use pressed sprite if glorbo is on it, otherwise normal sprite
-        const spriteToUse = isGlorboOnStation ? drinkPressed : drinkB;
-        ctx.drawImage(spriteToUse, px, py, TILE_SIZE, TILE_SIZE);
+      const drinkSprite = sprites.drinks[drink as DrinkId];
+      if (!drinkSprite) continue;
 
-        // to add pressed sprite for food - alicia
-      } else if (drink === "F1") {
-        ctx.drawImage(foodA, px, py, TILE_SIZE, TILE_SIZE);
-      } else if (drink === "F2") {
-        ctx.drawImage(foodB, px, py, TILE_SIZE, TILE_SIZE);
-      } else if (drink === "F3") {
-        ctx.drawImage(foodC, px, py, TILE_SIZE, TILE_SIZE);
-      }
+      // use pressed sprite if glorbo is on it and has pressed sprite
+      const spriteToUse = (isGlorboOnStation && sprites.drinkPressed) ? sprites.drinkPressed : drinkSprite;
+      ctx.drawImage(spriteToUse, px, py, TILE_SIZE, TILE_SIZE);
     }
 
     // serve boxes
@@ -956,16 +810,11 @@ class GameRenderer {
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
 
-      // Ok wait is there a better way to do this or are we just gonna have a million diff customers in this
-      // big ahh if statement...... yandev core
-      let customerSprite: HTMLImageElement;
-      if (customerId === "A") customerSprite = customerA;
-      else if (customerId === "B") customerSprite = customerB;
-      else if (customerId === "C") customerSprite = customerC;
-      else continue;
+      const customerSprite = sprites.customers[customerId as CustomerId];
+      if (!customerSprite) continue;
 
       // check if customer is served
-      const isServed = (this.state.remainingOrders[customerId]?.length ?? 0) === 0;
+      const isServed = (this.state.remainingOrders[customerId as CustomerId]?.length ?? 0) === 0;
 
       // sprite is split into 4 quadrants:
       // top-left (0,0): animation 1 before drink
@@ -1133,10 +982,7 @@ class GameRenderer {
       } else {
         const drinkImages = inventory
           .map((drinkId) => {
-            let imageSrc = drinkId === "D1" ? drinkAItem.src : drinkBItem.src;
-            if (drinkId === "F1") imageSrc = foodAItem.src;
-            if (drinkId === "F2") imageSrc = foodBItem.src;
-            if (drinkId === "F3") imageSrc = foodCItem.src;
+            const imageSrc = sprites.drinkItems[drinkId]?.src ?? "";
             return `<img src="${imageSrc}" alt="${drinkId}" class="inventory-drink-icon" />`;
           })
           .join("");
@@ -1180,19 +1026,11 @@ class GameRenderer {
     entries.sort(([a], [b]) => a.localeCompare(b));
 
     const getCustomerSprite = (customerId: string): HTMLImageElement | null => {
-      if (customerId === "A") return customerA;
-      if (customerId === "B") return customerB;
-      if (customerId === "C") return customerC;
-      return null;
+      return sprites.customers[customerId as keyof typeof sprites.customers] ?? null;
     };
 
     const getDrinkItemImage = (drinkId: string): string => {
-      if (drinkId === "D1") return drinkAItem.src;
-      if (drinkId === "D2") return drinkBItem.src;
-      if (drinkId === "F1") return foodAItem.src;
-      if (drinkId === "F2") return foodBItem.src;
-      if (drinkId === "F3") return foodCItem.src;
-      return "";
+      return sprites.drinkItems[drinkId as DrinkId]?.src ?? "";
     };
 
     const ordersHTML = entries
@@ -1263,9 +1101,9 @@ async function init() {
     "builder-cust3-icon",
   ) as HTMLImageElement | null;
   if (startIcon) startIcon.src = getGlorboIcon(glorboSpriteSheet);
-  if (b1) b1.src = getCustomerIconDataUrl(customerA, 2);
-  if (b2) b2.src = getCustomerIconDataUrl(customerB, 2);
-  if (b3) b3.src = getCustomerIconDataUrl(customerC, 2);
+  if (b1) b1.src = getCustomerIconDataUrl(sprites.customers.A, 2);
+  if (b2) b2.src = getCustomerIconDataUrl(sprites.customers.B, 2);
+  if (b3) b3.src = getCustomerIconDataUrl(sprites.customers.C, 2);
   if (decorIcon) decorIcon.src = "/src/assets/plant_a.png";
 
   const { levelData, levelId } = await getTodayLevelFromSupabase();
@@ -1408,18 +1246,10 @@ async function init() {
   ) as LevelData;
   let builderTool: BuilderTool = "decor";
 
-  type DecorKind = "table_triple" | ObstacleId;
-  const decorCycle: DecorKind[] = [
-    "plant_a",
-    "plant_b",
-    "plant_two",
-    "shelf_a",
-    "table_single",
-    "table_triple",
-  ];
+  const decorCycle: DecorKind[] = PLACEABLE_DECOR;
   let decorToolDefault: DecorKind = "plant_a";
 
-  const stationCycle: DrinkId[] = ["D1", "D2", "F1", "F2", "F3"];
+  const stationCycle: DrinkId[] = ALL_DRINK_IDS;
   let stationToolDefault: DrinkId = "D1";
 
   // drag tool state
@@ -1557,11 +1387,7 @@ async function init() {
     // replace normal orders list w button ver... idk if i like this approach but whatever
 
     const drinkIconSrc = (drink: DrinkId) => {
-      if (drink === "D1") return "/src/assets/drink_a_item.png";
-      if (drink === "D2") return "/src/assets/drink_b_item.png";
-      if (drink === "F1") return "/src/assets/food_a_item.png";
-      if (drink === "F2") return "/src/assets/food_b_item.png";
-      return "/src/assets/food_c_item.png";
+      return sprites.drinkItems[drink]?.src ?? "/src/assets/drink_a_item.png";
     };
 
     const renderDrinkButtonContent = (value: DrinkId | "") => {
@@ -1616,10 +1442,7 @@ async function init() {
     };
 
     const getCustomerSprite = (customerId: string): HTMLImageElement | null => {
-      if (customerId === "A") return customerA;
-      if (customerId === "B") return customerB;
-      if (customerId === "C") return customerC;
-      return null;
+      return sprites.customers[customerId as keyof typeof sprites.customers] ?? null;
     };
 
     sidebarOrdersEl.innerHTML = "";
@@ -2028,11 +1851,7 @@ async function init() {
     return t;
   };
 
-  const decorWidth = (kind: DecorKind): number => {
-    if (kind === "plant_two") return 2;
-    if (kind === "table_triple") return 3;
-    return 1;
-  };
+  const decorWidth = getDecorWidth;
 
   const candidateAnchorsForClick = (
     click: Pos,
@@ -2302,21 +2121,15 @@ async function init() {
           ctx.drawImage(glorboSpriteSheet, 0, sy, sw, sh, px, py, TILE_SIZE, TILE_SIZE);
         };
       case "station": {
-        let sprite: HTMLImageElement;
-        if (item.drink === "D1") sprite = drinkA;
-        else if (item.drink === "D2") sprite = drinkB;
-        else if (item.drink === "F1") sprite = foodA;
-        else if (item.drink === "F2") sprite = foodB;
-        else sprite = foodC;
+        const sprite = sprites.drinks[item.drink];
+        if (!sprite) return () => {}; // fallback
         return (ctx, tx, ty) => {
           ctx.drawImage(sprite, tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
         };
       }
       case "customer": {
-        let sprite: HTMLImageElement;
-        if (item.id === "A") sprite = customerA;
-        else if (item.id === "B") sprite = customerB;
-        else sprite = customerC;
+        const sprite = sprites.customers[item.id];
+        if (!sprite) return () => {}; // fallback
         return (ctx, tx, ty, animFrame) => {
           const sw = sprite.width / 2;
           const sh = sprite.height / 2;
@@ -2329,23 +2142,18 @@ async function init() {
         if (decorKind === "plant_two") {
           return (ctx, tx, ty) => {
             const ax = (tx - clickOffset) * TILE_SIZE;
-            ctx.drawImage(plantTwo, ax, ty * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE);
+            ctx.drawImage(sprites.obstacles.plant_two, ax, ty * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE);
           };
         }
         if (decorKind === "table_triple") {
           return (ctx, tx, ty) => {
             const ax = tx - clickOffset;
-            ctx.drawImage(tableL, ax * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-            ctx.drawImage(tableM, (ax + 1) * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-            ctx.drawImage(tableR, (ax + 2) * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            ctx.drawImage(sprites.obstacles.table_l, ax * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            ctx.drawImage(sprites.obstacles.table_m, (ax + 1) * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            ctx.drawImage(sprites.obstacles.table_r, (ax + 2) * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
           };
         }
-        let sprite: HTMLImageElement;
-        if (decorKind === "plant_a") sprite = plantA;
-        else if (decorKind === "plant_b") sprite = plantB;
-        else if (decorKind === "shelf_a") sprite = shelfA;
-        else if (decorKind === "table_single") sprite = tableSingle;
-        else sprite = plantA; // fallback
+        const sprite = sprites.obstacles[decorKind as ObstacleId] ?? sprites.obstacles.plant_a; // fallback
         return (ctx, tx, ty) => {
           ctx.drawImage(sprite, tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
         };
