@@ -152,27 +152,35 @@ export function solveLevel(level: Level, opts?: { maxVisited?: number }): SolveR
       let inv = cur.inv;
       let remaining = cur.remaining;
 
+      const customerId = level.standHere[posKey] as CustomerId | undefined;
+
+      const tryServeAtTile = () => {
+        if (!customerId) return;
+        const needs = remaining[customerId] ?? [];
+        if (needs.length === 0) return;
+
+        if (canServe(inv, needs)) {
+          inv = removeServed(inv, needs);
+          remaining = { ...remaining, [customerId]: [] };
+          return;
+        }
+
+        const res = serveSome(inv, needs);
+        if (res.servedAny) {
+          inv = res.inv;
+          remaining = { ...remaining, [customerId]: res.remainingNeeds };
+        }
+      };
+
+      // serve before pickup when stand overlaps a station
+      tryServeAtTile();
+
       // pickup on station, drop oldest
       const stationDrink = level.drinkStations[posKey];
       if (stationDrink) inv = pickDrink(inv, stationDrink);
 
-      // serve once per customer if current inventory contains (some of) order
-      const customerId = level.standHere[posKey] as CustomerId | undefined;
-      if (customerId) {
-        const needs = remaining[customerId] ?? [];
-        if (needs.length > 0) {
-          if (canServe(inv, needs)) {
-            inv = removeServed(inv, needs);
-            remaining = { ...remaining, [customerId]: [] };
-          } else {
-            const res = serveSome(inv, needs);
-            if (res.servedAny) {
-              inv = res.inv;
-              remaining = { ...remaining, [customerId]: res.remainingNeeds };
-            }
-          }
-        }
-      }
+      // then serve again juuuust in case We can 
+      tryServeAtTile();
 
       const node: Node = { pos: nextPos, inv, remaining };
       const nodeKey = encode(node);

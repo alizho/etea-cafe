@@ -145,31 +145,39 @@ export function stepSimulation(state: GameState): GameState {
   let inventory = state.inventory;
   let remainingOrders = state.remainingOrders;
 
+  const customerId = state.level.standHere[posKey] as CustomerId | undefined;
+
+  const tryServeAtTile = () => {
+    if (!customerId) return;
+    const needs = remainingOrders[customerId] ?? [];
+    if (needs.length === 0) return;
+
+    // first check if we can fully serve
+    if (canServe(inventory, needs)) {
+      inventory = removeServed(inventory, needs);
+      remainingOrders = { ...remainingOrders, [customerId]: [] };
+      return;
+    }
+
+    // orrrr serve what we can
+    const res = serveSome(inventory, needs);
+    if (res.servedAny) {
+      inventory = res.inv;
+      remainingOrders = { ...remainingOrders, [customerId]: res.remainingNeeds };
+    }
+  };
+
+  //if stand tile overlaps station, serve first
+  tryServeAtTile();
+
   // pickup
   const stationDrink = state.level.drinkStations[posKey];
   if (stationDrink) {
     inventory = pickDrink(inventory, stationDrink);
   }
 
-  // serve customer when standing on standHere tile
-  const customerId = state.level.standHere[posKey] as CustomerId | undefined;
-  if (customerId) {
-    const needs = remainingOrders[customerId] ?? [];
-    if (needs.length > 0) {
-      // first check if we can fully serve
-      if (canServe(inventory, needs)) {
-        inventory = removeServed(inventory, needs);
-        remainingOrders = { ...remainingOrders, [customerId]: [] };
-      } else {
-        // orrrr serve what we can
-        const res = serveSome(inventory, needs);
-        if (res.servedAny) {
-          inventory = res.inv;
-          remainingOrders = { ...remainingOrders, [customerId]: res.remainingNeeds };
-        }
-      }
-    }
-  }
+  // try serving again
+  tryServeAtTile();
 
   const allServedNow = Object.values(remainingOrders).every((needs) => needs.length === 0);
 
