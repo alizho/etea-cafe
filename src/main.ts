@@ -2934,6 +2934,8 @@ function scatterDecorations(): void {
     ['src/assets/bg8-1.png', 'src/assets/bg8-2.png'],
     ['src/assets/bg9-1.png', 'src/assets/bg9-2.png'],
     ['src/assets/bg10-1.png', 'src/assets/bg10-2.png'],
+    ['src/assets/bg11-1.png', 'src/assets/bg11-2.png'],
+    ['src/assets/bg12-1.png', 'src/assets/bg12-2.png'],
   ];
   
   const cols = Math.ceil(Math.sqrt(count));
@@ -2969,11 +2971,22 @@ function scatterDecorations(): void {
       deco.src = randomPair[currentFrame];
     }, 500);
   }
+}
 
+const soundEffectUrl = "/audio/click.mp3"; 
+
+function playClickSound(): void {
+  const audio = new Audio(soundEffectUrl);
+  audio.play()
+    .catch(error => console.error("Audio play failed:", error));
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   scatterDecorations();
+  const buttons = document.querySelectorAll('.game-button');
+  buttons.forEach(button => {
+    button.addEventListener("click", playClickSound);
+  });
 });
 
 init().catch(console.error);
