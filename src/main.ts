@@ -723,7 +723,7 @@ class GameRenderer {
       stepsTaken: 0,
       glorboPos: path[0] ?? level.start,
       inventory: [],
-      served: { A: false, B: false, C: false },
+      remainingOrders: { A: [...level.orders.A], B: [...level.orders.B], C: [...level.orders.C] },
       message: "optimal path",
     };
     this.state = replayState;
@@ -897,7 +897,9 @@ class GameRenderer {
     }
 
     // serve boxes
-    for (const [key] of Object.entries(level.standHere)) {
+    for (const [key, customerId] of Object.entries(level.standHere)) {
+      const isServed = (this.state.remainingOrders[customerId as "A" | "B" | "C"]?.length ?? 0) === 0;
+      if (isServed) continue;
       const [x, y] = key.split(",").map(Number);
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
@@ -935,7 +937,7 @@ class GameRenderer {
       else continue;
 
       // check if customer is served
-      const isServed = this.state.served[customerId];
+      const isServed = (this.state.remainingOrders[customerId]?.length ?? 0) === 0;
 
       // sprite is split into 4 quadrants:
       // top-left (0,0): animation 1 before drink
@@ -1142,7 +1144,7 @@ class GameRenderer {
     const ordersEl = document.getElementById("orders");
     if (!ordersEl) return;
 
-    const { level, served } = this.state;
+    const { level, remainingOrders } = this.state;
     const entries = Object.entries(level.orders);
     entries.sort(([a], [b]) => a.localeCompare(b));
 
@@ -1165,17 +1167,29 @@ class GameRenderer {
     const ordersHTML = entries
       .map(([customerId, drinks], index) => {
         const customerSprite = getCustomerSprite(customerId);
-        const isServed = served[customerId as keyof typeof served] || false;
+        const remaining = remainingOrders[customerId as keyof typeof remainingOrders] ?? drinks;
+        const isServed = remaining.length === 0;
         const quadrant: 2 | 3 = isServed ? 3 : 2;
         const customerIconUrl = customerSprite
           ? getCustomerIconDataUrl(customerSprite, quadrant)
           : "";
 
+        // gray out items that have already been served
+        const remainingCounts: Record<string, number> = {};
+        for (const d of remaining) remainingCounts[d] = (remainingCounts[d] ?? 0) + 1;
+
+        const servedCounts: Record<string, number> = {};
+        for (const d of drinks) servedCounts[d] = (servedCounts[d] ?? 0) + 1;
+        for (const [d, c] of Object.entries(remainingCounts)) servedCounts[d] = (servedCounts[d] ?? 0) - c;
+
         const drinkImages = drinks
-          .map(
-            (drinkId) =>
-              `<img src="${getDrinkItemImage(drinkId)}" alt="${drinkId}" class="drink-item-icon" />`,
-          )
+          .map((drinkId) => {
+            const servedLeft = servedCounts[drinkId] ?? 0;
+            const itemServed = servedLeft > 0;
+            if (itemServed) servedCounts[drinkId] = servedLeft - 1;
+            const servedClass = itemServed ? "drink-item-served" : "";
+            return `<img src="${getDrinkItemImage(drinkId)}" alt="${drinkId}" class="drink-item-icon ${servedClass}" />`;
+          })
           .join("");
 
         const servedClass = isServed ? "order-served" : "";
@@ -2943,7 +2957,7 @@ function scatterDecorations(): void {
     deco.style.position = 'fixed';
     deco.style.left = `${(col + jitterX) * cellWidth}%`;
     deco.style.top = `${(row + jitterY) * cellHeight}%`;
-    deco.style.width = '30px';
+    deco.style.width = '48px';
     deco.style.pointerEvents = 'none';
     deco.style.zIndex = '0';
 
