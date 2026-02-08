@@ -1593,13 +1593,14 @@ async function init() {
       }
     }
 
-    // 1x1 stuff
+    // 1x1 stuff (keep anything not part of a multi-tile group or window)
     for (const [key, type] of byKey.entries()) {
       if (
-        type === "plant_a" ||
-        type === "plant_b" ||
-        type === "shelf_a" ||
-        type === "table_single"
+        type !== "plant_two" &&
+        type !== "table_l" &&
+        type !== "table_m" &&
+        type !== "table_r" &&
+        type !== "window_single_a"
       ) {
         keep.add(key);
       }
