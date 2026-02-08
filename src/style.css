@@ -244,6 +244,11 @@ body {
     image-rendering: crisp-edges;
 }
 
+.drink-item-icon.drink-item-served {
+    filter: grayscale(1);
+    opacity: 0.55;
+}
+
 .sidebar-content {
     margin-top: 8px;
 }
