@@ -23,6 +23,13 @@ import { pathImagesLoaded, renderPath, renderPathArrow, PATH_TINT_GREEN } from "
 import { TILE_SIZE } from "./config/constants";
 import { ensureAudioStartedOnFirstGesture, playPathTileSfx } from "./audio";
 import { initMenu } from "./menu";
+
+const HAMMER_SFX_URL = "/audio/hammer.mp3";
+
+function playHammerSfx(): void {
+  const audio = new Audio(HAMMER_SFX_URL);
+  void audio.play().catch((err) => console.error("Hammer SFX failed:", err));
+}
 import {
   decodeLevelShareToken,
   encodeLevelShareToken,
@@ -97,6 +104,12 @@ glorboSpriteSheet.src = "/src/assets/glorbo_sprite_sheet.png";
 
 const hoverSprite = new Image();
 hoverSprite.src = "/src/assets/hover.png";
+
+const hoverHammerSprite = new Image();
+hoverHammerSprite.src = "/src/assets/hover-hammer.png";
+
+const hoverDragSprite = new Image();
+hoverDragSprite.src = "/src/assets/hover-drag.png";
 
 const hoverNopeSprite = new Image();
 hoverNopeSprite.src = "/src/assets/hover_nope.png";
@@ -217,6 +230,12 @@ const imagesLoaded = Promise.all([
   }),
   new Promise<void>((resolve) => {
     hoverSprite.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    hoverHammerSprite.onload = () => resolve();
+  }),
+  new Promise<void>((resolve) => {
+    hoverDragSprite.onload = () => resolve();
   }),
   new Promise<void>((resolve) => {
     hoverNopeSprite.onload = () => resolve();
@@ -374,6 +393,7 @@ class GameRenderer {
   private buildCursor: string = "crosshair";
   private dragGhostRenderer: ((ctx: CanvasRenderingContext2D, tileX: number, tileY: number, animFrame: number) => void) | null = null;
   private glorboHidden: boolean = false;
+  private builderHoverSprite: HTMLImageElement | null = null;
 
   private uiMode: "play" | "build" = "play";
   private onBuildTileClick: ((pos: Pos) => void) | null = null;
@@ -641,6 +661,9 @@ class GameRenderer {
     this.buildCursor = "crosshair";
     this.dragGhostRenderer = null;
     this.glorboHidden = false;
+    if (this.uiMode === "play") {
+      this.builderHoverSprite = null;
+    }
     if (this.uiMode === "build") {
       // stop sim while editing
       if (this.simInterval) {
@@ -665,6 +688,11 @@ class GameRenderer {
 
   public setDragGhost(fn: ((ctx: CanvasRenderingContext2D, tileX: number, tileY: number, animFrame: number) => void) | null) {
     this.dragGhostRenderer = fn;
+    this.render();
+  }
+
+  public setBuilderHoverSprite(img: HTMLImageElement | null) {
+    this.builderHoverSprite = img;
     this.render();
   }
 
@@ -1008,7 +1036,10 @@ class GameRenderer {
       const hx = this.hoverTile.x * TILE_SIZE;
       const hy = this.hoverTile.y * TILE_SIZE;
 
-      let spriteToUse = hoverSprite;
+      let spriteToUse =
+        this.uiMode === "build" && this.builderHoverSprite
+          ? this.builderHoverSprite
+          : hoverSprite;
       if (this.uiMode === "play") {
         // check if tile is unwalkable (wall, customer, or obstacle)
         const hoverKey = `${this.hoverTile.x},${this.hoverTile.y}`;
@@ -1857,17 +1888,24 @@ async function init() {
     return [p];
   };
 
-  const removeAt = (p: Pos) => {
+  const removeAt = (p: Pos): boolean => {
     if (isBorderTile(builderData.width, builderData.height, p)) {
       setBuilderStatus("border tiles are always walls");
-      return;
+      return false;
     }
 
     const keys = new Set(getObstacleGroupAt(p).map(posKey));
+    const hadWall = builderData.walls.some((w) => keys.has(`${w.x},${w.y}`));
+    const hadStation = builderData.drinkStations.some((d) => keys.has(`${d.x},${d.y}`));
+    const hadCustomer = builderData.customers.some((c) => keys.has(`${c.x},${c.y}`));
+    const hadObstacle = builderData.obstacles.some((o) => keys.has(`${o.x},${o.y}`));
+
     builderData.walls = builderData.walls.filter((w) => !keys.has(`${w.x},${w.y}`));
     builderData.drinkStations = builderData.drinkStations.filter((d) => !keys.has(`${d.x},${d.y}`));
     builderData.customers = builderData.customers.filter((c) => !keys.has(`${c.x},${c.y}`));
     builderData.obstacles = builderData.obstacles.filter((o) => !keys.has(`${o.x},${o.y}`));
+
+    return hadWall || hadStation || hadCustomer || hadObstacle;
   };
 
   const setObstacleTiles = (tiles: { p: Pos; type: ObstacleId }[]) => {
@@ -2504,6 +2542,7 @@ async function init() {
       if (p.y === 0 && builderTool === "erase") {
         if (obstacleAt(p)?.type === "window_single_a") {
           toggleWindowAtTopBorder(p);
+          playHammerSfx();
           rebuildPreview();
           setBuilderStatus("edited! check again");
         } else {
@@ -2531,9 +2570,11 @@ async function init() {
     }
 
     switch (builderTool) {
-      case "erase":
-        removeAt(p);
+      case "erase": {
+        const removed = removeAt(p);
+        if (removed) playHammerSfx();
         break;
+      }
       case "decor":
         cycleDecorAt(p);
         break;
@@ -2567,6 +2608,13 @@ async function init() {
       builderTool = tool;
       applyToolActiveUI();
       renderer.setBuildCursor(tool === "drag" ? "grab" : "crosshair");
+      const hoverImg =
+        tool === "erase"
+          ? hoverHammerSprite
+          : tool === "drag"
+            ? hoverDragSprite
+            : null;
+      renderer.setBuilderHoverSprite(hoverImg);
     });
   }
 
@@ -2716,6 +2764,7 @@ async function init() {
     renderer.hideFailurePopup();
     renderer.setUIMode("build");
     renderer.setOnBuildTileClick(handleBuildTileClick);
+    renderer.setBuilderHoverSprite(null); // builder opens with "decor" tool → default hover
 
     if (builderPanel) builderPanel.style.display = "block";
     if (runBtn) runBtn.style.display = "none";
