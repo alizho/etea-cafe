@@ -17,16 +17,17 @@ export type GameState = {
   // queue max 2 drop oldest
   inventory: DrinkId[];
 
-  served: Record<CustomerId, boolean>;
+  // remaining items per customer lawl
+  remainingOrders: Record<CustomerId, DrinkId[]>;
   message?: string;
 };
 
-function initServed(level: Level): Record<CustomerId, boolean> {
-  const served: Record<CustomerId, boolean> = { "A": false, "B": false, "C": false };
-  for (const id of Object.keys(level.orders) as CustomerId[]) {
-    served[id] = false;
-  }
-  return served;
+function initRemainingOrders(level: Level): Record<CustomerId, DrinkId[]> {
+  return {
+    A: [...(level.orders.A ?? [])],
+    B: [...(level.orders.B ?? [])],
+    C: [...(level.orders.C ?? [])],
+  };
 }
 
 export function initGame(level: Level): GameState {
@@ -38,8 +39,8 @@ export function initGame(level: Level): GameState {
     stepsTaken: 0,
     glorboPos: level.start,
     inventory: [],
-    served: initServed(level),
-    message: "yea",
+    remainingOrders: initRemainingOrders(level),
+    message: "---",
   };
 }
 
@@ -93,12 +94,33 @@ function removeServed(inv: DrinkId[], needs: DrinkId[]): DrinkId[] {
   return remaining;
 }
 
+function serveSome(inv: DrinkId[], remainingNeeds: DrinkId[]): { inv: DrinkId[]; remainingNeeds: DrinkId[]; servedAny: boolean } {
+  let nextInv = [...inv];
+  let nextNeeds = [...remainingNeeds];
+  let servedAny = false;
+
+  // any items in inventory that are in order
+  for (const d of inv) {
+    const needIdx = nextNeeds.indexOf(d);
+    if (needIdx < 0) continue;
+
+    const invIdx = nextInv.indexOf(d);
+    if (invIdx < 0) continue;
+
+    nextInv.splice(invIdx, 1);
+    nextNeeds.splice(needIdx, 1);
+    servedAny = true;
+  }
+
+  return { inv: nextInv, remainingNeeds: nextNeeds, servedAny };
+}
+
 export function stepSimulation(state: GameState): GameState {
   if (state.status !== "running") return state;
 
   const nextIndex = state.stepIndex + 1;
   if (nextIndex >= state.path.length) {
-    const allServed = Object.values(state.served).every(Boolean);
+    const allServed = Object.values(state.remainingOrders).every((needs) => needs.length === 0);
     return {
       ...state,
       status: allServed ? "success" : "failed",
@@ -121,6 +143,32 @@ export function stepSimulation(state: GameState): GameState {
   }
 
   let inventory = state.inventory;
+  let remainingOrders = state.remainingOrders;
+
+  const customerId = state.level.standHere[posKey] as CustomerId | undefined;
+
+  const tryServeAtTile = () => {
+    if (!customerId) return;
+    const needs = remainingOrders[customerId] ?? [];
+    if (needs.length === 0) return;
+
+    // first check if we can fully serve
+    if (canServe(inventory, needs)) {
+      inventory = removeServed(inventory, needs);
+      remainingOrders = { ...remainingOrders, [customerId]: [] };
+      return;
+    }
+
+    // orrrr serve what we can
+    const res = serveSome(inventory, needs);
+    if (res.servedAny) {
+      inventory = res.inv;
+      remainingOrders = { ...remainingOrders, [customerId]: res.remainingNeeds };
+    }
+  };
+
+  //if stand tile overlaps station, serve first
+  tryServeAtTile();
 
   // pickup
   const stationDrink = state.level.drinkStations[posKey];
@@ -128,18 +176,10 @@ export function stepSimulation(state: GameState): GameState {
     inventory = pickDrink(inventory, stationDrink);
   }
 
-  // serve customer when standing on standHere tile
-  const customerId = state.level.standHere[posKey] as CustomerId | undefined;
-  let served = state.served;
-  if (customerId && !served[customerId]) {
-    const needs = state.level.orders[customerId];
-    if (needs && canServe(inventory, needs)) {
-      inventory = removeServed(inventory, needs);
-      served = { ...served, [customerId]: true };
-    }
-  }
+  // try serving again
+  tryServeAtTile();
 
-  const allServedNow = Object.values(served).every(Boolean);
+  const allServedNow = Object.values(remainingOrders).every((needs) => needs.length === 0);
 
   return {
     ...state,
@@ -147,7 +187,7 @@ export function stepSimulation(state: GameState): GameState {
     stepIndex: nextIndex,
     stepsTaken: state.stepsTaken + 1,
     inventory,
-    served,
+    remainingOrders,
     status: allServedNow ? "success" : state.status,
     message: allServedNow ? "success!" : state.message,
   };

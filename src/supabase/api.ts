@@ -1,5 +1,17 @@
 import { supabase } from "./client";
 
+// returns today's date as YYYY-MM-DD in Eastern Time (America/New_York)
+// handles EST/EDT daylight saving transitions automatically
+export function getTodayDateEST(): string {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return formatter.format(new Date()); // "YYYY-MM-DD"
+}
+
 export async function getLevelByDate(date: string) {
   const { data, error } = await supabase
     .from("levels")
@@ -13,7 +25,7 @@ export async function getLevelByDate(date: string) {
 }
 
 export async function getTodayLevel() {
-  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  const today = getTodayDateEST();
   return getLevelByDate(today);
 }
 
@@ -59,7 +71,7 @@ export async function hasRunInDatabase(
     .from("runs")
     .select("id")
     .eq("level_id", levelId)
-    .eq("player_id", playerId)
+    .eq("player_anon_id", playerId)
     .limit(1)
     .single();
 
@@ -78,7 +90,7 @@ export async function submitRun(
     .from("runs")
     .insert({
       level_id: levelId,
-      player_id: playerId,
+      player_anon_id: playerId,
       moves,
       success,
     })
@@ -97,7 +109,7 @@ export async function getTopScoreForLevel(
     .from("runs")
     .select("moves")
     .eq("level_id", levelId)
-    .eq("player_id", playerId)
+    .eq("player_anon_id", playerId)
     .eq("success", true)
     .order("moves", { ascending: true })
     .limit(1)

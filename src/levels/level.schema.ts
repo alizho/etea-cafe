@@ -1,4 +1,4 @@
-import type { DrinkId } from "../engine/types";
+import type { CustomerId, DrinkId, ObstacleId } from "../engine/types";
 
 export type LevelData = {
   id: string;
@@ -12,30 +12,21 @@ export type LevelData = {
   obstacles: {
     x: number;
     y: number;
-    type:
-      | "plant_a"
-      | "plant_b"
-      | "plant_two"
-      | "shelf_a"
-      | "table_single"
-      | "table_l"
-      | "table_m"
-      | "table_r"
-      | "window_single_a";
+    type: ObstacleId;
   }[];
 
   drinkStations: {
     x: number;
     y: number;
-    drink: "D1" | "D2" | "F1" | "F2" | "F3";
+    drink: DrinkId;
   }[];
 
   customers: {
     x: number;
     y: number;
-    id: "A" | "B" | "C";
+    id: CustomerId;
     standHere: "left" | "right" | "up" | "down";
   }[];
 
-  orders: Record<"A" | "B" | "C", DrinkId[]>;
+  orders: Record<CustomerId, DrinkId[]>;
 };

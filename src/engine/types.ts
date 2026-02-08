@@ -1,15 +1,5 @@
-export type DrinkId = "D1" | "D2" | "F1" | "F2" | "F3";
-export type CustomerId = "A" | "B" | "C";
-export type ObstacleId =
-  | "plant_a"
-  | "plant_b"
-  | "plant_two"
-  | "shelf_a"
-  | "table_single"
-  | "table_l"
-  | "table_m"
-  | "table_r"
-  | "window_single_a";
+import type { DrinkId, CustomerId, ObstacleId } from "../config/items";
+export type { DrinkId, CustomerId, ObstacleId };
 
 export type Pos = { x: number; y: number };
 

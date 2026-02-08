@@ -1,3 +1,5 @@
+import type { CustomerId } from "../engine/types";
+import { ALL_CUSTOMER_IDS, ALL_DRINK_IDS } from "../config/items";
 import type { LevelData } from "./level.schema";
 
 // builder mode checks b4 solver script lol
@@ -9,7 +11,7 @@ export type LevelValidation = { ok: true } | { ok: false; errors: string[] };
 export function validateLevelData(data: LevelData): LevelValidation {
   const errors: string[] = [];
 
-  const validDrinkIds = new Set(["D1", "D2", "F1", "F2", "F3"]);
+  const validDrinkIds = new Set(ALL_DRINK_IDS);
 
   if (data.width <= 0 || data.height <= 0) errors.push("width/height must be > 0");
 
@@ -56,7 +58,7 @@ export function validateLevelData(data: LevelData): LevelValidation {
     stationsSet.add(key);
   }
 
-  const customerPosById: Partial<Record<"A" | "B" | "C", string>> = {};
+  const customerPosById: Partial<Record<CustomerId, string>> = {};
   const customerSet = new Set<string>();
 
   for (const c of data.customers) {
@@ -84,7 +86,7 @@ export function validateLevelData(data: LevelData): LevelValidation {
     if (customerSet.has(standKey)) errors.push(`customer ${c.id} stand tile overlaps a customer`);
   }
 
-  for (const id of ["A", "B", "C"] as const) {
+  for (const id of ALL_CUSTOMER_IDS) {
     if (!customerPosById[id]) errors.push(`missing customer ${id}`);
   }
 
@@ -94,7 +96,7 @@ export function validateLevelData(data: LevelData): LevelValidation {
     // start can overlap stations
   }
 
-  for (const id of ["A", "B", "C"] as const) {
+  for (const id of ALL_CUSTOMER_IDS) {
     const order = data.orders[id];
     if (!order) {
       errors.push(`missing order for ${id}`);

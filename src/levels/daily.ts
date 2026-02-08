@@ -1,15 +1,18 @@
 import levels from "./levels.json";
 import type { LevelData } from "./level.schema";
-import { getTodayLevel } from "../supabase/api";
+import { getTodayLevel, getTodayDateEST } from "../supabase/api";
 
-export function getDailyLevelData(date: Date = new Date()): LevelData {
+export function getDailyLevelData(): LevelData {
   const all = levels as unknown as LevelData[];
   if (all.length === 0) {
     throw new Error("erm awkward");
   }
 
-  const utcDay = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
-  const dayIndex = Math.floor(utcDay / 86_400_000);
+  // est date hehehehe
+  const estDate = getTodayDateEST(); // "YYYY-MM-DD"
+  const [year, month, day] = estDate.split("-").map(Number);
+  const estDay = Date.UTC(year, month - 1, day);
+  const dayIndex = Math.floor(estDay / 86_400_000);
   const idx = ((dayIndex % all.length) + all.length) % all.length;
   return all[idx];
 }

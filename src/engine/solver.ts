@@ -1,7 +1,7 @@
 import { keyOf, type CustomerId, type DrinkId, type Level, type Pos } from "./types";
 
 // solver using bfs so ppl can't publish impossible levels lol
-// each state is pos, inv, and served mask 
+// each state is pos, inv, and remaining orders
 
 type Inv = DrinkId[];
 
@@ -38,19 +38,40 @@ function removeServed(inv: Inv, needs: DrinkId[]): Inv {
   return remaining;
 }
 
+function serveSome(inv: Inv, remainingNeeds: DrinkId[]): { inv: Inv; remainingNeeds: DrinkId[]; servedAny: boolean } {
+  let nextInv = [...inv];
+  let nextNeeds = [...remainingNeeds];
+  let servedAny = false;
+
+  for (const d of inv) {
+    const needIdx = nextNeeds.indexOf(d);
+    if (needIdx < 0) continue;
+
+    const invIdx = nextInv.indexOf(d);
+    if (invIdx < 0) continue;
+
+    nextInv.splice(invIdx, 1);
+    nextNeeds.splice(needIdx, 1);
+    servedAny = true;
+  }
+
+  return { inv: nextInv, remainingNeeds: nextNeeds, servedAny };
+}
+
 function invKey(inv: Inv): string {
   return inv.join("");
 }
 
-function servedMaskKey(mask: number): string {
-  return mask.toString(16);
+const CUSTOMER_IDS: CustomerId[] = ["A", "B", "C"];
+
+type RemainingOrders = Record<CustomerId, DrinkId[]>;
+
+function normalizeNeeds(needs: DrinkId[]): string {
+  return [...needs].sort().join(",");
 }
 
-const CUSTOMER_BITS: Record<CustomerId, number> = { "A": 1, "B": 2, "C": 4 };
-
-function allCustomersMask(): number {
-  // assuming we stick w 3 customers 
-  return CUSTOMER_BITS["A"] | CUSTOMER_BITS["B"] | CUSTOMER_BITS["C"];
+function remainingKey(remaining: RemainingOrders): string {
+  return CUSTOMER_IDS.map((id) => `${id}:${normalizeNeeds(remaining[id] ?? [])}`).join("|");
 }
 
 export type SolveResult =
@@ -61,22 +82,24 @@ export function solveLevel(level: Level, opts?: { maxVisited?: number }): SolveR
   // bfs, cap states in case of impossible levels
   const maxVisited = opts?.maxVisited ?? 50_000;
 
-  const goalMask = allCustomersMask();
-
   type Node = {
     pos: Pos;
     inv: Inv;
-    servedMask: number;
+    remaining: RemainingOrders;
     prev?: string;
   };
 
   const start: Node = {
     pos: level.start,
     inv: [],
-    servedMask: 0,
+    remaining: {
+      A: [...(level.orders.A ?? [])],
+      B: [...(level.orders.B ?? [])],
+      C: [...(level.orders.C ?? [])],
+    },
   };
 
-  const encode = (n: Node) => `${n.pos.x},${n.pos.y}|${invKey(n.inv)}|${servedMaskKey(n.servedMask)}`;
+  const encode = (n: Node) => `${n.pos.x},${n.pos.y}|${invKey(n.inv)}|${remainingKey(n.remaining)}`;
 
   const q: Node[] = [start];
   const visited = new Set<string>();
@@ -104,7 +127,8 @@ export function solveLevel(level: Level, opts?: { maxVisited?: number }): SolveR
       return { solvable: false, visitedStates: visitedCount };
     }
 
-    if (cur.servedMask === goalMask) {
+    const allServed = CUSTOMER_IDS.every((id) => (cur.remaining[id]?.length ?? 0) === 0);
+    if (allServed) {
       const curKey = encode(cur);
       const path: Pos[] = [];
       let k: string | null = curKey;
@@ -126,27 +150,39 @@ export function solveLevel(level: Level, opts?: { maxVisited?: number }): SolveR
       if (level.obstacles[posKey]) continue;
 
       let inv = cur.inv;
-      let servedMask = cur.servedMask;
+      let remaining = cur.remaining;
+
+      const customerId = level.standHere[posKey] as CustomerId | undefined;
+
+      const tryServeAtTile = () => {
+        if (!customerId) return;
+        const needs = remaining[customerId] ?? [];
+        if (needs.length === 0) return;
+
+        if (canServe(inv, needs)) {
+          inv = removeServed(inv, needs);
+          remaining = { ...remaining, [customerId]: [] };
+          return;
+        }
+
+        const res = serveSome(inv, needs);
+        if (res.servedAny) {
+          inv = res.inv;
+          remaining = { ...remaining, [customerId]: res.remainingNeeds };
+        }
+      };
+
+      // serve before pickup when stand overlaps a station
+      tryServeAtTile();
 
       // pickup on station, drop oldest
       const stationDrink = level.drinkStations[posKey];
       if (stationDrink) inv = pickDrink(inv, stationDrink);
 
-      // serve once per customer if current inventory contains order
-      const customerId = level.standHere[posKey] as CustomerId | undefined;
-      if (customerId) {
-        const bit = CUSTOMER_BITS[customerId];
-        const alreadyServed = (servedMask & bit) !== 0;
-        if (!alreadyServed) {
-          const needs = level.orders[customerId];
-          if (needs && canServe(inv, needs)) {
-            inv = removeServed(inv, needs);
-            servedMask |= bit;
-          }
-        }
-      }
+      // then serve again juuuust in case We can 
+      tryServeAtTile();
 
-      const node: Node = { pos: nextPos, inv, servedMask };
+      const node: Node = { pos: nextPos, inv, remaining };
       const nodeKey = encode(node);
       if (visited.has(nodeKey)) continue;
       visited.add(nodeKey);
