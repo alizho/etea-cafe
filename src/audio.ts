@@ -2,7 +2,6 @@ import {
   BG_MUSIC,
   MUSIC_VOLUME,
   WET_A,
-  WET_B,
   SFX_VOLUME,
 } from "./config/constants";
 
@@ -29,15 +28,9 @@ async function loadMusicBuffer(ctx: AudioContext): Promise<AudioBuffer> {
   return musicBufferPromise;
 }
 
-const tileSfxA = new Audio(WET_A);
-tileSfxA.preload = "auto";
-tileSfxA.volume = SFX_VOLUME;
-
-const tileSfxB = new Audio(WET_B);
-tileSfxB.preload = "auto";
-tileSfxB.volume = SFX_VOLUME;
-
-let nextTileSfx: "A" | "B" = "A";
+const tileSfx = new Audio(WET_A);
+tileSfx.preload = "auto";
+tileSfx.volume = SFX_VOLUME;
 
 const PATH_TILE_SFX_MIN_INTERVAL_MS = 35;
 const PATH_TILE_SFX_MAX_POLYPHONY = 6;
@@ -126,11 +119,8 @@ export function playPathTileSfx(): void {
   if (activePathTileSfx.size >= PATH_TILE_SFX_MAX_POLYPHONY) return;
   lastPathTileSfxAtMs = nowMs;
 
-  const base = nextTileSfx === "A" ? tileSfxA : tileSfxB;
-  nextTileSfx = nextTileSfx === "A" ? "B" : "A";
-
-  // clean rapid path drawing
-  const sfx = base.cloneNode(true) as HTMLAudioElement;
+  // randomize pitch and volume 
+  const sfx = tileSfx.cloneNode(true) as HTMLAudioElement;
   sfx.volume = Math.min(1, SFX_VOLUME * (0.9 + Math.random() * 0.2));
   sfx.playbackRate = 0.98 + Math.random() * 0.04;
 
