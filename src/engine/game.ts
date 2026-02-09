@@ -1,11 +1,11 @@
-import { keyOf, manhattan1, type CustomerId, type DrinkId, type Level, type Pos } from "./types";
+import { keyOf, manhattan1, type CustomerId, type DrinkId, type Level, type Pos } from './types';
 
-export type SimStatus = "idle" | "running" | "success" | "failed";
+export type SimStatus = 'idle' | 'running' | 'success' | 'failed';
 
 export type GameState = {
   level: Level;
 
-  // list of visited tiles 
+  // list of visited tiles
   path: Pos[];
 
   status: SimStatus;
@@ -34,13 +34,13 @@ export function initGame(level: Level): GameState {
   return {
     level,
     path: [level.start],
-    status: "idle",
+    status: 'idle',
     stepIndex: 0,
     stepsTaken: 0,
     glorboPos: level.start,
     inventory: [],
     remainingOrders: initRemainingOrders(level),
-    message: "---",
+    message: '---',
   };
 }
 
@@ -57,14 +57,14 @@ export function canAppendToPath(state: GameState, next: Pos): boolean {
 }
 
 export function tryAppendPath(state: GameState, next: Pos): GameState {
-  if (state.status !== "idle") return state;
+  if (state.status !== 'idle') return state;
   if (!canAppendToPath(state, next)) return state;
   return { ...state, path: [...state.path, next] };
 }
 
 export function clearPath(state: GameState): GameState {
   const fresh = initGame(state.level);
-  return { ...fresh, message: "try a new path" };
+  return { ...fresh, message: 'try a new path' };
 }
 
 function pickDrink(inv: DrinkId[], drink: DrinkId): DrinkId[] {
@@ -94,7 +94,10 @@ function removeServed(inv: DrinkId[], needs: DrinkId[]): DrinkId[] {
   return remaining;
 }
 
-function serveSome(inv: DrinkId[], remainingNeeds: DrinkId[]): { inv: DrinkId[]; remainingNeeds: DrinkId[]; servedAny: boolean } {
+function serveSome(
+  inv: DrinkId[],
+  remainingNeeds: DrinkId[]
+): { inv: DrinkId[]; remainingNeeds: DrinkId[]; servedAny: boolean } {
   let nextInv = [...inv];
   let nextNeeds = [...remainingNeeds];
   let servedAny = false;
@@ -116,17 +119,15 @@ function serveSome(inv: DrinkId[], remainingNeeds: DrinkId[]): { inv: DrinkId[];
 }
 
 export function stepSimulation(state: GameState): GameState {
-  if (state.status !== "running") return state;
+  if (state.status !== 'running') return state;
 
   const nextIndex = state.stepIndex + 1;
   if (nextIndex >= state.path.length) {
     const allServed = Object.values(state.remainingOrders).every((needs) => needs.length === 0);
     return {
       ...state,
-      status: allServed ? "success" : "failed",
-      message: allServed
-        ? `nice! steps: ${state.stepsTaken}`
-        : "customers unhappy",
+      status: allServed ? 'success' : 'failed',
+      message: allServed ? `nice! steps: ${state.stepsTaken}` : 'customers unhappy',
     };
   }
 
@@ -134,7 +135,11 @@ export function stepSimulation(state: GameState): GameState {
   const posKey = keyOf(nextPos);
 
   // can't step on walls, customers, or obstacles (but floor still shows under customers)
-  if (state.level.walls.has(posKey) || state.level.customers[posKey] || state.level.obstacles[posKey]) {
+  if (
+    state.level.walls.has(posKey) ||
+    state.level.customers[posKey] ||
+    state.level.obstacles[posKey]
+  ) {
     return {
       ...state,
       stepIndex: nextIndex,
@@ -188,7 +193,7 @@ export function stepSimulation(state: GameState): GameState {
     stepsTaken: state.stepsTaken + 1,
     inventory,
     remainingOrders,
-    status: allServedNow ? "success" : state.status,
-    message: allServedNow ? "success!" : state.message,
+    status: allServedNow ? 'success' : state.status,
+    message: allServedNow ? 'success!' : state.message,
   };
 }

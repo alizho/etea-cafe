@@ -1,158 +1,237 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="stylesheet" href="/style.css" />
-        <title>etea cafe</title>
-    </head>
-    <body>
-        <div id="root">
-            <div class="header">
-                <img src="/src/assets/logo.gif" alt="ETea.cafe" class="logo" />
-                <div id="day-text" class="day-text">day 1</div>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/style.css" />
+    <title>etea cafe</title>
+  </head>
+  <body>
+    <div id="root">
+      <div class="header">
+        <img src="/src/assets/logo.gif" alt="ETea.cafe" class="logo" />
+        <div id="day-text" class="day-text">day 1</div>
+      </div>
+      <div class="game-container">
+        <div class="game-section">
+          <div class="game-controls">
+            <button id="run-btn" class="game-button">run</button>
+            <button id="retry-btn" class="game-button">reset</button>
+            <button id="builder-btn" class="game-button" style="display: none">builder</button>
+            <button id="exit-builder-btn" class="game-button" style="display: none">
+              exit and save build
+            </button>
+            <span id="exit-builder-hint" class="exit-builder-hint" style="display: none"
+              >check if your level is solvable first!</span
+            >
+          </div>
+
+          <canvas id="game-canvas" class="game-canvas"></canvas>
+
+          <div id="inventory" class="inventory-display" aria-label="in hand">
+            <div class="inventory-slot" id="inventory-slot-0"></div>
+            <div class="inventory-slot" id="inventory-slot-1"></div>
+          </div>
+
+          <div class="game-info">
+            <div id="steps">steps: 0</div>
+            <div
+              id="best-score"
+              class="best-score-display"
+              style="display: none; color: #888; font-size: 0.9em"
+            >
+              best: --
             </div>
-            <div class="game-container">
-                <div class="game-section">
-                    <div class="game-controls">
-                        <button id="run-btn" class="game-button">run</button>
-                        <button id="retry-btn" class="game-button">reset</button>
-                        <button id="builder-btn" class="game-button" style="display:none">builder</button>
-                        <button id="exit-builder-btn" class="game-button" style="display:none">exit and save build</button>
-                        <span id="exit-builder-hint" class="exit-builder-hint" style="display:none">check if your level is solvable first!</span>
-                    </div>
+            <div id="message">---</div>
+          </div>
 
-                    <canvas id="game-canvas" class="game-canvas"></canvas>
-
-                    <div id="inventory" class="inventory-display" aria-label="in hand">
-                        <div class="inventory-slot" id="inventory-slot-0"></div>
-                        <div class="inventory-slot" id="inventory-slot-1"></div>
-                    </div>
-
-                    <div class="game-info">
-                        <div id="steps">steps: 0</div>
-                        <div id="best-score" class="best-score-display" style="display: none; color: #888; font-size: 0.9em;">best: --</div>
-                        <div id="message">---</div>
-                    </div>
-
-                    <!--<div id="path" style="margin-top: 8px; max-width: 500px; white-space: normal; overflow-wrap: anywhere; text-align: left;">
+          <!--<div id="path" style="margin-top: 8px; max-width: 500px; white-space: normal; overflow-wrap: anywhere; text-align: left;">
             ur path:
           </div>-->
+        </div>
+
+        <div class="sidebar">
+          <h3 id="orders-heading">today's orders:</h3>
+          <ul id="orders"></ul>
+
+          <div class="sidebar-content">
+            <div id="builder-panel" class="builder-panel" style="display: none">
+              <div class="builder-row">
+                <div class="builder-label-row">
+                  <div class="builder-label">tool</div>
+                  <div id="builder-tip" class="builder-tip" style="display: none">
+                    click a placed item again to cycle types
+                  </div>
                 </div>
-
-                <div class="sidebar">
-                    <h3 id="orders-heading">today's orders:</h3>
-                    <ul id="orders"></ul>
-
-                    <div class="sidebar-content">
-                        <div id="builder-panel" class="builder-panel" style="display: none;">
-                            <div class="builder-row">
-                                <div class="builder-label-row">
-                                    <div class="builder-label">tool</div>
-                                    <div id="builder-tip" class="builder-tip" style="display: none;">click a placed item again to cycle types</div>
-                                </div>
-                                <div class="builder-tools">
-                                    <button class="game-button builder-tool-btn" data-tool="erase" aria-label="erase" title="erase - remove items from tiles">
-                                        <img src="/src/assets/hammer.png" alt="erase" class="builder-erase-icon" />
-                                    </button>
-                                    <button class="game-button builder-tool-btn" data-tool="drag">
-                                        <img src="/src/assets/drag.png" alt="drag" class="builder-drag-icon" />
-                                    </button>
-                                    <button class="game-button builder-tool-btn" data-tool="start" aria-label="place start">
-                                        <img id="builder-start-icon" alt="start" class="builder-customer-icon" />
-                                    </button>
-                                    <button class="game-button builder-tool-btn" data-tool="station" aria-label="place station" title="station - place a drink or food station (click again to cycle)">
-                                        <img src="/src/assets/drink_a_item.png" alt="station" class="builder-drink-icon" />
-                                    </button>
-                                    <button class="game-button builder-tool-btn" data-tool="decor" aria-label="place decor" title="decor - place furniture or plants (click again to cycle)">
-                                        <img id="builder-decor-icon" alt="decor" class="builder-drink-icon" />
-                                    </button>
-                                    <button class="game-button builder-tool-btn" data-tool="cust1" aria-label="place customer 1" title="customer A - place customer A (click again to change direction)">
-                                        <img id="builder-cust1-icon" alt="1" class="builder-customer-icon" />
-                                    </button>
-                                    <button class="game-button builder-tool-btn" data-tool="cust2" aria-label="place customer 2" title="customer B - place customer B (click again to change direction)">
-                                        <img id="builder-cust2-icon" alt="2" class="builder-customer-icon" />
-                                    </button>
-                                    <button class="game-button builder-tool-btn" data-tool="cust3" aria-label="place customer 3" title="customer C - place customer C (click again to change direction)">
-                                        <img id="builder-cust3-icon" alt="3" class="builder-customer-icon" />
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="builder-row builder-actions">
-                                <button id="builder-check-btn" class="game-button">check</button>
-                                <button id="builder-share-btn" class="game-button" type="button" title="run check first">share</button>
-                                <div class="builder-dimensions">
-                                    <label class="builder-dimension-label">
-                                        w
-                                        <input id="builder-width-input" class="builder-select builder-dimension-input" type="number" min="6" max="12" step="1" />
-                                    </label>
-                                    <label class="builder-dimension-label">
-                                        h
-                                        <input id="builder-height-input" class="builder-select builder-dimension-input" type="number" min="6" max="12" step="1" />
-                                    </label>
-                                    <button id="builder-resize-btn" class="game-button builder-tool-btn" type="button">apply</button>
-                                </div>
-                            </div>
-
-                            <div id="builder-status" class="builder-status"></div>
-                        </div>
-                    </div>
+                <div class="builder-tools">
+                  <button
+                    class="game-button builder-tool-btn"
+                    data-tool="erase"
+                    aria-label="erase"
+                    title="erase - remove items from tiles"
+                  >
+                    <img src="/src/assets/hammer.png" alt="erase" class="builder-erase-icon" />
+                  </button>
+                  <button class="game-button builder-tool-btn" data-tool="drag">
+                    <img src="/src/assets/drag.png" alt="drag" class="builder-drag-icon" />
+                  </button>
+                  <button
+                    class="game-button builder-tool-btn"
+                    data-tool="start"
+                    aria-label="place start"
+                  >
+                    <img id="builder-start-icon" alt="start" class="builder-customer-icon" />
+                  </button>
+                  <button
+                    class="game-button builder-tool-btn"
+                    data-tool="station"
+                    aria-label="place station"
+                    title="station - place a drink or food station (click again to cycle)"
+                  >
+                    <img
+                      src="/src/assets/drink_a_item.png"
+                      alt="station"
+                      class="builder-drink-icon"
+                    />
+                  </button>
+                  <button
+                    class="game-button builder-tool-btn"
+                    data-tool="decor"
+                    aria-label="place decor"
+                    title="decor - place furniture or plants (click again to cycle)"
+                  >
+                    <img id="builder-decor-icon" alt="decor" class="builder-drink-icon" />
+                  </button>
+                  <button
+                    class="game-button builder-tool-btn"
+                    data-tool="cust1"
+                    aria-label="place customer 1"
+                    title="customer A - place customer A (click again to change direction)"
+                  >
+                    <img id="builder-cust1-icon" alt="1" class="builder-customer-icon" />
+                  </button>
+                  <button
+                    class="game-button builder-tool-btn"
+                    data-tool="cust2"
+                    aria-label="place customer 2"
+                    title="customer B - place customer B (click again to change direction)"
+                  >
+                    <img id="builder-cust2-icon" alt="2" class="builder-customer-icon" />
+                  </button>
+                  <button
+                    class="game-button builder-tool-btn"
+                    data-tool="cust3"
+                    aria-label="place customer 3"
+                    title="customer C - place customer C (click again to change direction)"
+                  >
+                    <img id="builder-cust3-icon" alt="3" class="builder-customer-icon" />
+                  </button>
                 </div>
-            </div>
-        </div>
-
-        <!--not servbed popup -->
-        <div id="failure-popup" class="popup-overlay" style="display: none;">
-            <div class="popup-content">
-                <p class="popup-message">all customers weren't served :(</p>
-                <button id="popup-retry-btn" class="game-button">retry?</button>
-            </div>
-        </div>
-
-        <!--success popup -->
-        <div id="success-popup" class="popup-overlay" style="display: none;">
-            <div class="popup-content">
-                <h2 class="success-day-text">Results - Day 1</h2>
-                <div class="success-score-section">
-                    <div class="success-score-label">your score:</div>
-                    <div class="success-score-value">0</div>
-                    <div class="success-optimal-score"></div>
-                    <div class="success-optimal-message">optimal path!</div>
+              </div>
+              <div class="builder-row builder-actions">
+                <button id="builder-check-btn" class="game-button">check</button>
+                <button
+                  id="builder-share-btn"
+                  class="game-button"
+                  type="button"
+                  title="run check first"
+                >
+                  share
+                </button>
+                <div class="builder-dimensions">
+                  <label class="builder-dimension-label">
+                    w
+                    <input
+                      id="builder-width-input"
+                      class="builder-select builder-dimension-input"
+                      type="number"
+                      min="6"
+                      max="12"
+                      step="1"
+                    />
+                  </label>
+                  <label class="builder-dimension-label">
+                    h
+                    <input
+                      id="builder-height-input"
+                      class="builder-select builder-dimension-input"
+                      type="number"
+                      min="6"
+                      max="12"
+                      step="1"
+                    />
+                  </label>
+                  <button
+                    id="builder-resize-btn"
+                    class="game-button builder-tool-btn"
+                    type="button"
+                  >
+                    apply
+                  </button>
                 </div>
-                <div class="success-distribution-section">
-                    <div class="success-distribution-label">score distribution</div>
-                    <div class="success-graph-container"></div>
-                </div>
-                <button id="success-popup-view-optimal-btn" class="game-button" style="display: none;">view optimal path</button>
-                <button id="success-popup-close-btn" class="game-button">close</button>
+              </div>
+
+              <div id="builder-status" class="builder-status"></div>
             </div>
+          </div>
         </div>
+      </div>
+    </div>
 
-        <!-- Hamburger Menu -->
-        <div class="hamburger-wrapper">
-            <button id="hamburger-btn" class="hamburger-btn game-button" aria-label="Open menu">
-                <span class="hamburger-line"></span>
-                <span class="hamburger-line"></span>
-                <span class="hamburger-line"></span>
-            </button>
-            <nav id="hamburger-menu" class="hamburger-menu" style="display: none">
-                <button class="menu-item" data-action="past-puzzles">past puzzles</button>
-                <button class="menu-item" data-action="builder">builder</button>
-                <button class="menu-item" data-action="tutorial">tutorial</button>
-                <button class="menu-item" data-action="settings">settings</button>
-                <button class="menu-item" data-action="about">about</button>
-            </nav>
+    <!--not servbed popup -->
+    <div id="failure-popup" class="popup-overlay" style="display: none">
+      <div class="popup-content">
+        <p class="popup-message">all customers weren't served :(</p>
+        <button id="popup-retry-btn" class="game-button">retry?</button>
+      </div>
+    </div>
+
+    <!--success popup -->
+    <div id="success-popup" class="popup-overlay" style="display: none">
+      <div class="popup-content">
+        <h2 class="success-day-text">Results - Day 1</h2>
+        <div class="success-score-section">
+          <div class="success-score-label">your score:</div>
+          <div class="success-score-value">0</div>
+          <div class="success-optimal-score"></div>
+          <div class="success-optimal-message">optimal path!</div>
         </div>
-
-        <!-- Menu Panel Overlay -->
-        <div id="menu-panel" class="popup-overlay" style="display: none">
-            <div class="popup-content menu-panel-content">
-                <div id="menu-panel-body"></div>
-                <button id="menu-panel-close" class="game-button">close</button>
-            </div>
+        <div class="success-distribution-section">
+          <div class="success-distribution-label">score distribution</div>
+          <div class="success-graph-container"></div>
         </div>
+        <button id="success-popup-view-optimal-btn" class="game-button" style="display: none">
+          view optimal path
+        </button>
+        <button id="success-popup-close-btn" class="game-button">close</button>
+      </div>
+    </div>
 
-        <script type="module" src="/src/main.ts"></script>
-    </body>
+    <!-- Hamburger Menu -->
+    <div class="hamburger-wrapper">
+      <button id="hamburger-btn" class="hamburger-btn game-button" aria-label="Open menu">
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+      </button>
+      <nav id="hamburger-menu" class="hamburger-menu" style="display: none">
+        <button class="menu-item" data-action="past-puzzles">past puzzles</button>
+        <button class="menu-item" data-action="builder">builder</button>
+        <button class="menu-item" data-action="tutorial">tutorial</button>
+        <button class="menu-item" data-action="settings">settings</button>
+        <button class="menu-item" data-action="about">about</button>
+      </nav>
+    </div>
+
+    <!-- Menu Panel Overlay -->
+    <div id="menu-panel" class="popup-overlay" style="display: none">
+      <div class="popup-content menu-panel-content">
+        <div id="menu-panel-body"></div>
+        <button id="menu-panel-close" class="game-button">close</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
 </html>

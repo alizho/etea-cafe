@@ -8,7 +8,7 @@ import {
   SFX_VOLUME,
   PATH_TILE_SFX_VOLUME,
   STEP_SFX_VOLUME as STEP_VOLUME_SCALE,
-} from "./config/constants";
+} from './config/constants';
 
 let hasStarted = false;
 let audioEnabled = true;
@@ -34,19 +34,19 @@ async function loadMusicBuffer(ctx: AudioContext): Promise<AudioBuffer> {
 }
 
 const tileSfx = new Audio(WET_A);
-tileSfx.preload = "auto";
+tileSfx.preload = 'auto';
 tileSfx.volume = SFX_VOLUME * PATH_TILE_SFX_VOLUME;
 
 const stepSfx = new Audio(STEP_SFX);
-stepSfx.preload = "auto";
+stepSfx.preload = 'auto';
 stepSfx.volume = SFX_VOLUME * STEP_VOLUME_SCALE;
 
 const niceSfx = new Audio(NICE_SFX);
-niceSfx.preload = "auto";
+niceSfx.preload = 'auto';
 niceSfx.volume = SFX_VOLUME;
 
 const wompSfx = new Audio(WOMP_SFX);
-wompSfx.preload = "auto";
+wompSfx.preload = 'auto';
 wompSfx.volume = SFX_VOLUME;
 
 const PATH_TILE_SFX_MIN_INTERVAL_MS = 35;
@@ -68,10 +68,10 @@ function onceStartHandler() {
 }
 
 const START_EVENTS: Array<[keyof WindowEventMap, ListenerOptions]> = [
-  ["pointerdown", { once: true, passive: true, capture: true }],
-  ["mousedown", { once: true, passive: true, capture: true }],
-  ["touchstart", { once: true, passive: true, capture: true }],
-  ["keydown", { once: true, capture: true }],
+  ['pointerdown', { once: true, passive: true, capture: true }],
+  ['mousedown', { once: true, passive: true, capture: true }],
+  ['touchstart', { once: true, passive: true, capture: true }],
+  ['keydown', { once: true, capture: true }],
 ];
 
 function detachStartListeners() {
@@ -95,7 +95,7 @@ export async function startBackgroundMusic(): Promise<void> {
       musicContext = new AudioContext();
     }
 
-    if (musicContext.state !== "running") {
+    if (musicContext.state !== 'running') {
       await musicContext.resume();
     }
 
@@ -149,8 +149,8 @@ export function playPathTileSfx(): void {
   const cleanup = () => {
     activePathTileSfx.delete(sfx);
   };
-  sfx.addEventListener("ended", cleanup, { once: true });
-  sfx.addEventListener("error", cleanup, { once: true });
+  sfx.addEventListener('ended', cleanup, { once: true });
+  sfx.addEventListener('error', cleanup, { once: true });
   void sfx.play().catch(cleanup);
 }
 
@@ -171,8 +171,8 @@ export function playStepSfx(): void {
   const cleanup = () => {
     activeStepSfx.delete(sfx);
   };
-  sfx.addEventListener("ended", cleanup, { once: true });
-  sfx.addEventListener("error", cleanup, { once: true });
+  sfx.addEventListener('ended', cleanup, { once: true });
+  sfx.addEventListener('error', cleanup, { once: true });
   void sfx.play().catch(cleanup);
 }
 

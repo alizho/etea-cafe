@@ -1,13 +1,13 @@
-import { supabase } from "./client";
+import { supabase } from './client';
 
 // returns today's date as YYYY-MM-DD in Eastern Time (America/New_York)
 // handles EST/EDT daylight saving transitions automatically
 export function getTodayDateEST(): string {
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/New_York",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   });
   return formatter.format(new Date()); // "YYYY-MM-DD"
 }
@@ -17,12 +17,12 @@ export async function getLevelByDate(date: string) {
   if (date > today) return null; // never expose future levels
 
   const { data, error } = await supabase
-    .from("levels")
-    .select("id, json")
-    .eq("date", date)
+    .from('levels')
+    .select('id, json')
+    .eq('date', date)
     .single();
 
-  if (error && error.code !== "PGRST116") throw error;
+  if (error && error.code !== 'PGRST116') throw error;
   // PGRST116 = no rows
   return data;
 }
@@ -35,9 +35,9 @@ export async function getTodayLevel() {
 // um for previous levels?
 export async function getLevelHistory(limit: number = 30) {
   const { data, error } = await supabase
-    .from("levels")
-    .select("id, date")
-    .order("date", { ascending: false })
+    .from('levels')
+    .select('id, date')
+    .order('date', { ascending: false })
     .limit(limit);
 
   if (error) throw error;
@@ -45,10 +45,10 @@ export async function getLevelHistory(limit: number = 30) {
   return (data ?? []).filter((row) => row.date <= today);
 }
 export function getPlayerId(): string {
-  let playerId = localStorage.getItem("playerId");
+  let playerId = localStorage.getItem('playerId');
   if (!playerId) {
     playerId = crypto.randomUUID();
-    localStorage.setItem("playerId", playerId);
+    localStorage.setItem('playerId', playerId);
   }
   return playerId;
 }
@@ -67,19 +67,16 @@ export function setBestScoreInStorage(levelId: string, moves: number): void {
 }
 
 // check if player already has a run in the database for this level
-export async function hasRunInDatabase(
-  levelId: string,
-  playerId: string
-): Promise<boolean> {
+export async function hasRunInDatabase(levelId: string, playerId: string): Promise<boolean> {
   const { data, error } = await supabase
-    .from("runs")
-    .select("id")
-    .eq("level_id", levelId)
-    .eq("player_anon_id", playerId)
+    .from('runs')
+    .select('id')
+    .eq('level_id', levelId)
+    .eq('player_anon_id', playerId)
     .limit(1)
     .single();
 
-  if (error && error.code !== "PGRST116") throw error;
+  if (error && error.code !== 'PGRST116') throw error;
   // PGRST116 = no rows
   return data !== null;
 }
@@ -91,7 +88,7 @@ export async function submitRun(
   success: boolean
 ) {
   const { data, error } = await supabase
-    .from("runs")
+    .from('runs')
     .insert({
       level_id: levelId,
       player_anon_id: playerId,
@@ -110,42 +107,37 @@ export async function getTopScoreForLevel(
   playerId: string
 ): Promise<{ moves: number } | null> {
   const { data, error } = await supabase
-    .from("runs")
-    .select("moves")
-    .eq("level_id", levelId)
-    .eq("player_anon_id", playerId)
-    .eq("success", true)
-    .order("moves", { ascending: true })
+    .from('runs')
+    .select('moves')
+    .eq('level_id', levelId)
+    .eq('player_anon_id', playerId)
+    .eq('success', true)
+    .order('moves', { ascending: true })
     .limit(1)
     .single();
 
-  if (error && error.code !== "PGRST116") throw error;
+  if (error && error.code !== 'PGRST116') throw error;
   // PGRST116 = no rows
   return data;
 }
 
 // calculate percentile for a given score
-export function calculatePercentile(
-  score: number,
-  allScores: number[]
-): number {
+export function calculatePercentile(score: number, allScores: number[]): number {
   if (allScores.length === 0) return 100;
-  
+
   const betterScores = allScores.filter((s) => s < score).length;
   const percentile = (betterScores / allScores.length) * 100;
   return Math.round(percentile);
 }
 
 // get all scores for a level to calculate percentile
-export async function getAllScoresForLevel(
-  levelId: string
-): Promise<number[]> {
+export async function getAllScoresForLevel(levelId: string): Promise<number[]> {
   const { data, error } = await supabase
-    .from("runs")
-    .select("moves")
-    .eq("level_id", levelId)
-    .eq("success", true)
-    .order("moves", { ascending: true });
+    .from('runs')
+    .select('moves')
+    .eq('level_id', levelId)
+    .eq('success', true)
+    .order('moves', { ascending: true });
 
   if (error) throw error;
   return data?.map((r) => r.moves) || [];

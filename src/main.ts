@@ -1,28 +1,28 @@
-import { type DrinkId, type ObstacleId, type Pos, type CustomerId } from "./engine/types";
-import {
-  clearPath,
-  initGame,
-  stepSimulation,
-  tryAppendPath,
-  type GameState,
-} from "./engine/game";
-import { buildLevel } from "./levels/loader";
-import { getTodayLevelFromSupabase } from "./levels/daily";
+import { type DrinkId, type ObstacleId, type Pos, type CustomerId } from './engine/types';
+import { clearPath, initGame, stepSimulation, tryAppendPath, type GameState } from './engine/game';
+import { buildLevel } from './levels/loader';
+import { getTodayLevelFromSupabase } from './levels/daily';
 import {
   submitRun,
   getPlayerId,
   getBestScoreFromStorage,
   setBestScoreInStorage,
   hasRunInDatabase,
-} from "./supabase/api";
-import { showSuccessPopup, hideSuccessPopup } from "./popup";
-import type { LevelData } from "./levels/level.schema";
-import { validateLevelData } from "./levels/validate";
-import { solveLevel } from "./engine/solver";
-import { pathImagesLoaded, renderPath, renderPathArrow, PATH_TINT_GREEN } from "./paths";
-import { TILE_SIZE } from "./config/constants";
-import { ensureAudioStartedOnFirstGesture, playPathTileSfx, playStepSfx, playNiceSfx, playWompSfx } from "./audio";
-import { initMenu } from "./menu";
+} from './supabase/api';
+import { showSuccessPopup, hideSuccessPopup } from './popup';
+import type { LevelData } from './levels/level.schema';
+import { validateLevelData } from './levels/validate';
+import { solveLevel } from './engine/solver';
+import { pathImagesLoaded, renderPath, renderPathArrow, PATH_TINT_GREEN } from './paths';
+import { TILE_SIZE } from './config/constants';
+import {
+  ensureAudioStartedOnFirstGesture,
+  playPathTileSfx,
+  playStepSfx,
+  playNiceSfx,
+  playWompSfx,
+} from './audio';
+import { initMenu } from './menu';
 import {
   loadAllSprites,
   type LoadedSprites,
@@ -32,86 +32,88 @@ import {
   getDecorWidth,
   WALL_DECOR_TYPES,
   isWallDecorType,
-} from "./config/items";
+} from './config/items';
 
-const HAMMER_SFX_URL = "/audio/hammer.mp3";
+const HAMMER_SFX_URL = '/audio/hammer.mp3';
 
 function playHammerSfx(): void {
   const audio = new Audio(HAMMER_SFX_URL);
-  void audio.play().catch((err) => console.error("Hammer SFX failed:", err));
+  void audio.play().catch((err) => console.error('Hammer SFX failed:', err));
 }
 import {
   decodeLevelShareToken,
   encodeLevelShareToken,
   getShareTokenFromUrlHash,
   makeShareUrlFromToken,
-} from "./share";
-import "./style.css";
+} from './share';
+import './style.css';
 
 // store loaded sprites
 let sprites: LoadedSprites;
 
 // wall and ui cuz they static
 const floorOpen = new Image();
-floorOpen.src = "/src/assets/floor_open.png";
+floorOpen.src = '/src/assets/floor_open.png';
 
 const wallTop = new Image();
-wallTop.src = "/src/assets/wall_top.png";
+wallTop.src = '/src/assets/wall_top.png';
 
 const wallBot = new Image();
-wallBot.src = "/src/assets/wall_bot.png";
+wallBot.src = '/src/assets/wall_bot.png';
 
 const wallLeftTop = new Image();
-wallLeftTop.src = "/src/assets/wall_left_top.png";
+wallLeftTop.src = '/src/assets/wall_left_top.png';
 
 const wallLeftMid = new Image();
-wallLeftMid.src = "/src/assets/wall_left_mid.png";
+wallLeftMid.src = '/src/assets/wall_left_mid.png';
 
 const wallLeftBot = new Image();
-wallLeftBot.src = "/src/assets/wall_left_bot.png";
+wallLeftBot.src = '/src/assets/wall_left_bot.png';
 
 const wallLeftCorner = new Image();
-wallLeftCorner.src = "/src/assets/wall_left_corner.png";
+wallLeftCorner.src = '/src/assets/wall_left_corner.png';
 
 const wallRightTop = new Image();
-wallRightTop.src = "/src/assets/wall_right_top.png";
+wallRightTop.src = '/src/assets/wall_right_top.png';
 
 const wallRightMid = new Image();
-wallRightMid.src = "/src/assets/wall_right_mid.png";
+wallRightMid.src = '/src/assets/wall_right_mid.png';
 
 const wallRightBot = new Image();
-wallRightBot.src = "/src/assets/wall_right_bot.png";
+wallRightBot.src = '/src/assets/wall_right_bot.png';
 
 const wallRightCorner = new Image();
-wallRightCorner.src = "/src/assets/wall_right_corner.png";
+wallRightCorner.src = '/src/assets/wall_right_corner.png';
 
 const glorboSpriteSheet = new Image();
-glorboSpriteSheet.src = "/src/assets/glorbo_sprite_sheet.png";
+glorboSpriteSheet.src = '/src/assets/glorbo_sprite_sheet.png';
 
 const catAltSprite = new Image();
-catAltSprite.src = "/src/assets/cat-2.png";
+catAltSprite.src = '/src/assets/cat-2.png';
 
 const hoverSprite = new Image();
-hoverSprite.src = "/src/assets/hover.png";
+hoverSprite.src = '/src/assets/hover.png';
 
 const hoverHammerSprite = new Image();
-hoverHammerSprite.src = "/src/assets/hover-hammer.png";
+hoverHammerSprite.src = '/src/assets/hover-hammer.png';
 
 const hoverDragSprite = new Image();
-hoverDragSprite.src = "/src/assets/hover-drag.png";
+hoverDragSprite.src = '/src/assets/hover-drag.png';
 
 const hoverNopeSprite = new Image();
-hoverNopeSprite.src = "/src/assets/hover_nope.png";
+hoverNopeSprite.src = '/src/assets/hover_nope.png';
 
 const hoverYepSprite = new Image();
-hoverYepSprite.src = "/src/assets/hover_yep.png";
+hoverYepSprite.src = '/src/assets/hover_yep.png';
 
 const standHere = new Image();
-standHere.src = "/src/assets/stand_here.png";
+standHere.src = '/src/assets/stand_here.png';
 
 // load dynamic stuff
 const imagesLoaded = Promise.all([
-  loadAllSprites().then(loaded => { sprites = loaded; }),
+  loadAllSprites().then((loaded) => {
+    sprites = loaded;
+  }),
   new Promise<void>((resolve) => {
     floorOpen.onload = () => resolve();
   }),
@@ -174,9 +176,9 @@ function inBounds(levelW: number, levelH: number, p: Pos): boolean {
 }
 
 function getCustomerIconDataUrl(customerSprite: HTMLImageElement, quadrant: 2 | 3 = 2): string {
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return "";
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
 
   const spriteWidth = customerSprite.width / 2;
   const spriteHeight = customerSprite.height / 2;
@@ -195,16 +197,16 @@ function getCustomerIconDataUrl(customerSprite: HTMLImageElement, quadrant: 2 | 
     0,
     0,
     spriteWidth,
-    spriteHeight,
+    spriteHeight
   );
 
   return canvas.toDataURL();
 }
 
 function getGlorboIcon(glorboSprite: HTMLImageElement): string {
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return "";
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
 
   const spriteSheetWidth = glorboSprite.width;
   const spriteSheetHeight = glorboSprite.height;
@@ -214,17 +216,7 @@ function getGlorboIcon(glorboSprite: HTMLImageElement): string {
   canvas.width = spriteWidth;
   canvas.height = spriteHeight;
 
-  ctx.drawImage(
-    glorboSprite,
-    0,
-    0,
-    spriteWidth,
-    spriteHeight,
-    0,
-    0,
-    spriteWidth,
-    spriteHeight,
-  );
+  ctx.drawImage(glorboSprite, 0, 0, spriteWidth, spriteHeight, 0, 0, spriteWidth, spriteHeight);
 
   return canvas.toDataURL();
 }
@@ -234,11 +226,11 @@ function getTilePos(
   levelWidthTiles: number,
   levelHeightTiles: number,
   x: number,
-  y: number,
+  y: number
 ): Pos | null {
   const rect = canvas.getBoundingClientRect();
 
-  // this is cuz resizing would make things cutoff on smaller displays 
+  // this is cuz resizing would make things cutoff on smaller displays
   // idk if it's the best solution but
   const cssX = x - rect.left;
   const cssY = y - rect.top;
@@ -268,12 +260,14 @@ class GameRenderer {
   private tempCanvas: HTMLCanvasElement;
   private tempCtx: CanvasRenderingContext2D;
   private hoverTile: Pos | null = null;
-  private buildCursor: string = "crosshair";
-  private dragGhostRenderer: ((ctx: CanvasRenderingContext2D, tileX: number, tileY: number, animFrame: number) => void) | null = null;
+  private buildCursor: string = 'crosshair';
+  private dragGhostRenderer:
+    | ((ctx: CanvasRenderingContext2D, tileX: number, tileY: number, animFrame: number) => void)
+    | null = null;
   private glorboHidden: boolean = false;
   private builderHoverSprite: HTMLImageElement | null = null;
 
-  private uiMode: "play" | "build" = "play";
+  private uiMode: 'play' | 'build' = 'play';
   private onBuildTileClick: ((pos: Pos) => void) | null = null;
   private onSuccess: ((moves: number) => void) | null = null;
   private successHandled: boolean = false;
@@ -285,17 +279,17 @@ class GameRenderer {
 
   constructor(canvas: HTMLCanvasElement, state: GameState) {
     this.canvas = canvas;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Could not get 2d context");
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Could not get 2d context');
     this.ctx = ctx;
     this.state = state;
 
     // create temporary canvas for sprite tinting
-    this.tempCanvas = document.createElement("canvas");
+    this.tempCanvas = document.createElement('canvas');
     this.tempCanvas.width = TILE_SIZE;
     this.tempCanvas.height = TILE_SIZE;
-    const tempCtx = this.tempCanvas.getContext("2d");
-    if (!tempCtx) throw new Error("Could not get 2d context for temp canvas");
+    const tempCtx = this.tempCanvas.getContext('2d');
+    if (!tempCtx) throw new Error('Could not get 2d context for temp canvas');
     this.tempCtx = tempCtx;
 
     this.setupCanvas();
@@ -343,16 +337,15 @@ class GameRenderer {
 
     this.ctx.imageSmoothingEnabled = false;
     this.tempCtx.imageSmoothingEnabled = false;
-
   }
 
   private updateCanvasDisplaySize(baseCanvasWidth: number, baseCanvasHeight: number) {
     // fit display size w current layout
-    const headerEl = document.querySelector(".header") as HTMLElement | null;
-    const controlsEl = document.querySelector(".game-controls") as HTMLElement | null;
-    const infoEl = document.querySelector(".game-info") as HTMLElement | null;
-    const sidebarEl = document.querySelector(".sidebar") as HTMLElement | null;
-    const inventoryEl = document.getElementById("inventory") as HTMLElement | null;
+    const headerEl = document.querySelector('.header') as HTMLElement | null;
+    const controlsEl = document.querySelector('.game-controls') as HTMLElement | null;
+    const infoEl = document.querySelector('.game-info') as HTMLElement | null;
+    const sidebarEl = document.querySelector('.sidebar') as HTMLElement | null;
+    const inventoryEl = document.getElementById('inventory') as HTMLElement | null;
 
     const headerH = headerEl?.getBoundingClientRect().height ?? 0;
     const controlsH = controlsEl?.getBoundingClientRect().height ?? 0;
@@ -360,14 +353,17 @@ class GameRenderer {
     const infoH = infoEl?.getBoundingClientRect().height ?? 0;
     const sidebarW = sidebarEl?.getBoundingClientRect().width ?? 0;
 
-    const logo = document.querySelector(".logo") as HTMLElement | null;
+    const logo = document.querySelector('.logo') as HTMLElement | null;
     const extraLogoSpace = logo ? logo.getBoundingClientRect().height * 0.5 : 0;
 
     const paddingW = 64;
     const paddingH = 72;
 
     const maxW = Math.max(120, window.innerWidth - sidebarW - paddingW);
-    const maxH = Math.max(120, window.innerHeight - headerH - controlsH - inventoryH - infoH - paddingH - extraLogoSpace);
+    const maxH = Math.max(
+      120,
+      window.innerHeight - headerH - controlsH - inventoryH - infoH - paddingH - extraLogoSpace
+    );
 
     const fitScale = Math.min(maxW / baseCanvasWidth, maxH / baseCanvasHeight, 1);
     const cssW = Math.max(64, Math.floor(baseCanvasWidth * fitScale));
@@ -378,20 +374,20 @@ class GameRenderer {
   }
 
   private setupEventListeners() {
-    this.canvas.addEventListener("mousedown", (e) => this.handlePointerDown(e));
-    this.canvas.addEventListener("mousemove", (e) => {
+    this.canvas.addEventListener('mousedown', (e) => this.handlePointerDown(e));
+    this.canvas.addEventListener('mousemove', (e) => {
       this.handlePointerMove(e);
       this.handleHover(e);
     });
-    this.canvas.addEventListener("mouseup", () => this.stopDrawing());
-    this.canvas.addEventListener("mouseleave", () => {
+    this.canvas.addEventListener('mouseup', () => this.stopDrawing());
+    this.canvas.addEventListener('mouseleave', () => {
       this.stopDrawing();
       this.hoverTile = null;
       this.render();
     });
 
     // touch svreen support
-    this.canvas.addEventListener("touchstart", (e) => {
+    this.canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
       const touch = e.touches[0];
       this.handlePointerDown({
@@ -399,16 +395,16 @@ class GameRenderer {
         clientY: touch.clientY,
       });
     });
-    this.canvas.addEventListener("touchmove", (e) => {
+    this.canvas.addEventListener('touchmove', (e) => {
       e.preventDefault();
       const touch = e.touches[0];
       const coords = { clientX: touch.clientX, clientY: touch.clientY };
       this.handlePointerMove(coords);
       this.handleHover(coords);
     });
-    this.canvas.addEventListener("touchend", () => this.stopDrawing());
+    this.canvas.addEventListener('touchend', () => this.stopDrawing());
 
-    window.addEventListener("resize", () => {
+    window.addEventListener('resize', () => {
       const level = this.state.level;
       this.updateCanvasDisplaySize(level.width * TILE_SIZE, level.height * TILE_SIZE);
       this.render();
@@ -416,19 +412,18 @@ class GameRenderer {
   }
 
   private handlePointerDown(e: { clientX: number; clientY: number }) {
-    if (this.state.status !== "idle") return;
+    if (this.state.status !== 'idle') return;
     const pos = getTilePos(
       this.canvas,
       this.state.level.width,
       this.state.level.height,
       e.clientX,
-      e.clientY,
+      e.clientY
     );
     if (!pos) return;
 
-    if (this.uiMode === "build") {
-      if (!inBounds(this.state.level.width, this.state.level.height, pos))
-        return;
+    if (this.uiMode === 'build') {
+      if (!inBounds(this.state.level.width, this.state.level.height, pos)) return;
       this.isDrawing = true;
       this.lastBuildPaintKey = null;
 
@@ -437,28 +432,26 @@ class GameRenderer {
       return;
     }
 
-    const last =
-      this.state.path[this.state.path.length - 1] ?? this.state.level.start;
+    const last = this.state.path[this.state.path.length - 1] ?? this.state.level.start;
     if (pos.x !== last.x || pos.y !== last.y) return;
 
     this.isDrawing = true;
   }
 
   private handlePointerMove(e: { clientX: number; clientY: number }) {
-    if (this.uiMode === "build") {
+    if (this.uiMode === 'build') {
       if (!this.isDrawing) return;
-      if (this.state.status !== "idle") return;
+      if (this.state.status !== 'idle') return;
 
       const pos = getTilePos(
         this.canvas,
         this.state.level.width,
         this.state.level.height,
         e.clientX,
-        e.clientY,
+        e.clientY
       );
       if (!pos) return;
-      if (!inBounds(this.state.level.width, this.state.level.height, pos))
-        return;
+      if (!inBounds(this.state.level.width, this.state.level.height, pos)) return;
 
       const key = `${pos.x},${pos.y}`;
       if (this.lastBuildPaintKey === key) return;
@@ -470,14 +463,14 @@ class GameRenderer {
     }
 
     if (!this.isDrawing) return;
-    if (this.state.status !== "idle") return;
+    if (this.state.status !== 'idle') return;
 
     const pos = getTilePos(
       this.canvas,
       this.state.level.width,
       this.state.level.height,
       e.clientX,
-      e.clientY,
+      e.clientY
     );
     if (!pos) return;
     if (!inBounds(this.state.level.width, this.state.level.height, pos)) return;
@@ -502,7 +495,7 @@ class GameRenderer {
       this.state.level.width,
       this.state.level.height,
       e.clientX,
-      e.clientY,
+      e.clientY
     );
     if (pos && inBounds(this.state.level.width, this.state.level.height, pos)) {
       if (this.hoverTile?.x !== pos.x || this.hoverTile?.y !== pos.y) {
@@ -510,42 +503,41 @@ class GameRenderer {
         this.render();
       }
 
-      if (this.uiMode === "build") {
+      if (this.uiMode === 'build') {
         this.canvas.style.cursor = this.buildCursor;
         return;
       }
 
       // grab cursor on path that you can grab from
       const lastPathTile = this.state.path[this.state.path.length - 1];
-      const isLastPathTile =
-        lastPathTile && pos.x === lastPathTile.x && pos.y === lastPathTile.y;
+      const isLastPathTile = lastPathTile && pos.x === lastPathTile.x && pos.y === lastPathTile.y;
 
       // TODO: SPRITE CHANGE!! make it green or something when u can grab on it
       if (isLastPathTile) {
-        this.canvas.style.cursor = this.isDrawing ? "grabbing" : "grab";
+        this.canvas.style.cursor = this.isDrawing ? 'grabbing' : 'grab';
       } else {
-        this.canvas.style.cursor = "default";
+        this.canvas.style.cursor = 'default';
       }
     } else {
       if (this.hoverTile !== null) {
         this.hoverTile = null;
         this.render();
       }
-      this.canvas.style.cursor = "default";
+      this.canvas.style.cursor = 'default';
     }
   }
 
-  public setUIMode(mode: "play" | "build") {
+  public setUIMode(mode: 'play' | 'build') {
     this.uiMode = mode;
     this.isDrawing = false;
     this.lastBuildPaintKey = null;
-    this.buildCursor = "crosshair";
+    this.buildCursor = 'crosshair';
     this.dragGhostRenderer = null;
     this.glorboHidden = false;
-    if (this.uiMode === "play") {
+    if (this.uiMode === 'play') {
       this.builderHoverSprite = null;
     }
-    if (this.uiMode === "build") {
+    if (this.uiMode === 'build') {
       // stop sim while editing
       if (this.simInterval) {
         clearInterval(this.simInterval);
@@ -562,12 +554,16 @@ class GameRenderer {
 
   public setBuildCursor(cursor: string) {
     this.buildCursor = cursor;
-    if (this.uiMode === "build") {
+    if (this.uiMode === 'build') {
       this.canvas.style.cursor = cursor;
     }
   }
 
-  public setDragGhost(fn: ((ctx: CanvasRenderingContext2D, tileX: number, tileY: number, animFrame: number) => void) | null) {
+  public setDragGhost(
+    fn:
+      | ((ctx: CanvasRenderingContext2D, tileX: number, tileY: number, animFrame: number) => void)
+      | null
+  ) {
     this.dragGhostRenderer = fn;
     this.render();
   }
@@ -603,11 +599,11 @@ class GameRenderer {
     }
 
     // reset success on reset
-    if (newState.status !== "success") {
+    if (newState.status !== 'success') {
       this.successHandled = false;
     }
     // clear optimal replay flag on retry/new level (idle), keep it when user presses run
-    if (newState.status === "idle") {
+    if (newState.status === 'idle') {
       this.showingOptimalReplay = false;
     }
     this.render();
@@ -627,13 +623,13 @@ class GameRenderer {
     const replayState: GameState = {
       level,
       path,
-      status: "idle",
+      status: 'idle',
       stepIndex: 0,
       stepsTaken: 0,
       glorboPos: path[0] ?? level.start,
       inventory: [],
       remainingOrders: { A: [...level.orders.A], B: [...level.orders.B], C: [...level.orders.C] },
-      message: "optimal path",
+      message: 'optimal path',
     };
     this.state = replayState;
     this.render();
@@ -641,25 +637,30 @@ class GameRenderer {
   }
 
   private startSimulation() {
-    if (this.uiMode === "build") return;
+    if (this.uiMode === 'build') return;
     if (this.simInterval) {
       clearInterval(this.simInterval);
       this.simInterval = null;
     }
 
-    if (this.state.status !== "running") return;
+    if (this.state.status !== 'running') return;
 
     this.state = stepSimulation(this.state);
-    if (this.state.status === "running") {
+    if (this.state.status === 'running') {
       playStepSfx();
     }
     this.render();
     this.updateUI();
 
-    if (this.state.status !== "running") {
-      if (this.state.status === "failed") {
+    if (this.state.status !== 'running') {
+      if (this.state.status === 'failed') {
         this.showFailurePopup();
-      } else if (this.state.status === "success" && this.onSuccess && !this.successHandled && !this.showingOptimalReplay) {
+      } else if (
+        this.state.status === 'success' &&
+        this.onSuccess &&
+        !this.successHandled &&
+        !this.showingOptimalReplay
+      ) {
         this.successHandled = true;
         this.onSuccess(this.state.stepsTaken);
       }
@@ -669,29 +670,36 @@ class GameRenderer {
     this.simInterval = window.setInterval(() => {
       const prevOrders = { ...this.state.remainingOrders };
       this.state = stepSimulation(this.state);
-      
+
       for (const customerId in prevOrders) {
-        if (prevOrders[customerId as keyof typeof prevOrders].length > 
-            this.state.remainingOrders[customerId as keyof typeof this.state.remainingOrders].length) {
+        if (
+          prevOrders[customerId as keyof typeof prevOrders].length >
+          this.state.remainingOrders[customerId as keyof typeof this.state.remainingOrders].length
+        ) {
           playNiceSfx();
         }
       }
-      
-      if (this.state.status === "running") {
+
+      if (this.state.status === 'running') {
         playStepSfx();
       }
       this.render();
       this.updateUI();
 
-      if (this.state.status !== "running") {
+      if (this.state.status !== 'running') {
         if (this.simInterval) {
           clearInterval(this.simInterval);
           this.simInterval = null;
         }
-        if (this.state.status === "failed") {
+        if (this.state.status === 'failed') {
           playWompSfx();
           this.showFailurePopup();
-        } else if (this.state.status === "success" && this.onSuccess && !this.successHandled && !this.showingOptimalReplay) {
+        } else if (
+          this.state.status === 'success' &&
+          this.onSuccess &&
+          !this.successHandled &&
+          !this.showingOptimalReplay
+        ) {
           this.successHandled = true;
           this.onSuccess(this.state.stepsTaken);
         }
@@ -721,7 +729,7 @@ class GameRenderer {
     };
 
     for (const wallKey of level.walls) {
-      const [x, y] = wallKey.split(",").map(Number);
+      const [x, y] = wallKey.split(',').map(Number);
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
 
@@ -729,32 +737,23 @@ class GameRenderer {
 
       if (isFloor(x, y + 1)) {
         wallSprite = wallTop;
-      }
-      else if (isFloor(x, y - 1)) {
+      } else if (isFloor(x, y - 1)) {
         wallSprite = wallBot;
-      }
-      else if (!isFloor(x - 1, y + 1) && isFloor(x - 1, y)) {
+      } else if (!isFloor(x - 1, y + 1) && isFloor(x - 1, y)) {
         wallSprite = wallRightBot;
-      }
-      else if (isFloor(x - 1, y)) {
+      } else if (isFloor(x - 1, y)) {
         wallSprite = wallRightMid;
-      }
-      else if (isFloor(x - 1, y + 1)) {
+      } else if (isFloor(x - 1, y + 1)) {
         wallSprite = wallRightTop;
-      }
-      else if (!isFloor(x + 1, y + 1) && isFloor(x + 1, y)) {
+      } else if (!isFloor(x + 1, y + 1) && isFloor(x + 1, y)) {
         wallSprite = wallLeftBot;
-      }
-      else if (isFloor(x + 1, y)) {
+      } else if (isFloor(x + 1, y)) {
         wallSprite = wallLeftMid;
-      }
-      else if (isFloor(x + 1, y + 1)) {
+      } else if (isFloor(x + 1, y + 1)) {
         wallSprite = wallLeftTop;
-      }
-      else if (isFloor(x + 1, y - 1)) {
+      } else if (isFloor(x + 1, y - 1)) {
         wallSprite = wallLeftCorner;
-      }
-      else if (isFloor(x - 1, y - 1)) {
+      } else if (isFloor(x - 1, y - 1)) {
         wallSprite = wallRightCorner;
       }
 
@@ -763,15 +762,15 @@ class GameRenderer {
 
     // draw obstacles
 
-    const twoTileTypes = ["plant_two", "window_double_a", "window_double_b"] as const;
+    const twoTileTypes = ['plant_two', 'window_double_a', 'window_double_b'] as const;
     const twoTileByRow = new Map<string, Map<string, number[]>>();
     for (const t of twoTileTypes) {
       twoTileByRow.set(t, new Map());
     }
     for (const [key, type] of Object.entries(level.obstacles)) {
-      if (!twoTileTypes.includes(type as typeof twoTileTypes[number])) continue;
-      const [x, y] = key.split(",").map(Number);
-      const byRow = twoTileByRow.get(type as typeof twoTileTypes[number])!;
+      if (!twoTileTypes.includes(type as (typeof twoTileTypes)[number])) continue;
+      const [x, y] = key.split(',').map(Number);
+      const byRow = twoTileByRow.get(type as (typeof twoTileTypes)[number])!;
       const xs = byRow.get(String(y)) ?? [];
       xs.push(x);
       byRow.set(String(y), xs);
@@ -798,18 +797,18 @@ class GameRenderer {
     }
 
     for (const [key, type] of Object.entries(level.obstacles)) {
-      const [x, y] = key.split(",").map(Number);
+      const [x, y] = key.split(',').map(Number);
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
 
-      if (twoTileTypes.includes(type as typeof twoTileTypes[number])) continue;
+      if (twoTileTypes.includes(type as (typeof twoTileTypes)[number])) continue;
 
       const obstacleSprite = sprites.obstacles[type as ObstacleId];
       if (!obstacleSprite) continue;
 
       let spriteToDraw = obstacleSprite;
-      if (type === "cat") {
-        spriteToDraw = (this.animationFrame % 2 === 0 ? obstacleSprite : catAltSprite);
+      if (type === 'cat') {
+        spriteToDraw = this.animationFrame % 2 === 0 ? obstacleSprite : catAltSprite;
       }
 
       ctx.drawImage(spriteToDraw, px, py, TILE_SIZE, TILE_SIZE);
@@ -817,7 +816,7 @@ class GameRenderer {
 
     // draw drink stations
     for (const [key, drink] of Object.entries(level.drinkStations)) {
-      const [x, y] = key.split(",").map(Number);
+      const [x, y] = key.split(',').map(Number);
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
 
@@ -828,15 +827,17 @@ class GameRenderer {
       if (!drinkSprite) continue;
 
       // use pressed sprite if glorbo is on it and has pressed sprite
-      const spriteToUse = (isGlorboOnStation && sprites.drinkPressed) ? sprites.drinkPressed : drinkSprite;
+      const spriteToUse =
+        isGlorboOnStation && sprites.drinkPressed ? sprites.drinkPressed : drinkSprite;
       ctx.drawImage(spriteToUse, px, py, TILE_SIZE, TILE_SIZE);
     }
 
     // serve boxes
     for (const [key, customerId] of Object.entries(level.standHere)) {
-      const isServed = (this.state.remainingOrders[customerId as "A" | "B" | "C"]?.length ?? 0) === 0;
+      const isServed =
+        (this.state.remainingOrders[customerId as 'A' | 'B' | 'C']?.length ?? 0) === 0;
       if (isServed) continue;
-      const [x, y] = key.split(",").map(Number);
+      const [x, y] = key.split(',').map(Number);
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
 
@@ -854,13 +855,13 @@ class GameRenderer {
         px,
         py,
         TILE_SIZE,
-        TILE_SIZE,
+        TILE_SIZE
       );
     }
 
     // draw customers
     for (const [key, customerId] of Object.entries(level.customers)) {
-      const [x, y] = key.split(",").map(Number);
+      const [x, y] = key.split(',').map(Number);
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
 
@@ -891,11 +892,11 @@ class GameRenderer {
         px,
         py,
         TILE_SIZE,
-        TILE_SIZE,
+        TILE_SIZE
       );
     }
 
-    if (this.uiMode === "play") {
+    if (this.uiMode === 'play') {
       // draw path with directional sprites and gradient overlay
       // use green tint for optimal path replay, default blue otherwise
       const tint = this.showingOptimalReplay ? PATH_TINT_GREEN : undefined;
@@ -930,20 +931,18 @@ class GameRenderer {
         gx,
         gy,
         TILE_SIZE,
-        TILE_SIZE, // destination rectangle
+        TILE_SIZE // destination rectangle
       );
     }
 
     // draw hover sprite on hovered tile (only during idle state)
-    if (this.state.status === "idle" && this.hoverTile) {
+    if (this.state.status === 'idle' && this.hoverTile) {
       const hx = this.hoverTile.x * TILE_SIZE;
       const hy = this.hoverTile.y * TILE_SIZE;
 
       let spriteToUse =
-        this.uiMode === "build" && this.builderHoverSprite
-          ? this.builderHoverSprite
-          : hoverSprite;
-      if (this.uiMode === "play") {
+        this.uiMode === 'build' && this.builderHoverSprite ? this.builderHoverSprite : hoverSprite;
+      if (this.uiMode === 'play') {
         // check if tile is unwalkable (wall, customer, or obstacle)
         const hoverKey = `${this.hoverTile.x},${this.hoverTile.y}`;
         const isUnwalkable =
@@ -982,7 +981,7 @@ class GameRenderer {
         hx,
         hy,
         TILE_SIZE,
-        TILE_SIZE, // destination rectangle
+        TILE_SIZE // destination rectangle
       );
     }
 
@@ -996,51 +995,47 @@ class GameRenderer {
   }
 
   public updateUI() {
-    const stepsEl = document.getElementById("steps");
-    const messageEl = document.getElementById("message");
-    const bestScoreEl = document.getElementById("best-score");
-    const pathEl = document.getElementById("path");
-    const inventoryEl = document.getElementById("inventory");
-    const runButton = document.getElementById("run-btn") as HTMLButtonElement;
-    const retryButton = document.getElementById(
-      "retry-btn",
-    ) as HTMLButtonElement;
+    const stepsEl = document.getElementById('steps');
+    const messageEl = document.getElementById('message');
+    const bestScoreEl = document.getElementById('best-score');
+    const pathEl = document.getElementById('path');
+    const inventoryEl = document.getElementById('inventory');
+    const runButton = document.getElementById('run-btn') as HTMLButtonElement;
+    const retryButton = document.getElementById('retry-btn') as HTMLButtonElement;
 
     if (stepsEl) stepsEl.textContent = `steps: ${this.state.stepsTaken}`;
-    if (messageEl) messageEl.textContent = this.state.message || "";
+    if (messageEl) messageEl.textContent = this.state.message || '';
 
     // always show best score if available
     if (bestScoreEl && this.currentLevelId) {
       const bestScore = getBestScoreFromStorage(this.currentLevelId);
       if (bestScore !== null) {
         bestScoreEl.textContent = `best: ${bestScore}`;
-        bestScoreEl.style.display = "block";
+        bestScoreEl.style.display = 'block';
       } else {
-        bestScoreEl.style.display = "none";
+        bestScoreEl.style.display = 'none';
       }
     } else if (bestScoreEl && !this.currentLevelId) {
-      bestScoreEl.style.display = "none";
+      bestScoreEl.style.display = 'none';
     }
 
     if (pathEl) {
-      const pathLabel = this.state.path
-        .map((p) => `(${p.x},${p.y})`)
-        .join(" → ");
+      const pathLabel = this.state.path.map((p) => `(${p.x},${p.y})`).join(' → ');
       pathEl.textContent = `ur path: ${pathLabel}`;
     }
 
     if (inventoryEl) {
       const inventory = this.state.inventory;
-      const slot0 = document.getElementById("inventory-slot-0");
-      const slot1 = document.getElementById("inventory-slot-1");
+      const slot0 = document.getElementById('inventory-slot-0');
+      const slot1 = document.getElementById('inventory-slot-1');
       [slot0, slot1].forEach((slot, i) => {
         if (!slot) return;
         const drinkId = inventory[i];
         if (drinkId) {
-          const imageSrc = sprites.drinkItems[drinkId]?.src ?? "";
+          const imageSrc = sprites.drinkItems[drinkId]?.src ?? '';
           slot.innerHTML = `<img src="${imageSrc}" alt="${drinkId}" class="inventory-drink-icon" />`;
         } else {
-          slot.innerHTML = "";
+          slot.innerHTML = '';
         }
       });
     }
@@ -1048,32 +1043,30 @@ class GameRenderer {
     this.updateOrdersDisplay();
 
     if (runButton) {
-      runButton.disabled =
-        this.uiMode === "build" || this.state.status !== "idle";
+      runButton.disabled = this.uiMode === 'build' || this.state.status !== 'idle';
     }
 
     if (retryButton) {
-      retryButton.disabled =
-        this.uiMode === "build" || this.state.status === "running";
+      retryButton.disabled = this.uiMode === 'build' || this.state.status === 'running';
     }
   }
 
   private showFailurePopup() {
-    const popup = document.getElementById("failure-popup");
+    const popup = document.getElementById('failure-popup');
     if (popup) {
-      popup.style.display = "flex";
+      popup.style.display = 'flex';
     }
   }
 
   public hideFailurePopup() {
-    const popup = document.getElementById("failure-popup");
+    const popup = document.getElementById('failure-popup');
     if (popup) {
-      popup.style.display = "none";
+      popup.style.display = 'none';
     }
   }
 
   private updateOrdersDisplay() {
-    const ordersEl = document.getElementById("orders");
+    const ordersEl = document.getElementById('orders');
     if (!ordersEl) return;
 
     const { level, remainingOrders } = this.state;
@@ -1085,7 +1078,7 @@ class GameRenderer {
     };
 
     const getDrinkItemImage = (drinkId: string): string => {
-      return sprites.drinkItems[drinkId as DrinkId]?.src ?? "";
+      return sprites.drinkItems[drinkId as DrinkId]?.src ?? '';
     };
 
     const ordersHTML = entries
@@ -1096,7 +1089,7 @@ class GameRenderer {
         const quadrant: 2 | 3 = isServed ? 3 : 2;
         const customerIconUrl = customerSprite
           ? getCustomerIconDataUrl(customerSprite, quadrant)
-          : "";
+          : '';
 
         // gray out items that have already been served
         const remainingCounts: Record<string, number> = {};
@@ -1104,19 +1097,20 @@ class GameRenderer {
 
         const servedCounts: Record<string, number> = {};
         for (const d of drinks) servedCounts[d] = (servedCounts[d] ?? 0) + 1;
-        for (const [d, c] of Object.entries(remainingCounts)) servedCounts[d] = (servedCounts[d] ?? 0) - c;
+        for (const [d, c] of Object.entries(remainingCounts))
+          servedCounts[d] = (servedCounts[d] ?? 0) - c;
 
         const drinkImages = drinks
           .map((drinkId) => {
             const servedLeft = servedCounts[drinkId] ?? 0;
             const itemServed = servedLeft > 0;
             if (itemServed) servedCounts[drinkId] = servedLeft - 1;
-            const servedClass = itemServed ? "drink-item-served" : "";
+            const servedClass = itemServed ? 'drink-item-served' : '';
             return `<img src="${getDrinkItemImage(drinkId)}" alt="${drinkId}" class="drink-item-icon ${servedClass}" />`;
           })
-          .join("");
+          .join('');
 
-        const servedClass = isServed ? "order-served" : "";
+        const servedClass = isServed ? 'order-served' : '';
 
         return `
         <li class="order-item ${servedClass}" data-customer-id="${customerId}">
@@ -1128,7 +1122,7 @@ class GameRenderer {
         </li>
       `;
       })
-      .join("");
+      .join('');
 
     ordersEl.innerHTML = ordersHTML;
   }
@@ -1140,26 +1134,16 @@ async function init() {
   await imagesLoaded;
 
   // builder tool icons
-  const decorIcon = document.getElementById(
-    "builder-decor-icon",
-  ) as HTMLImageElement | null;
-  const startIcon = document.getElementById(
-    "builder-start-icon",
-  ) as HTMLImageElement | null;
-  const b1 = document.getElementById(
-    "builder-cust1-icon",
-  ) as HTMLImageElement | null;
-  const b2 = document.getElementById(
-    "builder-cust2-icon",
-  ) as HTMLImageElement | null;
-  const b3 = document.getElementById(
-    "builder-cust3-icon",
-  ) as HTMLImageElement | null;
+  const decorIcon = document.getElementById('builder-decor-icon') as HTMLImageElement | null;
+  const startIcon = document.getElementById('builder-start-icon') as HTMLImageElement | null;
+  const b1 = document.getElementById('builder-cust1-icon') as HTMLImageElement | null;
+  const b2 = document.getElementById('builder-cust2-icon') as HTMLImageElement | null;
+  const b3 = document.getElementById('builder-cust3-icon') as HTMLImageElement | null;
   if (startIcon) startIcon.src = getGlorboIcon(glorboSpriteSheet);
   if (b1) b1.src = getCustomerIconDataUrl(sprites.customers.A, 2);
   if (b2) b2.src = getCustomerIconDataUrl(sprites.customers.B, 2);
   if (b3) b3.src = getCustomerIconDataUrl(sprites.customers.C, 2);
-  if (decorIcon) decorIcon.src = "/src/assets/plant_a.png";
+  if (decorIcon) decorIcon.src = '/src/assets/plant_a.png';
 
   const { levelData, levelId } = await getTodayLevelFromSupabase();
   const dailyLevelData: LevelData = levelData;
@@ -1177,18 +1161,16 @@ async function init() {
   const level = buildLevel(initialLevelData);
   const state = initGame(level);
 
-  let currentLevelData: LevelData = JSON.parse(
-    JSON.stringify(initialLevelData),
-  ) as LevelData;
-  
+  let currentLevelData: LevelData = JSON.parse(JSON.stringify(initialLevelData)) as LevelData;
+
   // store level ID for submitting runs
   let currentLevelId: string | null = initialLevelId;
 
   // setup day text
-  const dayTextEl = document.getElementById("day-text");
+  const dayTextEl = document.getElementById('day-text');
   if (dayTextEl) {
     if (hasSharedLevel) {
-      dayTextEl.textContent = "shared level";
+      dayTextEl.textContent = 'shared level';
     } else {
       // extract day number from
       const dayMatch = levelData.id.match(/day-(\d+)/);
@@ -1197,8 +1179,8 @@ async function init() {
     }
   }
 
-  const canvas = document.getElementById("game-canvas") as HTMLCanvasElement;
-  if (!canvas) throw new Error("no canvas found");
+  const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
+  if (!canvas) throw new Error('no canvas found');
 
   const renderer = new GameRenderer(canvas, state);
   renderer.setLevelId(currentLevelId);
@@ -1206,18 +1188,22 @@ async function init() {
   // extract day number for popup
   const dayMatch = levelData.id.match(/day-(\d+)/);
   let dayNumber = dayMatch ? parseInt(dayMatch[1], 10) : 1;
-  let currentMode: "shared" | "daily" | "custom" = hasSharedLevel ? "shared" : "daily";
+  let currentMode: 'shared' | 'daily' | 'custom' = hasSharedLevel ? 'shared' : 'daily';
 
-  const setDayText = (mode: "shared" | "daily" | "custom") => {
+  const setDayText = (mode: 'shared' | 'daily' | 'custom') => {
     currentMode = mode;
-    const dayTextEl = document.getElementById("day-text");
+    const dayTextEl = document.getElementById('day-text');
     if (!dayTextEl) return;
-    if (mode === "shared") dayTextEl.textContent = "shared level";
-    else if (mode === "custom") dayTextEl.textContent = "your level";
+    if (mode === 'shared') dayTextEl.textContent = 'shared level';
+    else if (mode === 'custom') dayTextEl.textContent = 'your level';
     else dayTextEl.textContent = `day ${dayNumber}`;
   };
 
-  const applyLevelDataToRenderer = (data: LevelData, id: string | null, mode: "shared" | "daily" | "custom") => {
+  const applyLevelDataToRenderer = (
+    data: LevelData,
+    id: string | null,
+    mode: 'shared' | 'daily' | 'custom'
+  ) => {
     hideSuccessPopup();
     renderer.hideFailurePopup();
 
@@ -1247,7 +1233,7 @@ async function init() {
         optimalPath = result.path;
       }
     } catch (e) {
-      console.error("Error computing optimal path:", e);
+      console.error('Error computing optimal path:', e);
     }
 
     const viewOptimalCallback = optimalPath
@@ -1258,7 +1244,7 @@ async function init() {
       const playerId = getPlayerId();
       const storedBest = getBestScoreFromStorage(currentLevelId);
       const isNewBest = storedBest === null || moves < storedBest;
-      
+
       // check if player already has a run in database for this level
       const hasExistingRun = await hasRunInDatabase(currentLevelId, playerId);
 
@@ -1275,78 +1261,70 @@ async function init() {
       }
 
       // show success popup on every playthrough
-      const isCustom = currentMode === "custom";
-      showSuccessPopup(dayNumber, moves, currentLevelId, optimalMoves, viewOptimalCallback, isCustom);
+      const isCustom = currentMode === 'custom';
+      showSuccessPopup(
+        dayNumber,
+        moves,
+        currentLevelId,
+        optimalMoves,
+        viewOptimalCallback,
+        isCustom
+      );
     } catch (error) {
-      console.error("Error submitting run:", error);
+      console.error('Error submitting run:', error);
       // still show popup even if API call fails
-      const isCustom = currentMode === "custom";
-      showSuccessPopup(dayNumber, moves, currentLevelId, optimalMoves, viewOptimalCallback, isCustom);
+      const isCustom = currentMode === 'custom';
+      showSuccessPopup(
+        dayNumber,
+        moves,
+        currentLevelId,
+        optimalMoves,
+        viewOptimalCallback,
+        isCustom
+      );
     }
   });
 
   // builder mode starts based off the day's level
-  type BuilderTool =
-    | "erase"
-    | "decor"
-    | "start"
-    | "station"
-    | "cust1"
-    | "cust2"
-    | "cust3"
-    | "drag";
+  type BuilderTool = 'erase' | 'decor' | 'start' | 'station' | 'cust1' | 'cust2' | 'cust3' | 'drag';
   let builderMode = false;
-  let builderData: LevelData = JSON.parse(
-    JSON.stringify(currentLevelData),
-  ) as LevelData;
-  let builderTool: BuilderTool = "decor";
+  let builderData: LevelData = JSON.parse(JSON.stringify(currentLevelData)) as LevelData;
+  let builderTool: BuilderTool = 'decor';
 
   const decorCycle: DecorKind[] = PLACEABLE_DECOR;
-  let decorToolDefault: DecorKind = "plant_a";
+  let decorToolDefault: DecorKind = 'plant_a';
 
   const stationCycle: DrinkId[] = ALL_DRINK_IDS;
-  let stationToolDefault: DrinkId = "D1";
+  let stationToolDefault: DrinkId = 'D1';
 
   // drag tool state
   type DraggedItem =
-    | { kind: "start" }
-    | { kind: "station"; drink: DrinkId }
-    | { kind: "customer"; id: "A" | "B" | "C"; standHere: string }
-    | { kind: "decor"; decorKind: DecorKind; clickOffset: number };
+    | { kind: 'start' }
+    | { kind: 'station'; drink: DrinkId }
+    | { kind: 'customer'; id: 'A' | 'B' | 'C'; standHere: string }
+    | { kind: 'decor'; decorKind: DecorKind; clickOffset: number };
   let draggedItem: DraggedItem | null = null;
   let dragOrigin: Pos | null = null;
 
-  const builderButton = document.getElementById(
-    "builder-btn",
-  ) as HTMLButtonElement | null;
-  const builderPanel = document.getElementById(
-    "builder-panel",
-  ) as HTMLDivElement | null;
-  const builderStatusEl = document.getElementById(
-    "builder-status",
-  ) as HTMLDivElement | null;
+  const builderButton = document.getElementById('builder-btn') as HTMLButtonElement | null;
+  const builderPanel = document.getElementById('builder-panel') as HTMLDivElement | null;
+  const builderStatusEl = document.getElementById('builder-status') as HTMLDivElement | null;
   const builderWidthInput = document.getElementById(
-    "builder-width-input",
+    'builder-width-input'
   ) as HTMLInputElement | null;
   const builderHeightInput = document.getElementById(
-    "builder-height-input",
+    'builder-height-input'
   ) as HTMLInputElement | null;
   const builderResizeBtn = document.getElementById(
-    "builder-resize-btn",
+    'builder-resize-btn'
   ) as HTMLButtonElement | null;
   const toolButtons = Array.from(
-    document.querySelectorAll(".builder-tool-btn"),
+    document.querySelectorAll('.builder-tool-btn')
   ) as HTMLButtonElement[];
-  const checkBtn = document.getElementById(
-    "builder-check-btn",
-  ) as HTMLButtonElement | null;
-  const shareBtn = document.getElementById(
-    "builder-share-btn",
-  ) as HTMLButtonElement | null;
-  const sidebarOrdersEl = document.getElementById(
-    "orders",
-  ) as HTMLUListElement | null;
-  const ordersHeadingEl = document.getElementById("orders-heading");
+  const checkBtn = document.getElementById('builder-check-btn') as HTMLButtonElement | null;
+  const shareBtn = document.getElementById('builder-share-btn') as HTMLButtonElement | null;
+  const sidebarOrdersEl = document.getElementById('orders') as HTMLUListElement | null;
+  const ordersHeadingEl = document.getElementById('orders-heading');
 
   const setBuilderStatus = (text: string) => {
     if (builderStatusEl) builderStatusEl.textContent = text;
@@ -1355,21 +1333,17 @@ async function init() {
   let builderShareReady = false;
   const updateShareUI = () => {
     if (!shareBtn) return;
-   
+
     shareBtn.disabled = false;
-    shareBtn.classList.toggle("builder-share-disabled", !builderShareReady);
-    shareBtn.setAttribute("aria-disabled", builderShareReady ? "false" : "true");
-    shareBtn.title = builderShareReady
-      ? "share this level"
-      : "run check first";
+    shareBtn.classList.toggle('builder-share-disabled', !builderShareReady);
+    shareBtn.setAttribute('aria-disabled', builderShareReady ? 'false' : 'true');
+    shareBtn.title = builderShareReady ? 'share this level' : 'run check first';
   };
   const updateExitUI = () => {
-    const exitBtn = document.getElementById("exit-builder-btn") as HTMLButtonElement | null;
+    const exitBtn = document.getElementById('exit-builder-btn') as HTMLButtonElement | null;
     if (!exitBtn) return;
     exitBtn.disabled = !builderShareReady;
-    exitBtn.title = builderShareReady
-      ? "exit builder and save"
-      : "check level first";
+    exitBtn.title = builderShareReady ? 'exit builder and save' : 'check level first';
   };
   const markBuilderDirty = () => {
     builderShareReady = false;
@@ -1379,8 +1353,7 @@ async function init() {
   updateShareUI();
   updateExitUI();
 
-  const clamp = (n: number, min: number, max: number) =>
-    Math.min(Math.max(n, min), max);
+  const clamp = (n: number, min: number, max: number) => Math.min(Math.max(n, min), max);
 
   const MIN_BUILDER_SIZE = 6;
   const MAX_BUILDER_SIZE = 12;
@@ -1393,31 +1366,25 @@ async function init() {
     if (builderHeightInput) builderHeightInput.value = String(builderData.height);
   };
 
-  const builderTipEl = document.getElementById("builder-tip");
+  const builderTipEl = document.getElementById('builder-tip');
 
   const applyToolActiveUI = () => {
     for (const btn of toolButtons) {
       const tool = btn.dataset.tool as BuilderTool | undefined;
-      btn.classList.toggle("builder-tool-active", tool === builderTool);
+      btn.classList.toggle('builder-tool-active', tool === builderTool);
     }
     if (builderTipEl) {
       builderTipEl.style.display =
-        builderTool === "station" || builderTool === "decor" ? "" : "none";
+        builderTool === 'station' || builderTool === 'decor' ? '' : 'none';
     }
   };
 
   const normalizeOrders = () => {
     // ensure every customer has at least drink 1
     builderData.orders = {
-      A: builderData.orders?.A?.length
-        ? builderData.orders.A.slice(0, 2)
-        : ["D1"],
-      B: builderData.orders?.B?.length
-        ? builderData.orders.B.slice(0, 2)
-        : ["D1"],
-      C: builderData.orders?.C?.length
-        ? builderData.orders.C.slice(0, 2)
-        : ["D1"],
+      A: builderData.orders?.A?.length ? builderData.orders.A.slice(0, 2) : ['D1'],
+      B: builderData.orders?.B?.length ? builderData.orders.B.slice(0, 2) : ['D1'],
+      C: builderData.orders?.C?.length ? builderData.orders.C.slice(0, 2) : ['D1'],
     };
   };
 
@@ -1442,50 +1409,50 @@ async function init() {
     // replace normal orders list w button ver... idk if i like this approach but whatever
 
     const drinkIconSrc = (drink: DrinkId) => {
-      return sprites.drinkItems[drink]?.src ?? "/src/assets/drink_a_item.png";
+      return sprites.drinkItems[drink]?.src ?? '/src/assets/drink_a_item.png';
     };
 
-    const renderDrinkButtonContent = (value: DrinkId | "") => {
-      if (value === "") {
-        const placeholder = document.createElement("div");
-        placeholder.className = "builder-none-placeholder";
-        placeholder.setAttribute("aria-hidden", "true");
+    const renderDrinkButtonContent = (value: DrinkId | '') => {
+      if (value === '') {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'builder-none-placeholder';
+        placeholder.setAttribute('aria-hidden', 'true');
         return placeholder;
       }
-      const img = document.createElement("img");
+      const img = document.createElement('img');
       img.src = drinkIconSrc(value);
       img.alt = value;
-      img.className = "drink-item-icon";
+      img.className = 'drink-item-icon';
       return img;
     };
 
     const makeDrinkButton = (
-      value: DrinkId | "",
+      value: DrinkId | '',
       allowNone: boolean,
-      onPick: (v: DrinkId | "") => void,
+      onPick: (v: DrinkId | '') => void
     ) => {
-      const btn = document.createElement("button");
-      btn.className = "game-button builder-drink-btn";
-      btn.type = "button";
-      btn.ariaLabel = "pick item";
+      const btn = document.createElement('button');
+      btn.className = 'game-button builder-drink-btn';
+      btn.type = 'button';
+      btn.ariaLabel = 'pick item';
 
-      const setValue = (v: DrinkId | "") => {
-        btn.innerHTML = "";
+      const setValue = (v: DrinkId | '') => {
+        btn.innerHTML = '';
         btn.appendChild(renderDrinkButtonContent(v));
       };
 
       setValue(value);
 
-      btn.addEventListener("click", () => {
-        const items: DrinkId[] = ["D1", "D2", "F1", "F2", "F3"];
+      btn.addEventListener('click', () => {
+        const items: DrinkId[] = ['D1', 'D2', 'F1', 'F2', 'F3'];
         if (allowNone) {
-          const extended: (DrinkId | "")[] = ["", ...items];
+          const extended: (DrinkId | '')[] = ['', ...items];
           const idx = extended.indexOf(value);
-          const next = extended[(idx + 1) % extended.length] ?? "D1";
+          const next = extended[(idx + 1) % extended.length] ?? 'D1';
           value = next;
         } else {
           const idx = items.indexOf(value as DrinkId);
-          const next = items[(idx + 1) % items.length] ?? "D1";
+          const next = items[(idx + 1) % items.length] ?? 'D1';
           value = next;
         }
 
@@ -1500,40 +1467,40 @@ async function init() {
       return sprites.customers[customerId as keyof typeof sprites.customers] ?? null;
     };
 
-    sidebarOrdersEl.innerHTML = "";
+    sidebarOrdersEl.innerHTML = '';
 
-    for (const id of ["A", "B", "C"] as const) {
-      const li = document.createElement("li");
-      li.className = "order-item";
+    for (const id of ['A', 'B', 'C'] as const) {
+      const li = document.createElement('li');
+      li.className = 'order-item';
 
-      const header = document.createElement("div");
-      header.className = "order-header";
+      const header = document.createElement('div');
+      header.className = 'order-header';
       header.textContent = `order #${id}`;
 
-      const row = document.createElement("div");
-      row.className = "order-row";
+      const row = document.createElement('div');
+      row.className = 'order-row';
 
       const sprite = getCustomerSprite(id);
-      const iconUrl = sprite ? getCustomerIconDataUrl(sprite, 2) : "";
-      const icon = document.createElement("img");
+      const iconUrl = sprite ? getCustomerIconDataUrl(sprite, 2) : '';
+      const icon = document.createElement('img');
       icon.src = iconUrl;
       icon.alt = id;
-      icon.className = "customer-icon";
+      icon.className = 'customer-icon';
 
-      const drinks = document.createElement("div");
-      drinks.className = "drink-items";
+      const drinks = document.createElement('div');
+      drinks.className = 'drink-items';
 
-      const first = builderData.orders[id][0] ?? "D1";
-      const second = builderData.orders[id][1] ?? "";
+      const first = builderData.orders[id][0] ?? 'D1';
+      const second = builderData.orders[id][1] ?? '';
 
       let a = first as DrinkId;
-      let b = second as DrinkId | "";
+      let b = second as DrinkId | '';
 
       const commit = () => {
         // write to builder data and rebuild preview
         builderData.orders[id] = b ? [a, b] : [a];
         rebuildPreview();
-        setBuilderStatus("edited! check again");
+        setBuilderStatus('edited! check again');
       };
 
       const btn1 = makeDrinkButton(a, false, (v) => {
@@ -1560,22 +1527,19 @@ async function init() {
 
   const posKey = (p: Pos) => `${p.x},${p.y}`;
 
-  type StandDir = "left" | "right" | "up" | "down";
-  const standDirs: StandDir[] = ["left", "up", "right", "down"];
+  type StandDir = 'left' | 'right' | 'up' | 'down';
+  const standDirs: StandDir[] = ['left', 'up', 'right', 'down'];
 
   const standPosFor = (p: Pos, dir: StandDir): Pos => {
-    if (dir === "left") return { x: p.x - 1, y: p.y };
-    if (dir === "right") return { x: p.x + 1, y: p.y };
-    if (dir === "up") return { x: p.x, y: p.y - 1 };
+    if (dir === 'left') return { x: p.x - 1, y: p.y };
+    if (dir === 'right') return { x: p.x + 1, y: p.y };
+    if (dir === 'up') return { x: p.x, y: p.y - 1 };
     return { x: p.x, y: p.y + 1 };
   };
 
-  const hasWallAt = (p: Pos) =>
-    builderData.walls.some((w) => w.x === p.x && w.y === p.y);
-  const hasCustomerAt = (p: Pos) =>
-    builderData.customers.some((c) => c.x === p.x && c.y === p.y);
-  const obstacleAt = (p: Pos) =>
-    builderData.obstacles.find((o) => o.x === p.x && o.y === p.y);
+  const hasWallAt = (p: Pos) => builderData.walls.some((w) => w.x === p.x && w.y === p.y);
+  const hasCustomerAt = (p: Pos) => builderData.customers.some((c) => c.x === p.x && c.y === p.y);
+  const obstacleAt = (p: Pos) => builderData.obstacles.find((o) => o.x === p.x && o.y === p.y);
 
   const normalizeObstacles = () => {
     const inB = (p: Pos) => inBounds(builderData.width, builderData.height, p);
@@ -1613,8 +1577,8 @@ async function init() {
     // plant_two pairs
     const plantTwoXsByRow = new Map<number, number[]>();
     for (const [key, type] of byKey.entries()) {
-      if (type !== "plant_two") continue;
-      const [x, y] = key.split(",").map(Number);
+      if (type !== 'plant_two') continue;
+      const [x, y] = key.split(',').map(Number);
       const xs = plantTwoXsByRow.get(y) ?? [];
       xs.push(x);
       plantTwoXsByRow.set(y, xs);
@@ -1637,11 +1601,11 @@ async function init() {
 
     // chungus tables
     for (const [key, type] of byKey.entries()) {
-      if (type !== "table_l") continue;
-      const [x, y] = key.split(",").map(Number);
+      if (type !== 'table_l') continue;
+      const [x, y] = key.split(',').map(Number);
       const midKey = `${x + 1},${y}`;
       const rightKey = `${x + 2},${y}`;
-      if (byKey.get(midKey) === "table_m" && byKey.get(rightKey) === "table_r") {
+      if (byKey.get(midKey) === 'table_m' && byKey.get(rightKey) === 'table_r') {
         keep.add(key);
         keep.add(midKey);
         keep.add(rightKey);
@@ -1651,10 +1615,10 @@ async function init() {
     // 1x1 stuff (keep anything not part of a multi-tile group or wall decor)
     for (const [key, type] of byKey.entries()) {
       if (
-        type !== "plant_two" &&
-        type !== "table_l" &&
-        type !== "table_m" &&
-        type !== "table_r" &&
+        type !== 'plant_two' &&
+        type !== 'table_l' &&
+        type !== 'table_m' &&
+        type !== 'table_r' &&
         !isWallDecorType(type as ObstacleId)
       ) {
         keep.add(key);
@@ -1662,7 +1626,7 @@ async function init() {
     }
 
     const interior = Array.from(keep).map((key) => {
-      const [x, y] = key.split(",").map(Number);
+      const [x, y] = key.split(',').map(Number);
       const type = byKey.get(key) as ObstacleId;
       return { x, y, type };
     });
@@ -1728,7 +1692,7 @@ async function init() {
     wallSet.delete(startKey);
 
     builderData.walls = Array.from(wallSet).map((key) => {
-      const [x, y] = key.split(",").map(Number);
+      const [x, y] = key.split(',').map(Number);
       return { x, y };
     });
 
@@ -1749,7 +1713,11 @@ async function init() {
         const x = xs[i]!;
         const x2 = xs[i + 1]!;
         if (x2 === x + 1) {
-          if (p.x === x || p.x === x2) return [{ x, y: p.y }, { x: x2, y: p.y }];
+          if (p.x === x || p.x === x2)
+            return [
+              { x, y: p.y },
+              { x: x2, y: p.y },
+            ];
           i += 2;
         } else {
           i += 1;
@@ -1758,20 +1726,20 @@ async function init() {
       return [p];
     };
 
-    if (type === "plant_two") return twoTileGroup("plant_two");
-    if (type === "window_double_a") return twoTileGroup("window_double_a");
-    if (type === "window_double_b") return twoTileGroup("window_double_b");
+    if (type === 'plant_two') return twoTileGroup('plant_two');
+    if (type === 'window_double_a') return twoTileGroup('window_double_a');
+    if (type === 'window_double_b') return twoTileGroup('window_double_b');
 
-    if (type === "table_l") return [p, { x: p.x + 1, y: p.y }, { x: p.x + 2, y: p.y }];
-    if (type === "table_m") return [{ x: p.x - 1, y: p.y }, p, { x: p.x + 1, y: p.y }];
-    if (type === "table_r") return [{ x: p.x - 2, y: p.y }, { x: p.x - 1, y: p.y }, p];
+    if (type === 'table_l') return [p, { x: p.x + 1, y: p.y }, { x: p.x + 2, y: p.y }];
+    if (type === 'table_m') return [{ x: p.x - 1, y: p.y }, p, { x: p.x + 1, y: p.y }];
+    if (type === 'table_r') return [{ x: p.x - 2, y: p.y }, { x: p.x - 1, y: p.y }, p];
 
     return [p];
   };
 
   const removeAt = (p: Pos): boolean => {
     if (isBorderTile(builderData.width, builderData.height, p)) {
-      setBuilderStatus("border tiles are always walls");
+      setBuilderStatus('border tiles are always walls');
       return false;
     }
 
@@ -1809,7 +1777,7 @@ async function init() {
 
     if (isWallDecorType(kind as ObstacleId)) return false;
 
-    if (kind === "plant_two") {
+    if (kind === 'plant_two') {
       const right = { x: p.x + 1, y: p.y };
       if (!inBounds(builderData.width, builderData.height, right)) return false;
       if (isBorderTile(builderData.width, builderData.height, right)) return false;
@@ -1817,7 +1785,7 @@ async function init() {
       return true;
     }
 
-    if (kind === "table_triple") {
+    if (kind === 'table_triple') {
       const mid = { x: p.x + 1, y: p.y };
       const right = { x: p.x + 2, y: p.y };
       if (!inBounds(builderData.width, builderData.height, mid)) return false;
@@ -1840,57 +1808,57 @@ async function init() {
     };
 
     if (!inBounds(builderData.width, builderData.height, p)) {
-      return fail("out of bounds");
+      return fail('out of bounds');
     }
 
     if (isBorderTile(builderData.width, builderData.height, p)) {
-      return fail("border tiles must be walls");
+      return fail('border tiles must be walls');
     }
     if (posKey(p) === posKey(builderData.start)) {
-      return fail("can’t place decor on start");
+      return fail('can’t place decor on start');
     }
 
     if (isWallDecorType(kind as ObstacleId)) {
-      return fail("windows can only go on the top wall");
+      return fail('windows can only go on the top wall');
     }
 
     const tiles: { p: Pos; type: ObstacleId }[] = [];
 
-    if (kind === "plant_two") {
+    if (kind === 'plant_two') {
       const right = { x: p.x + 1, y: p.y };
       if (!inBounds(builderData.width, builderData.height, right)) {
-        return fail("not enough space");
+        return fail('not enough space');
       }
       if (isBorderTile(builderData.width, builderData.height, right)) {
-        return fail("not enough space");
+        return fail('not enough space');
       }
       if (posKey(right) === posKey(builderData.start)) {
-        return fail("can’t place decor on start");
+        return fail('can’t place decor on start');
       }
-      tiles.push({ p, type: "plant_two" }, { p: right, type: "plant_two" });
-    } else if (kind === "table_triple") {
+      tiles.push({ p, type: 'plant_two' }, { p: right, type: 'plant_two' });
+    } else if (kind === 'table_triple') {
       const mid = { x: p.x + 1, y: p.y };
       const right = { x: p.x + 2, y: p.y };
       if (
         !inBounds(builderData.width, builderData.height, mid) ||
         !inBounds(builderData.width, builderData.height, right)
       ) {
-        return fail("not enough space");
+        return fail('not enough space');
       }
       if (
         isBorderTile(builderData.width, builderData.height, mid) ||
         isBorderTile(builderData.width, builderData.height, right)
       ) {
-        return fail("not enough space");
+        return fail('not enough space');
       }
       const startKey = posKey(builderData.start);
       if (posKey(mid) === startKey || posKey(right) === startKey) {
-        return fail("can’t place decor on start");
+        return fail('can’t place decor on start');
       }
       tiles.push(
-        { p, type: "table_l" },
-        { p: mid, type: "table_m" },
-        { p: right, type: "table_r" },
+        { p, type: 'table_l' },
+        { p: mid, type: 'table_m' },
+        { p: right, type: 'table_r' }
       );
     } else {
       tiles.push({ p, type: kind as ObstacleId });
@@ -1905,22 +1873,18 @@ async function init() {
     const o = obstacleAt(p);
     if (!o) return null;
     const t = o.type as ObstacleId;
-    if (t === "table_l" || t === "table_m" || t === "table_r") return "table_triple";
+    if (t === 'table_l' || t === 'table_m' || t === 'table_r') return 'table_triple';
     return t;
   };
 
   const decorWidth = getDecorWidth;
 
-  const candidateAnchorsForClick = (
-    click: Pos,
-    kind: DecorKind,
-    preferredIndex: number,
-  ): Pos[] => {
+  const candidateAnchorsForClick = (click: Pos, kind: DecorKind, preferredIndex: number): Pos[] => {
     const width = decorWidth(kind);
     const clampedPreferred = clamp(preferredIndex, 0, width - 1);
 
     const offsets = Array.from({ length: width }, (_, i) => i).sort(
-      (a, b) => Math.abs(a - clampedPreferred) - Math.abs(b - clampedPreferred),
+      (a, b) => Math.abs(a - clampedPreferred) - Math.abs(b - clampedPreferred)
     );
 
     return offsets.map((offset) => ({ x: click.x - offset, y: click.y }));
@@ -1929,7 +1893,7 @@ async function init() {
   const findPlaceableAnchorForCandidate = (
     click: Pos,
     kind: DecorKind,
-    preferredIndex: number,
+    preferredIndex: number
   ): Pos | null => {
     for (const anchor of candidateAnchorsForClick(click, kind, preferredIndex)) {
       if (canPlaceDecorAt(anchor, kind)) return anchor;
@@ -1939,21 +1903,18 @@ async function init() {
 
   const cycleWallDecorAt = (p: Pos) => {
     if (p.y !== 0 || p.x <= 0 || p.x >= builderData.width - 1) {
-      setBuilderStatus("wall items only go on the top wall (not corners)");
+      setBuilderStatus('wall items only go on the top wall (not corners)');
       return;
     }
     const current = obstacleAt(p);
     const currentType = current?.type as ObstacleId | undefined;
-    const currentIndex =
-      currentType != null ? WALL_DECOR_TYPES.indexOf(currentType) : -1;
+    const currentIndex = currentType != null ? WALL_DECOR_TYPES.indexOf(currentType) : -1;
     const nextIndex = currentIndex < WALL_DECOR_TYPES.length - 1 ? currentIndex + 1 : -1;
 
     // Remove current: for 2-tile wall decor, remove both tiles
     const toRemove = getObstacleGroupAt(p);
     const keysToRemove = new Set(toRemove.map(posKey));
-    builderData.obstacles = builderData.obstacles.filter(
-      (o) => !keysToRemove.has(`${o.x},${o.y}`),
-    );
+    builderData.obstacles = builderData.obstacles.filter((o) => !keysToRemove.has(`${o.x},${o.y}`));
 
     if (nextIndex >= 0) {
       const nextType = WALL_DECOR_TYPES[nextIndex];
@@ -1961,7 +1922,7 @@ async function init() {
       const width = getDecorWidth(nextType);
       // For 2-tile types, right tile must not be the corner (p.x + width - 1 < width - 1 => p.x < 1 for width 2, so p.x must be 0... no: corner is at x = width-1, so we need p.x + width - 1 <= width - 2, i.e. p.x + 1 < width - 1 for width 2, so p.x < builderData.width - 2)
       if (width === 2 && p.x >= builderData.width - 2) {
-        setBuilderStatus("double window needs space: use a tile further left");
+        setBuilderStatus('double window needs space: use a tile further left');
         return;
       }
       if (width === 2) {
@@ -1971,10 +1932,7 @@ async function init() {
           { x: p.x + 1, y: p.y, type: nextType },
         ];
       } else {
-        builderData.obstacles = [
-          ...builderData.obstacles,
-          { x: p.x, y: p.y, type: nextType },
-        ];
+        builderData.obstacles = [...builderData.obstacles, { x: p.x, y: p.y, type: nextType }];
       }
     }
   };
@@ -1982,15 +1940,12 @@ async function init() {
   const cycleDecorAt = (p: Pos) => {
     const currentKind = decorKindAt(p);
 
-    // multi tile replacement 
-    
+    // multi tile replacement
+
     let preferredIndex = 0;
     if (currentKind) {
       const group = getObstacleGroupAt(p);
-      const leftmost = group.reduce(
-        (min, cur) => (cur.x < min.x ? cur : min),
-        group[0] ?? p,
-      );
+      const leftmost = group.reduce((min, cur) => (cur.x < min.x ? cur : min), group[0] ?? p);
       preferredIndex = p.x - leftmost.x;
     }
 
@@ -1999,7 +1954,7 @@ async function init() {
 
       const startIndex = Math.max(0, decorCycle.indexOf(decorToolDefault));
       for (let i = 0; i < decorCycle.length; i++) {
-        const candidate = decorCycle[(startIndex + i) % decorCycle.length] ?? "plant_a";
+        const candidate = decorCycle[(startIndex + i) % decorCycle.length] ?? 'plant_a';
         const anchor = findPlaceableAnchorForCandidate(p, candidate, preferredIndex);
         if (!anchor) continue;
         if (setDecorAt(anchor, candidate)) {
@@ -2008,7 +1963,7 @@ async function init() {
         return;
       }
 
-      setBuilderStatus("no decor fits here");
+      setBuilderStatus('no decor fits here');
       return;
     }
 
@@ -2016,7 +1971,7 @@ async function init() {
     const startIndex = currentIndex >= 0 ? (currentIndex + 1) % decorCycle.length : 0;
 
     for (let i = 0; i < decorCycle.length; i++) {
-      const candidate = decorCycle[(startIndex + i) % decorCycle.length] ?? "plant_a";
+      const candidate = decorCycle[(startIndex + i) % decorCycle.length] ?? 'plant_a';
       const anchor = findPlaceableAnchorForCandidate(p, candidate, preferredIndex);
       if (!anchor) continue;
 
@@ -2027,12 +1982,12 @@ async function init() {
       return;
     }
 
-    setBuilderStatus("no other decor fits here");
+    setBuilderStatus('no other decor fits here');
   };
 
   const setStartAt = (p: Pos) => {
     if (isBorderTile(builderData.width, builderData.height, p)) {
-      setBuilderStatus("start can’t be on the border");
+      setBuilderStatus('start can’t be on the border');
       return;
     }
     removeAt(p);
@@ -2041,7 +1996,7 @@ async function init() {
 
   const setDrinkAt = (p: Pos, drink: DrinkId) => {
     if (isBorderTile(builderData.width, builderData.height, p)) {
-      setBuilderStatus("border tiles are walls (can’t place here)");
+      setBuilderStatus('border tiles are walls (can’t place here)');
       return;
     }
     const key = posKey(p);
@@ -2050,22 +2005,11 @@ async function init() {
     }
     removeAt(p);
     // remove wall/customer; station can overwrite station
-    builderData.walls = builderData.walls.filter(
-      (w) => `${w.x},${w.y}` !== key,
-    );
-    builderData.customers = builderData.customers.filter(
-      (c) => `${c.x},${c.y}` !== key,
-    );
-    builderData.obstacles = builderData.obstacles.filter(
-      (o) => `${o.x},${o.y}` !== key,
-    );
-    builderData.drinkStations = builderData.drinkStations.filter(
-      (d) => `${d.x},${d.y}` !== key,
-    );
-    builderData.drinkStations = [
-      ...builderData.drinkStations,
-      { x: p.x, y: p.y, drink },
-    ];
+    builderData.walls = builderData.walls.filter((w) => `${w.x},${w.y}` !== key);
+    builderData.customers = builderData.customers.filter((c) => `${c.x},${c.y}` !== key);
+    builderData.obstacles = builderData.obstacles.filter((o) => `${o.x},${o.y}` !== key);
+    builderData.drinkStations = builderData.drinkStations.filter((d) => `${d.x},${d.y}` !== key);
+    builderData.drinkStations = [...builderData.drinkStations, { x: p.x, y: p.y, drink }];
   };
 
   const cycleStationAt = (p: Pos) => {
@@ -2078,15 +2022,15 @@ async function init() {
 
     const current = builderData.drinkStations[idx]?.drink as DrinkId | undefined;
     const currentIndex = current ? stationCycle.indexOf(current) : -1;
-    const next = stationCycle[(currentIndex + 1) % stationCycle.length] ?? "D1";
+    const next = stationCycle[(currentIndex + 1) % stationCycle.length] ?? 'D1';
 
     builderData.drinkStations[idx] = { x: p.x, y: p.y, drink: next };
     stationToolDefault = next;
   };
 
-  const setCustomerAt = (p: Pos, id: "A" | "B" | "C") => {
+  const setCustomerAt = (p: Pos, id: 'A' | 'B' | 'C') => {
     if (isBorderTile(builderData.width, builderData.height, p)) {
-      setBuilderStatus("border tiles are walls (can’t place here)");
+      setBuilderStatus('border tiles are walls (can’t place here)');
       return;
     }
     const key = posKey(p);
@@ -2110,20 +2054,18 @@ async function init() {
         }
       }
 
-      setBuilderStatus("no valid stand direction here");
+      setBuilderStatus('no valid stand direction here');
       return;
     }
 
     removeAt(p);
-  
+
     builderData.walls = builderData.walls.filter((w) => `${w.x},${w.y}` !== key);
     builderData.drinkStations = builderData.drinkStations.filter((d) => `${d.x},${d.y}` !== key);
     builderData.obstacles = builderData.obstacles.filter((o) => `${o.x},${o.y}` !== key);
 
     // remove any other customer at tile
-    builderData.customers = builderData.customers.filter(
-      (c) => `${c.x},${c.y}` !== key,
-    );
+    builderData.customers = builderData.customers.filter((c) => `${c.x},${c.y}` !== key);
     // ensure unique per id
     builderData.customers = builderData.customers.filter((c) => c.id !== id);
 
@@ -2137,7 +2079,7 @@ async function init() {
     }
 
     if (!chosen) {
-      setBuilderStatus("customer needs a valid stand tile");
+      setBuilderStatus('customer needs a valid stand tile');
       return;
     }
 
@@ -2161,17 +2103,20 @@ async function init() {
     builderData.width = cappedW;
     builderData.height = cappedH;
 
-    const inB = (x: number, y: number) => x >= 0 && x < builderData.width && y >= 0 && y < builderData.height;
+    const inB = (x: number, y: number) =>
+      x >= 0 && x < builderData.width && y >= 0 && y < builderData.height;
 
     // erase previous border walls?
     const wasPrevBorder = (w: { x: number; y: number }) =>
       w.x === 0 || w.y === 0 || w.x === prevW - 1 || w.y === prevH - 1;
 
-    builderData.walls = builderData.walls.filter((w) => !wasPrevBorder(w)).filter((w) => inB(w.x, w.y));
+    builderData.walls = builderData.walls
+      .filter((w) => !wasPrevBorder(w))
+      .filter((w) => inB(w.x, w.y));
     builderData.drinkStations = builderData.drinkStations.filter((d) => inB(d.x, d.y));
     builderData.customers = builderData.customers.filter((c) => inB(c.x, c.y));
     builderData.obstacles = builderData.obstacles.filter((o) => inB(o.x, o.y));
-    
+
     builderData.start = {
       x: clamp(builderData.start.x, 0, builderData.width - 1),
       y: clamp(builderData.start.y, 0, builderData.height - 1),
@@ -2185,9 +2130,11 @@ async function init() {
 
   // --- drag tool helpers ---
 
-  const makeGhostRenderer = (item: DraggedItem): ((ctx: CanvasRenderingContext2D, tx: number, ty: number, animFrame: number) => void) => {
+  const makeGhostRenderer = (
+    item: DraggedItem
+  ): ((ctx: CanvasRenderingContext2D, tx: number, ty: number, animFrame: number) => void) => {
     switch (item.kind) {
-      case "start":
+      case 'start':
         return (ctx, tx, ty, animFrame) => {
           const px = tx * TILE_SIZE;
           const py = ty * TILE_SIZE;
@@ -2196,32 +2143,48 @@ async function init() {
           const sy = animFrame * sh;
           ctx.drawImage(glorboSpriteSheet, 0, sy, sw, sh, px, py, TILE_SIZE, TILE_SIZE);
         };
-      case "station": {
+      case 'station': {
         const sprite = sprites.drinks[item.drink];
         if (!sprite) return () => {}; // fallback
         return (ctx, tx, ty) => {
           ctx.drawImage(sprite, tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
         };
       }
-      case "customer": {
+      case 'customer': {
         const sprite = sprites.customers[item.id];
         if (!sprite) return () => {}; // fallback
         return (ctx, tx, ty, animFrame) => {
           const sw = sprite.width / 2;
           const sh = sprite.height / 2;
           const sx = (animFrame % 2) * sw;
-          ctx.drawImage(sprite, sx, 0, sw, sh, tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          ctx.drawImage(
+            sprite,
+            sx,
+            0,
+            sw,
+            sh,
+            tx * TILE_SIZE,
+            ty * TILE_SIZE,
+            TILE_SIZE,
+            TILE_SIZE
+          );
         };
       }
-      case "decor": {
+      case 'decor': {
         const { decorKind, clickOffset } = item;
-        if (decorKind === "plant_two") {
+        if (decorKind === 'plant_two') {
           return (ctx, tx, ty) => {
             const ax = (tx - clickOffset) * TILE_SIZE;
-            ctx.drawImage(sprites.obstacles.plant_two, ax, ty * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE);
+            ctx.drawImage(
+              sprites.obstacles.plant_two,
+              ax,
+              ty * TILE_SIZE,
+              TILE_SIZE * 2,
+              TILE_SIZE
+            );
           };
         }
-        if (decorKind === "window_double_a" || decorKind === "window_double_b") {
+        if (decorKind === 'window_double_a' || decorKind === 'window_double_b') {
           const sprite = sprites.obstacles[decorKind];
           return (ctx, tx, ty) => {
             if (!sprite) return;
@@ -2229,18 +2192,36 @@ async function init() {
             ctx.drawImage(sprite, ax, ty * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE);
           };
         }
-        if (decorKind === "table_triple") {
+        if (decorKind === 'table_triple') {
           return (ctx, tx, ty) => {
             const ax = tx - clickOffset;
-            ctx.drawImage(sprites.obstacles.table_l, ax * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-            ctx.drawImage(sprites.obstacles.table_m, (ax + 1) * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-            ctx.drawImage(sprites.obstacles.table_r, (ax + 2) * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            ctx.drawImage(
+              sprites.obstacles.table_l,
+              ax * TILE_SIZE,
+              ty * TILE_SIZE,
+              TILE_SIZE,
+              TILE_SIZE
+            );
+            ctx.drawImage(
+              sprites.obstacles.table_m,
+              (ax + 1) * TILE_SIZE,
+              ty * TILE_SIZE,
+              TILE_SIZE,
+              TILE_SIZE
+            );
+            ctx.drawImage(
+              sprites.obstacles.table_r,
+              (ax + 2) * TILE_SIZE,
+              ty * TILE_SIZE,
+              TILE_SIZE,
+              TILE_SIZE
+            );
           };
         }
-        if (decorKind === "cat") {
+        if (decorKind === 'cat') {
           const baseSprite = sprites.obstacles.cat ?? sprites.obstacles.plant_a;
           return (ctx, tx, ty, animFrame) => {
-            const sprite = (animFrame % 2 === 0 ? baseSprite : catAltSprite);
+            const sprite = animFrame % 2 === 0 ? baseSprite : catAltSprite;
             ctx.drawImage(sprite, tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
           };
         }
@@ -2257,25 +2238,21 @@ async function init() {
 
     // start position
     if (key === posKey(builderData.start)) {
-      return { kind: "start" };
+      return { kind: 'start' };
     }
 
     // drink station
-    const station = builderData.drinkStations.find(
-      (d) => `${d.x},${d.y}` === key,
-    );
+    const station = builderData.drinkStations.find((d) => `${d.x},${d.y}` === key);
     if (station) {
-      return { kind: "station", drink: station.drink as DrinkId };
+      return { kind: 'station', drink: station.drink as DrinkId };
     }
 
     // customer
-    const customer = builderData.customers.find(
-      (c) => `${c.x},${c.y}` === key,
-    );
+    const customer = builderData.customers.find((c) => `${c.x},${c.y}` === key);
     if (customer) {
       return {
-        kind: "customer",
-        id: customer.id as "A" | "B" | "C",
+        kind: 'customer',
+        id: customer.id as 'A' | 'B' | 'C',
         standHere: customer.standHere as string,
       };
     }
@@ -2286,12 +2263,9 @@ async function init() {
       const dKind = decorKindAt(p);
       if (dKind) {
         const group = getObstacleGroupAt(p);
-        const leftmost = group.reduce(
-          (min, cur) => (cur.x < min.x ? cur : min),
-          group[0] ?? p,
-        );
+        const leftmost = group.reduce((min, cur) => (cur.x < min.x ? cur : min), group[0] ?? p);
         const clickOffset = p.x - leftmost.x;
-        return { kind: "decor", decorKind: dKind, clickOffset };
+        return { kind: 'decor', decorKind: dKind, clickOffset };
       }
     }
 
@@ -2300,16 +2274,16 @@ async function init() {
 
   const restoreItem = (origin: Pos, item: DraggedItem) => {
     switch (item.kind) {
-      case "start":
+      case 'start':
         builderData.start = { x: origin.x, y: origin.y };
         break;
-      case "station":
+      case 'station':
         setDrinkAt(origin, item.drink);
         break;
-      case "customer":
+      case 'customer':
         setCustomerAt(origin, item.id);
         break;
-      case "decor":
+      case 'decor':
         setDecorAt(origin, item.decorKind, { silent: true });
         break;
     }
@@ -2329,7 +2303,7 @@ async function init() {
     renderer.setDragGhost(null);
     renderer.setGlorboHidden(false);
     rebuildPreview();
-    renderer.setBuildCursor("grab");
+    renderer.setBuildCursor('grab');
   };
 
   const pickUpItem = (p: Pos): boolean => {
@@ -2340,7 +2314,7 @@ async function init() {
     dragOrigin = { x: p.x, y: p.y };
 
     // remove item from level data so it disappears visually
-    if (item.kind === "start") {
+    if (item.kind === 'start') {
       renderer.setGlorboHidden(true);
     } else {
       removeAt(p);
@@ -2375,7 +2349,7 @@ async function init() {
     ) {
       restoreItem(origin, item);
       rebuildPreview();
-      renderer.setBuildCursor("grab");
+      renderer.setBuildCursor('grab');
       setBuilderStatus("can't place here");
       return;
     }
@@ -2384,27 +2358,27 @@ async function init() {
     if (p.x === origin.x && p.y === origin.y) {
       restoreItem(origin, item);
       rebuildPreview();
-      renderer.setBuildCursor("grab");
+      renderer.setBuildCursor('grab');
       return;
     }
 
     let success = false;
 
     switch (item.kind) {
-      case "start":
+      case 'start':
         removeAt(p);
         builderData.start = { x: p.x, y: p.y };
         success = true;
         break;
-      case "station":
+      case 'station':
         setDrinkAt(p, item.drink);
         success = true;
         break;
-      case "customer":
+      case 'customer':
         setCustomerAt(p, item.id);
         success = builderData.customers.some((c) => c.id === item.id);
         break;
-      case "decor": {
+      case 'decor': {
         const anchor = { x: p.x - item.clickOffset, y: p.y };
         success = setDecorAt(anchor, item.decorKind, { silent: true });
         break;
@@ -2416,11 +2390,11 @@ async function init() {
       setBuilderStatus("can't place here");
     } else {
       markBuilderDirty();
-      setBuilderStatus("moved! check again");
+      setBuilderStatus('moved! check again');
     }
 
     rebuildPreview();
-    renderer.setBuildCursor("grab");
+    renderer.setBuildCursor('grab');
   };
 
   const handleBuildTileClick = (p: Pos) => {
@@ -2429,124 +2403,107 @@ async function init() {
 
     // border tiles are fixed walls
     if (isBorderTile(builderData.width, builderData.height, p)) {
-
-      if (p.y === 0 && builderTool === "decor") {
+      if (p.y === 0 && builderTool === 'decor') {
         cycleWallDecorAt(p);
         rebuildPreview();
-        setBuilderStatus("edited! check again");
+        setBuilderStatus('edited! check again');
         return;
       }
 
       // erase wall decor
-      if (p.y === 0 && builderTool === "erase") {
+      if (p.y === 0 && builderTool === 'erase') {
         if (obstacleAt(p) && isWallDecorType(obstacleAt(p)!.type as ObstacleId)) {
           cycleWallDecorAt(p);
           playHammerSfx();
           rebuildPreview();
-          setBuilderStatus("edited! check again");
+          setBuilderStatus('edited! check again');
         } else {
-          setBuilderStatus("border tiles are always walls");
+          setBuilderStatus('border tiles are always walls');
         }
         return;
       }
 
-      setBuilderStatus("border tiles are always walls");
+      setBuilderStatus('border tiles are always walls');
       return;
     }
 
     // handle drag tool: pick up on first click, ignore during move
-    if (builderTool === "drag") {
+    if (builderTool === 'drag') {
       if (!draggedItem) {
         if (!pickUpItem(p)) {
-          setBuilderStatus("nothing to drag here");
+          setBuilderStatus('nothing to drag here');
         } else {
-          renderer.setBuildCursor("grabbing");
+          renderer.setBuildCursor('grabbing');
           rebuildPreview();
-          setBuilderStatus("drop on a tile");
+          setBuilderStatus('drop on a tile');
         }
       }
       return;
     }
 
     switch (builderTool) {
-      case "erase": {
+      case 'erase': {
         const removed = removeAt(p);
         if (removed) playHammerSfx();
         break;
       }
-      case "decor":
+      case 'decor':
         cycleDecorAt(p);
         break;
-      case "start":
+      case 'start':
         setStartAt(p);
         break;
-      case "station":
+      case 'station':
         cycleStationAt(p);
         break;
-      case "cust1":
-        setCustomerAt(p, "A");
+      case 'cust1':
+        setCustomerAt(p, 'A');
         break;
-      case "cust2":
-        setCustomerAt(p, "B");
+      case 'cust2':
+        setCustomerAt(p, 'B');
         break;
-      case "cust3":
-        setCustomerAt(p, "C");
+      case 'cust3':
+        setCustomerAt(p, 'C');
         break;
     }
 
     rebuildPreview();
-    setBuilderStatus("edited! check again");
+    setBuilderStatus('edited! check again');
   };
 
   for (const btn of toolButtons) {
-    btn.addEventListener("click", () => {
+    btn.addEventListener('click', () => {
       const tool = btn.dataset.tool as BuilderTool | undefined;
       if (!tool) return;
       // cancel active drag when switching tools
       if (draggedItem) cancelDrag();
       builderTool = tool;
       applyToolActiveUI();
-      renderer.setBuildCursor(tool === "drag" ? "grab" : "crosshair");
+      renderer.setBuildCursor(tool === 'drag' ? 'grab' : 'crosshair');
       const hoverImg =
-        tool === "erase"
-          ? hoverHammerSprite
-          : tool === "drag"
-            ? hoverDragSprite
-            : null;
+        tool === 'erase' ? hoverHammerSprite : tool === 'drag' ? hoverDragSprite : null;
       renderer.setBuilderHoverSprite(hoverImg);
     });
   }
 
   // canvas listeners for drag-and-drop
-  canvas.addEventListener("mouseup", (e) => {
-    if (!builderMode || builderTool !== "drag" || !draggedItem) return;
-    const pos = getTilePos(
-      canvas,
-      builderData.width,
-      builderData.height,
-      e.clientX,
-      e.clientY,
-    );
+  canvas.addEventListener('mouseup', (e) => {
+    if (!builderMode || builderTool !== 'drag' || !draggedItem) return;
+    const pos = getTilePos(canvas, builderData.width, builderData.height, e.clientX, e.clientY);
     dropItem(pos);
   });
 
-  canvas.addEventListener("touchend", (e) => {
-    if (!builderMode || builderTool !== "drag" || !draggedItem) return;
+  canvas.addEventListener('touchend', (e) => {
+    if (!builderMode || builderTool !== 'drag' || !draggedItem) return;
     const touch = e.changedTouches[0];
     const pos = touch
-      ? getTilePos(
-          canvas,
-          builderData.width,
-          builderData.height,
-          touch.clientX,
-          touch.clientY,
-        )
+      ? getTilePos(canvas, builderData.width, builderData.height, touch.clientX, touch.clientY)
       : null;
     dropItem(pos);
   });
 
-  canvas.addEventListener("mouseleave", () => {
-    if (builderTool === "drag" && draggedItem) {
+  canvas.addEventListener('mouseleave', () => {
+    if (builderTool === 'drag' && draggedItem) {
       cancelDrag();
     }
   });
@@ -2555,7 +2512,7 @@ async function init() {
     // first validate for quick immediate errors. Then bfs algo (slowerish)
     const validation = validateLevelData(builderData);
     if (!validation.ok) {
-      setBuilderStatus(`invalid:\n${validation.errors.join("\n")}`);
+      setBuilderStatus(`invalid:\n${validation.errors.join('\n')}`);
       builderShareReady = false;
       updateShareUI();
       updateExitUI();
@@ -2572,14 +2529,12 @@ async function init() {
     if (solved.solvable) {
       setBuilderStatus(`solvable! (searched ${solved.visitedStates} states)`);
     } else {
-      setBuilderStatus(
-        `not solvable (searched ${solved.visitedStates} states)`,
-      );
+      setBuilderStatus(`not solvable (searched ${solved.visitedStates} states)`);
     }
   };
 
   if (checkBtn) {
-    checkBtn.addEventListener("click", () => {
+    checkBtn.addEventListener('click', () => {
       if (!builderMode) return;
       checkSolvableNow();
     });
@@ -2596,15 +2551,15 @@ async function init() {
     }
 
     try {
-      const ta = document.createElement("textarea");
+      const ta = document.createElement('textarea');
       ta.value = text;
-      ta.style.position = "fixed";
-      ta.style.left = "-9999px";
-      ta.style.top = "0";
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      ta.style.top = '0';
       document.body.appendChild(ta);
       ta.focus();
       ta.select();
-      const ok = document.execCommand("copy");
+      const ok = document.execCommand('copy');
       document.body.removeChild(ta);
       return ok;
     } catch {
@@ -2613,11 +2568,11 @@ async function init() {
   };
 
   if (shareBtn) {
-    shareBtn.addEventListener("click", async () => {
+    shareBtn.addEventListener('click', async () => {
       if (!builderMode) return;
 
       if (!builderShareReady) {
-        setBuilderStatus("check the level first");
+        setBuilderStatus('check the level first');
         return;
       }
 
@@ -2625,10 +2580,10 @@ async function init() {
       if (!validation.ok) {
         builderShareReady = false;
         updateShareUI();
-        setBuilderStatus(`invalid:\n${validation.errors.join("\n")}`);
+        setBuilderStatus(`invalid:\n${validation.errors.join('\n')}`);
         return;
       }
-      
+
       normalizeOrders();
       enforceBorderWalls();
 
@@ -2636,7 +2591,7 @@ async function init() {
         const token = await encodeLevelShareToken(builderData);
         const url = makeShareUrlFromToken(token);
         const copied = await copyTextToClipboard(url);
-        setBuilderStatus(copied ? "copied share link!" : "couldn’t copy link :(");
+        setBuilderStatus(copied ? 'copied share link!' : 'couldn’t copy link :(');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         setBuilderStatus(`couldn’t share: ${msg}`);
@@ -2644,57 +2599,57 @@ async function init() {
     });
   }
 
-  const runBtn = document.getElementById("run-btn");
-  const retryBtn = document.getElementById("retry-btn");
-  const exitBuilderBtn = document.getElementById("exit-builder-btn");
+  const runBtn = document.getElementById('run-btn');
+  const retryBtn = document.getElementById('retry-btn');
+  const exitBuilderBtn = document.getElementById('exit-builder-btn');
 
   const enterBuilderMode = () => {
     builderMode = true;
     builderData = JSON.parse(JSON.stringify(currentLevelData)) as LevelData;
-    builderTool = "decor";
+    builderTool = 'decor';
     draggedItem = null;
     dragOrigin = null;
 
-    decorToolDefault = "plant_a";
+    decorToolDefault = 'plant_a';
 
     enforceBorderWalls();
     syncBuilderSizeInputs();
 
     renderer.hideFailurePopup();
-    renderer.setUIMode("build");
+    renderer.setUIMode('build');
     renderer.setOnBuildTileClick(handleBuildTileClick);
     renderer.setBuilderHoverSprite(null); // builder opens with "decor" tool → default hover
 
-    if (builderPanel) builderPanel.style.display = "block";
-    if (runBtn) runBtn.style.display = "none";
-    if (retryBtn) retryBtn.style.display = "none";
-    if (exitBuilderBtn) exitBuilderBtn.style.display = "";
-    
-    const exitHint = document.getElementById("exit-builder-hint");
-    if (exitHint) exitHint.style.display = "";
+    if (builderPanel) builderPanel.style.display = 'block';
+    if (runBtn) runBtn.style.display = 'none';
+    if (retryBtn) retryBtn.style.display = 'none';
+    if (exitBuilderBtn) exitBuilderBtn.style.display = '';
+
+    const exitHint = document.getElementById('exit-builder-hint');
+    if (exitHint) exitHint.style.display = '';
 
     markBuilderDirty(); // require check before exit
-    if (ordersHeadingEl) ordersHeadingEl.textContent = "click to change their orders";
+    if (ordersHeadingEl) ordersHeadingEl.textContent = 'click to change their orders';
     applyToolActiveUI();
     renderBuilderOrdersInSidebar();
     rebuildPreview();
-    setBuilderStatus("builder mode. click tiles to edit");
-    setDayText("custom");
+    setBuilderStatus('builder mode. click tiles to edit');
+    setDayText('custom');
   };
 
   const exitBuilderMode = () => {
     if (draggedItem) cancelDrag();
     builderMode = false;
     renderer.setOnBuildTileClick(null);
-    renderer.setUIMode("play");
-    if (builderPanel) builderPanel.style.display = "none";
-    if (runBtn) runBtn.style.display = "";
-    if (retryBtn) retryBtn.style.display = "";
-    if (exitBuilderBtn) exitBuilderBtn.style.display = "none";
-    
-    const exitHint = document.getElementById("exit-builder-hint");
-    if (exitHint) exitHint.style.display = "none";
-    
+    renderer.setUIMode('play');
+    if (builderPanel) builderPanel.style.display = 'none';
+    if (runBtn) runBtn.style.display = '';
+    if (retryBtn) retryBtn.style.display = '';
+    if (exitBuilderBtn) exitBuilderBtn.style.display = 'none';
+
+    const exitHint = document.getElementById('exit-builder-hint');
+    if (exitHint) exitHint.style.display = 'none';
+
     if (ordersHeadingEl) ordersHeadingEl.textContent = "today's orders:";
 
     // keep playing the level you just built if leave (custom level = no stored best)
@@ -2703,7 +2658,7 @@ async function init() {
     currentLevelData = JSON.parse(JSON.stringify(builderData)) as LevelData;
     renderer.setState(initGame(buildLevel(currentLevelData)));
 
-    setDayText("custom");
+    setDayText('custom');
   };
 
   const forceExitBuilderMode = () => {
@@ -2712,15 +2667,15 @@ async function init() {
     dragOrigin = null;
     builderMode = false;
     renderer.setOnBuildTileClick(null);
-    renderer.setUIMode("play");
-    if (builderPanel) builderPanel.style.display = "none";
-    if (runBtn) runBtn.style.display = "";
-    if (retryBtn) retryBtn.style.display = "";
-    if (exitBuilderBtn) exitBuilderBtn.style.display = "none";
-    
-    const exitHint = document.getElementById("exit-builder-hint");
-    if (exitHint) exitHint.style.display = "none";
-    
+    renderer.setUIMode('play');
+    if (builderPanel) builderPanel.style.display = 'none';
+    if (runBtn) runBtn.style.display = '';
+    if (retryBtn) retryBtn.style.display = '';
+    if (exitBuilderBtn) exitBuilderBtn.style.display = 'none';
+
+    const exitHint = document.getElementById('exit-builder-hint');
+    if (exitHint) exitHint.style.display = 'none';
+
     if (ordersHeadingEl) ordersHeadingEl.textContent = "today's orders:";
   };
 
@@ -2731,29 +2686,32 @@ async function init() {
       const validation = decoded ? validateLevelData(decoded) : null;
       if (decoded && validation && validation.ok) {
         forceExitBuilderMode();
-        applyLevelDataToRenderer(decoded as LevelData, null, "shared");
+        applyLevelDataToRenderer(decoded as LevelData, null, 'shared');
         return;
       }
 
-      console.warn("Invalid share link", validation && !validation.ok ? validation.errors : decoded);
+      console.warn(
+        'Invalid share link',
+        validation && !validation.ok ? validation.errors : decoded
+      );
       const s = renderer.getState();
-      renderer.setState({ ...s, message: "invalid share link" });
+      renderer.setState({ ...s, message: 'invalid share link' });
       return;
     }
 
     forceExitBuilderMode();
-    applyLevelDataToRenderer(dailyLevelData, dailyLevelId, "daily");
+    applyLevelDataToRenderer(dailyLevelData, dailyLevelId, 'daily');
   };
 
-  window.addEventListener("hashchange", () => {
+  window.addEventListener('hashchange', () => {
     void applyFromHash();
   });
 
   if (builderButton) {
-    builderButton.addEventListener("click", () => {
+    builderButton.addEventListener('click', () => {
       if (builderMode) {
         if (!builderShareReady) {
-          setBuilderStatus("check the level first");
+          setBuilderStatus('check the level first');
           return;
         }
         exitBuilderMode();
@@ -2764,9 +2722,9 @@ async function init() {
   }
 
   if (exitBuilderBtn) {
-    exitBuilderBtn.addEventListener("click", () => {
+    exitBuilderBtn.addEventListener('click', () => {
       if (!builderShareReady) {
-        setBuilderStatus("check the level first");
+        setBuilderStatus('check the level first');
         return;
       }
       exitBuilderMode();
@@ -2778,52 +2736,52 @@ async function init() {
     const w = builderWidthInput ? parseInt(builderWidthInput.value, 10) : NaN;
     const h = builderHeightInput ? parseInt(builderHeightInput.value, 10) : NaN;
     if (!Number.isFinite(w) || !Number.isFinite(h)) {
-      setBuilderStatus("enter valid width/height");
+      setBuilderStatus('enter valid width/height');
       return;
     }
     resizeBuilderLevel(w, h);
   };
 
   if (builderResizeBtn) {
-    builderResizeBtn.addEventListener("click", () => {
+    builderResizeBtn.addEventListener('click', () => {
       tryResizeFromInputs();
     });
   }
 
   if (builderWidthInput) {
-    builderWidthInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") tryResizeFromInputs();
+    builderWidthInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') tryResizeFromInputs();
     });
   }
 
   if (builderHeightInput) {
-    builderHeightInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") tryResizeFromInputs();
+    builderHeightInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') tryResizeFromInputs();
     });
   }
 
   // setup buttons
-  const runButton = document.getElementById("run-btn");
-  const retryButton = document.getElementById("retry-btn");
+  const runButton = document.getElementById('run-btn');
+  const retryButton = document.getElementById('retry-btn');
 
   if (runButton) {
-    runButton.addEventListener("click", () => {
+    runButton.addEventListener('click', () => {
       const currentState = renderer.getState();
-      if (currentState.status !== "idle") return;
+      if (currentState.status !== 'idle') return;
       renderer.hideFailurePopup();
       const newState = {
         ...currentState,
-        status: "running" as const,
-        message: "running...",
+        status: 'running' as const,
+        message: 'running...',
       };
       renderer.setState(newState);
     });
   }
 
   if (retryButton) {
-    retryButton.addEventListener("click", () => {
+    retryButton.addEventListener('click', () => {
       const currentState = renderer.getState();
-      if (currentState.status === "running") return;
+      if (currentState.status === 'running') return;
       renderer.hideFailurePopup();
       const newState = clearPath(currentState);
       renderer.setState(newState);
@@ -2831,9 +2789,9 @@ async function init() {
   }
 
   // setup popup retry button
-  const popupRetryButton = document.getElementById("popup-retry-btn");
+  const popupRetryButton = document.getElementById('popup-retry-btn');
   if (popupRetryButton) {
-    popupRetryButton.addEventListener("click", () => {
+    popupRetryButton.addEventListener('click', () => {
       renderer.hideFailurePopup();
       const currentState = renderer.getState();
       const newState = clearPath(currentState);
@@ -2842,9 +2800,9 @@ async function init() {
   }
 
   // setup success popup close button
-  const successPopupCloseBtn = document.getElementById("success-popup-close-btn");
+  const successPopupCloseBtn = document.getElementById('success-popup-close-btn');
   if (successPopupCloseBtn) {
-    successPopupCloseBtn.addEventListener("click", () => {
+    successPopupCloseBtn.addEventListener('click', () => {
       hideSuccessPopup();
     });
   }
@@ -2853,14 +2811,14 @@ async function init() {
   initMenu();
 
   // listen for level loads from the menu
-  document.addEventListener("loadLevel", ((e: CustomEvent) => {
+  document.addEventListener('loadLevel', ((e: CustomEvent) => {
     const { levelData: ld, levelId: lid } = e.detail;
     forceExitBuilderMode();
 
     const m = (ld as LevelData).id?.match(/day-(\d+)/);
     dayNumber = m ? parseInt(m[1], 10) : 1;
 
-    applyLevelDataToRenderer(ld as LevelData, lid as string, "daily");
+    applyLevelDataToRenderer(ld as LevelData, lid as string, 'daily');
   }) as EventListener);
 
   // initial render and orders display
@@ -2885,7 +2843,7 @@ function scatterDecorations(): void {
     ['src/assets/bg11-1.png', 'src/assets/bg11-2.png'],
     ['src/assets/bg12-1.png', 'src/assets/bg12-2.png'],
   ];
-  
+
   const cols = Math.ceil(Math.sqrt(count));
   const rows = Math.ceil(count / cols);
 
@@ -2924,19 +2882,18 @@ function scatterDecorations(): void {
   }
 }
 
-const soundEffectUrl = "/audio/click.mp3"; 
+const soundEffectUrl = '/audio/click.mp3';
 
 function playClickSound(): void {
   const audio = new Audio(soundEffectUrl);
-  audio.play()
-    .catch(error => console.error("Audio play failed:", error));
+  audio.play().catch((error) => console.error('Audio play failed:', error));
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   scatterDecorations();
   const buttons = document.querySelectorAll('.game-button');
-  buttons.forEach(button => {
-    button.addEventListener("click", playClickSound);
+  buttons.forEach((button) => {
+    button.addEventListener('click', playClickSound);
   });
 });
 

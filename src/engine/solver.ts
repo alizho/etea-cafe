@@ -1,4 +1,4 @@
-import { keyOf, type CustomerId, type DrinkId, type Level, type Pos } from "./types";
+import { keyOf, type CustomerId, type DrinkId, type Level, type Pos } from './types';
 
 // solver using bfs so ppl can't publish impossible levels lol
 // each state is pos, inv, and remaining orders
@@ -38,7 +38,10 @@ function removeServed(inv: Inv, needs: DrinkId[]): Inv {
   return remaining;
 }
 
-function serveSome(inv: Inv, remainingNeeds: DrinkId[]): { inv: Inv; remainingNeeds: DrinkId[]; servedAny: boolean } {
+function serveSome(
+  inv: Inv,
+  remainingNeeds: DrinkId[]
+): { inv: Inv; remainingNeeds: DrinkId[]; servedAny: boolean } {
   let nextInv = [...inv];
   let nextNeeds = [...remainingNeeds];
   let servedAny = false;
@@ -59,19 +62,19 @@ function serveSome(inv: Inv, remainingNeeds: DrinkId[]): { inv: Inv; remainingNe
 }
 
 function invKey(inv: Inv): string {
-  return inv.join("");
+  return inv.join('');
 }
 
-const CUSTOMER_IDS: CustomerId[] = ["A", "B", "C"];
+const CUSTOMER_IDS: CustomerId[] = ['A', 'B', 'C'];
 
 type RemainingOrders = Record<CustomerId, DrinkId[]>;
 
 function normalizeNeeds(needs: DrinkId[]): string {
-  return [...needs].sort().join(",");
+  return [...needs].sort().join(',');
 }
 
 function remainingKey(remaining: RemainingOrders): string {
-  return CUSTOMER_IDS.map((id) => `${id}:${normalizeNeeds(remaining[id] ?? [])}`).join("|");
+  return CUSTOMER_IDS.map((id) => `${id}:${normalizeNeeds(remaining[id] ?? [])}`).join('|');
 }
 
 export type SolveResult =
@@ -179,7 +182,7 @@ export function solveLevel(level: Level, opts?: { maxVisited?: number }): SolveR
       const stationDrink = level.drinkStations[posKey];
       if (stationDrink) inv = pickDrink(inv, stationDrink);
 
-      // then serve again juuuust in case We can 
+      // then serve again juuuust in case We can
       tryServeAtTile();
 
       const node: Node = { pos: nextPos, inv, remaining };

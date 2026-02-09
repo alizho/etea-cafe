@@ -1,6 +1,6 @@
-import type { DrinkId, Level, ObstacleId } from "../engine/types";
-import type { CustomerId } from "../engine/types";
-import type { LevelData } from "./level.schema";
+import type { DrinkId, Level, ObstacleId } from '../engine/types';
+import type { CustomerId } from '../engine/types';
+import type { LevelData } from './level.schema';
 
 const k = (x: number, y: number) => `${x},${y}`;
 
@@ -10,10 +10,10 @@ export function buildLevel(data: LevelData): Level {
   for (const customer of data.customers) {
     let standX = customer.x;
     let standY = customer.y;
-    if (customer.standHere === "left") standX = customer.x - 1;
-    else if (customer.standHere === "right") standX = customer.x + 1;
-    else if (customer.standHere === "up") standY = customer.y - 1;
-    else if (customer.standHere === "down") standY = customer.y + 1;
+    if (customer.standHere === 'left') standX = customer.x - 1;
+    else if (customer.standHere === 'right') standX = customer.x + 1;
+    else if (customer.standHere === 'up') standY = customer.y - 1;
+    else if (customer.standHere === 'down') standY = customer.y + 1;
     standHereMap[k(standX, standY)] = customer.id;
   }
 
@@ -48,10 +48,7 @@ export function buildLevel(data: LevelData): Level {
     standHere: standHereMap,
 
     orders: Object.fromEntries(
-      Object.entries(data.orders).map(([id, drinks]) => [
-        id,
-        drinks,
-      ])
+      Object.entries(data.orders).map(([id, drinks]) => [id, drinks])
     ) as Record<CustomerId, DrinkId[]>,
   };
 }
