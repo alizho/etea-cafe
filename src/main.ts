@@ -427,6 +427,7 @@ class GameRenderer {
   private undoLastPathStep() {
     if (this.state.path.length <= 1) return;
     this.state = { ...this.state, path: this.state.path.slice(0, -1) };
+    playPathTileSfx();
     this.render();
     this.updateUI();
   }
