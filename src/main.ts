@@ -409,6 +409,26 @@ class GameRenderer {
       this.updateCanvasDisplaySize(level.width * TILE_SIZE, level.height * TILE_SIZE);
       this.render();
     });
+
+    // undo only while drawing paths
+
+    window.addEventListener('keydown', (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z') return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+      if (this.uiMode !== 'play') return;
+      if (this.state.status !== 'idle') return;
+      if (this.showingOptimalReplay) return;
+      e.preventDefault();
+      this.undoLastPathStep();
+    });
+  }
+
+  private undoLastPathStep() {
+    if (this.state.path.length <= 1) return;
+    this.state = { ...this.state, path: this.state.path.slice(0, -1) };
+    this.render();
+    this.updateUI();
   }
 
   private handlePointerDown(e: { clientX: number; clientY: number }) {
@@ -1014,7 +1034,11 @@ class GameRenderer {
     const runButton = document.getElementById('run-btn') as HTMLButtonElement;
     const retryButton = document.getElementById('retry-btn') as HTMLButtonElement;
 
-    if (stepsEl) stepsEl.textContent = `steps: ${this.state.stepsTaken}`;
+    if (stepsEl) {
+      const pathSteps = Math.max(0, this.state.path.length - 1);
+      const displaySteps = this.state.status === 'idle' ? pathSteps : this.state.stepsTaken;
+      stepsEl.textContent = `steps: ${displaySteps}`;
+    }
     if (messageEl) messageEl.textContent = this.state.message || '';
 
     // always show best score if available
