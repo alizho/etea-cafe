@@ -977,17 +977,18 @@ class GameRenderer {
 
     if (inventoryEl) {
       const inventory = this.state.inventory;
-      if (inventory.length === 0) {
-        inventoryEl.innerHTML = `in hand: [ 0/2 ]`;
-      } else {
-        const drinkImages = inventory
-          .map((drinkId) => {
-            const imageSrc = sprites.drinkItems[drinkId]?.src ?? "";
-            return `<img src="${imageSrc}" alt="${drinkId}" class="inventory-drink-icon" />`;
-          })
-          .join("");
-        inventoryEl.innerHTML = `in hand: ${drinkImages}`;
-      }
+      const slot0 = document.getElementById("inventory-slot-0");
+      const slot1 = document.getElementById("inventory-slot-1");
+      [slot0, slot1].forEach((slot, i) => {
+        if (!slot) return;
+        const drinkId = inventory[i];
+        if (drinkId) {
+          const imageSrc = sprites.drinkItems[drinkId]?.src ?? "";
+          slot.innerHTML = `<img src="${imageSrc}" alt="${drinkId}" class="inventory-drink-icon" />`;
+        } else {
+          slot.innerHTML = "";
+        }
+      });
     }
 
     this.updateOrdersDisplay();

@@ -9,6 +9,16 @@
     src: url("/font/pixel-arial-14.woff") format("woff");
 }
 
+@font-face {
+    font-family: "Pixer";
+    src: url("/font/Pixer-Regular.woff") format("woff");
+}
+
+@font-face {
+    font-family: "PixelPoiiz";
+    src: url("/font/pixelpoiiz.ttf") format("truetype");
+}
+
 html,
 body {
     margin: 0;
@@ -20,7 +30,7 @@ body {
 }
 
 body {
-    font-family: "PixelArial", Arial, sans-serif;
+    font-family: "Pixer", Arial, sans-serif;
 }
 
 #root {
@@ -56,6 +66,7 @@ body {
 .day-text {
     margin-top: 20px;
     font-size: 18px;
+    font-family: PixelPoiiz;
 }
 
 .game-container {
@@ -80,24 +91,36 @@ body {
 .inventory-display {
     order: 3;
     text-align: center;
-    margin-top: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    font-family: "PixelArial", Arial, sans-serif;
-    height: 40px;
-    min-height: 40px;
-    max-height: 40px;
+    gap: 12px;
+    font-family: "Pixer", Arial, sans-serif;
+    height: 48px;
+    min-height: 48px;
+}
+
+.inventory-slot {
+    width: 56px;
+    height: 56px;
+    background: #000;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     overflow: hidden;
 }
 
+.inventory-slot .inventory-drink-icon {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+}
+
 .inventory-drink-icon {
-    width: 32px;
-    height: 32px;
     image-rendering: pixelated;
     image-rendering: crisp-edges;
-    display: inline-block;
 }
 
 .game-info {
@@ -118,7 +141,7 @@ body {
 .game-button {
     padding: 8px 16px;
     font-size: 16px;
-    font-family: "PixelArial", Arial, sans-serif;
+    font-family: "Pixer", Arial, sans-serif;
     cursor: pointer;
     background-color: #f3f2ed;
     color: var(--primary-color);
@@ -223,7 +246,7 @@ body {
 }
 
 .order-header {
-    font-family: "PixelArial", Arial, sans-serif;
+    font-family: "Pixer", Arial, sans-serif;
     font-size: 14px;
     color: var(--secondary-color);
     margin-bottom: 4px;
@@ -364,7 +387,7 @@ body {
 .builder-select {
     width: 100%;
     padding: 6px;
-    font-family: "PixelArial", Arial, sans-serif;
+    font-family: "Pixer", Arial, sans-serif;
     font-size: 14px;
     border: 2px solid #000000;
     background-color: #ffffff;
@@ -459,7 +482,7 @@ body {
 }
 
 .popup-message {
-    font-family: "PixelArial", Arial, sans-serif;
+    font-family: "Pixer", Arial, sans-serif;
     font-size: 18px;
     color: #000;
     margin: 0 0 20px 0;
@@ -470,7 +493,7 @@ body {
 }
 
 .success-day-text {
-    font-family: "PixelArial", Arial, sans-serif;
+    font-family: "Pixer", Arial, sans-serif;
     color: var(--primary-color);
     margin-top: 0;
 }
@@ -482,19 +505,19 @@ body {
 .success-score-label {
     font-weight: bold;
     margin-bottom: 8px;
-    font-family: "PixelArial", Arial, sans-serif;
+    font-family: "Pixer", Arial, sans-serif;
     color: #000;
 }
 
 .success-score-value {
     font-size: 2em;
     font-weight: bold;
-    font-family: "PixelArial", Arial, sans-serif;
+    font-family: "Pixer", Arial, sans-serif;
     color: var(--primary-color);
 }
 
 .success-optimal-score {
-    font-family: "PixelArial", Arial, sans-serif;
+    font-family: "Pixer", Arial, sans-serif;
     font-size: 0.9em;
     color: var(--primary-color);
     margin-top: 6px;
@@ -502,7 +525,7 @@ body {
 }
 
 .success-optimal-message {
-    font-family: "PixelArial", Arial, sans-serif;
+    font-family: "Pixer", Arial, sans-serif;
     font-size: 1.2em;
     font-weight: bold;
     color: var(--primary-color);
@@ -522,13 +545,13 @@ body {
 .success-distribution-label {
     font-weight: bold;
     margin-bottom: 8px;
-    font-family: "PixelArial", Arial, sans-serif;
+    font-family: "Pixer", Arial, sans-serif;
     color: var(--primary-color);
 }
 
 .success-percentile {
     font-size: 1.2em;
-    font-family: "PixelArial", Arial, sans-serif;
+    font-family: "Pixer", Arial, sans-serif;
     color: var(--primary-color);
     margin-bottom: 12px;
 }
@@ -610,7 +633,7 @@ body {
     display: block;
     width: 100%;
     padding: 12px 16px;
-    font-family: "PixelArial", Arial, sans-serif;
+    font-family: "Pixer", Arial, sans-serif;
     font-size: 14px;
     color: var(--primary-color);
     background: transparent;
@@ -635,14 +658,14 @@ body {
 }
 
 .menu-panel-title {
-    font-family: "PixelArial", Arial, sans-serif;
+    font-family: "Pixer", Arial, sans-serif;
     color: var(--primary-color);
     margin: 0 0 20px 0;
     font-size: 22px;
 }
 
 .menu-panel-text {
-    font-family: "PixelArial", Arial, sans-serif;
+    font-family: "Pixer", Arial, sans-serif;
     font-size: 16px;
     color: #000;
     margin: 0 0 16px 0;
@@ -660,7 +683,7 @@ body {
 .menu-link {
     color: var(--primary-color);
     text-decoration: underline;
-    font-family: "PixelArial", Arial, sans-serif;
+    font-family: "Pixer", Arial, sans-serif;
 }
 
 .menu-link:hover {
@@ -677,7 +700,7 @@ body {
 }
 
 .settings-label {
-    font-family: "PixelArial", Arial, sans-serif;
+    font-family: "Pixer", Arial, sans-serif;
     font-size: 16px;
     color: #000;
 }
@@ -701,7 +724,7 @@ body {
     display: block;
     width: 100%;
     padding: 8px 12px;
-    font-family: "PixelArial", Arial, sans-serif;
+    font-family: "Pixer", Arial, sans-serif;
     font-size: 14px;
     color: var(--primary-color);
     background: transparent;
