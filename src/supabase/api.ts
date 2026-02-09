@@ -13,6 +13,9 @@ export function getTodayDateEST(): string {
 }
 
 export async function getLevelByDate(date: string) {
+  const today = getTodayDateEST();
+  if (date > today) return null; // never expose future levels
+
   const { data, error } = await supabase
     .from("levels")
     .select("id, json")
@@ -38,7 +41,8 @@ export async function getLevelHistory(limit: number = 30) {
     .limit(limit);
 
   if (error) throw error;
-  return data;
+  const today = getTodayDateEST();
+  return (data ?? []).filter((row) => row.date <= today);
 }
 export function getPlayerId(): string {
   let playerId = localStorage.getItem("playerId");

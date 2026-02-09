@@ -1,5 +1,5 @@
 import { toggleAudio, getAudioEnabled } from "./audio";
-import { getLevelHistory, getLevelByDate } from "./supabase/api";
+import { getLevelHistory, getLevelByDate, getTodayDateEST } from "./supabase/api";
 import type { LevelData } from "./levels/level.schema";
 
 export function initMenu(): void {
@@ -174,7 +174,7 @@ export function initMenu(): void {
 
     try {
       const levels = await getLevelHistory(30);
-      const today = new Date().toISOString().split("T")[0];
+      const today = getTodayDateEST();
 
       if (!levels || levels.length === 0) {
         menuPanelBody.innerHTML =
