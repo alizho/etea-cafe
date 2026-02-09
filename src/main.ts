@@ -360,11 +360,14 @@ class GameRenderer {
     const infoH = infoEl?.getBoundingClientRect().height ?? 0;
     const sidebarW = sidebarEl?.getBoundingClientRect().width ?? 0;
 
+    const logo = document.querySelector(".logo") as HTMLElement | null;
+    const extraLogoSpace = logo ? logo.getBoundingClientRect().height * 0.5 : 0;
+
     const paddingW = 64;
     const paddingH = 72;
 
     const maxW = Math.max(120, window.innerWidth - sidebarW - paddingW);
-    const maxH = Math.max(120, window.innerHeight - headerH - controlsH - inventoryH - infoH - paddingH);
+    const maxH = Math.max(120, window.innerHeight - headerH - controlsH - inventoryH - infoH - paddingH - extraLogoSpace);
 
     const fitScale = Math.min(maxW / baseCanvasWidth, maxH / baseCanvasHeight, 1);
     const cssW = Math.max(64, Math.floor(baseCanvasWidth * fitScale));
