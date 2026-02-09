@@ -21,7 +21,7 @@ import { validateLevelData } from "./levels/validate";
 import { solveLevel } from "./engine/solver";
 import { pathImagesLoaded, renderPath, renderPathArrow, PATH_TINT_GREEN } from "./paths";
 import { TILE_SIZE } from "./config/constants";
-import { ensureAudioStartedOnFirstGesture, playPathTileSfx, playStepSfx } from "./audio";
+import { ensureAudioStartedOnFirstGesture, playPathTileSfx, playStepSfx, playNiceSfx, playWompSfx } from "./audio";
 import { initMenu } from "./menu";
 import {
   loadAllSprites,
@@ -659,7 +659,16 @@ class GameRenderer {
     }
 
     this.simInterval = window.setInterval(() => {
+      const prevOrders = { ...this.state.remainingOrders };
       this.state = stepSimulation(this.state);
+      
+      for (const customerId in prevOrders) {
+        if (prevOrders[customerId as keyof typeof prevOrders].length > 0 && 
+            this.state.remainingOrders[customerId as keyof typeof this.state.remainingOrders].length === 0) {
+          playNiceSfx();
+        }
+      }
+      
       if (this.state.status === "running") {
         playStepSfx();
       }
@@ -672,6 +681,7 @@ class GameRenderer {
           this.simInterval = null;
         }
         if (this.state.status === "failed") {
+          playWompSfx();
           this.showFailurePopup();
         } else if (this.state.status === "success" && this.onSuccess && !this.successHandled && !this.showingOptimalReplay) {
           this.successHandled = true;

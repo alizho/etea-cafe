@@ -3,6 +3,8 @@ import {
   MUSIC_VOLUME,
   WET_A,
   STEP_SFX,
+  NICE_SFX,
+  WOMP_SFX,
   SFX_VOLUME,
 } from "./config/constants";
 
@@ -36,6 +38,14 @@ tileSfx.volume = SFX_VOLUME;
 const stepSfx = new Audio(STEP_SFX);
 stepSfx.preload = "auto";
 stepSfx.volume = SFX_VOLUME;
+
+const niceSfx = new Audio(NICE_SFX);
+niceSfx.preload = "auto";
+niceSfx.volume = SFX_VOLUME;
+
+const wompSfx = new Audio(WOMP_SFX);
+wompSfx.preload = "auto";
+wompSfx.volume = SFX_VOLUME;
 
 const PATH_TILE_SFX_MIN_INTERVAL_MS = 35;
 const STEP_SFX_MIN_INTERVAL_MS = 50;
@@ -162,4 +172,20 @@ export function playStepSfx(): void {
   sfx.addEventListener("ended", cleanup, { once: true });
   sfx.addEventListener("error", cleanup, { once: true });
   void sfx.play().catch(cleanup);
+}
+
+export function playNiceSfx(): void {
+  if (!hasStarted || !audioEnabled) return;
+
+  const sfx = niceSfx.cloneNode(true) as HTMLAudioElement;
+  sfx.volume = SFX_VOLUME;
+  void sfx.play().catch(() => {});
+}
+
+export function playWompSfx(): void {
+  if (!hasStarted || !audioEnabled) return;
+
+  const sfx = wompSfx.cloneNode(true) as HTMLAudioElement;
+  sfx.volume = SFX_VOLUME;
+  void sfx.play().catch(() => {});
 }
