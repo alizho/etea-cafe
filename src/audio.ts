@@ -2,6 +2,7 @@ import {
   BG_MUSIC,
   MUSIC_VOLUME,
   WET_A,
+  STEP_SFX,
   SFX_VOLUME,
 } from "./config/constants";
 
@@ -32,11 +33,19 @@ const tileSfx = new Audio(WET_A);
 tileSfx.preload = "auto";
 tileSfx.volume = SFX_VOLUME;
 
+const stepSfx = new Audio(STEP_SFX);
+stepSfx.preload = "auto";
+stepSfx.volume = SFX_VOLUME;
+
 const PATH_TILE_SFX_MIN_INTERVAL_MS = 35;
+const STEP_SFX_MIN_INTERVAL_MS = 50;
 const PATH_TILE_SFX_MAX_POLYPHONY = 6;
+const STEP_SFX_MAX_POLYPHONY = 4;
 
 let lastPathTileSfxAtMs = 0;
+let lastStepSfxAtMs = 0;
 const activePathTileSfx = new Set<HTMLAudioElement>();
+const activeStepSfx = new Set<HTMLAudioElement>();
 
 type ListenerOptions = AddEventListenerOptions & { passive?: boolean };
 
@@ -127,6 +136,28 @@ export function playPathTileSfx(): void {
   activePathTileSfx.add(sfx);
   const cleanup = () => {
     activePathTileSfx.delete(sfx);
+  };
+  sfx.addEventListener("ended", cleanup, { once: true });
+  sfx.addEventListener("error", cleanup, { once: true });
+  void sfx.play().catch(cleanup);
+}
+
+export function playStepSfx(): void {
+  if (!hasStarted || !audioEnabled) return;
+
+  const nowMs = performance.now();
+  if (nowMs - lastStepSfxAtMs < STEP_SFX_MIN_INTERVAL_MS) return;
+  if (activeStepSfx.size >= STEP_SFX_MAX_POLYPHONY) return;
+  lastStepSfxAtMs = nowMs;
+
+  // randomize pitch and volume
+  const sfx = stepSfx.cloneNode(true) as HTMLAudioElement;
+  sfx.volume = Math.min(1, SFX_VOLUME * (0.5 + Math.random() * 0.5));
+  sfx.playbackRate = 0.9 + Math.random() * 0.2;
+
+  activeStepSfx.add(sfx);
+  const cleanup = () => {
+    activeStepSfx.delete(sfx);
   };
   sfx.addEventListener("ended", cleanup, { once: true });
   sfx.addEventListener("error", cleanup, { once: true });
