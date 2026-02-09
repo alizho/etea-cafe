@@ -21,7 +21,7 @@ import { validateLevelData } from "./levels/validate";
 import { solveLevel } from "./engine/solver";
 import { pathImagesLoaded, renderPath, renderPathArrow, PATH_TINT_GREEN } from "./paths";
 import { TILE_SIZE } from "./config/constants";
-import { ensureAudioStartedOnFirstGesture, playPathTileSfx } from "./audio";
+import { ensureAudioStartedOnFirstGesture, playPathTileSfx, playStepSfx, playNiceSfx, playWompSfx } from "./audio";
 import { initMenu } from "./menu";
 import {
   loadAllSprites,
@@ -639,8 +639,37 @@ class GameRenderer {
 
     if (this.state.status !== "running") return;
 
+    this.state = stepSimulation(this.state);
+    if (this.state.status === "running") {
+      playStepSfx();
+    }
+    this.render();
+    this.updateUI();
+
+    if (this.state.status !== "running") {
+      if (this.state.status === "failed") {
+        this.showFailurePopup();
+      } else if (this.state.status === "success" && this.onSuccess && !this.successHandled && !this.showingOptimalReplay) {
+        this.successHandled = true;
+        this.onSuccess(this.state.stepsTaken);
+      }
+      return;
+    }
+
     this.simInterval = window.setInterval(() => {
+      const prevOrders = { ...this.state.remainingOrders };
       this.state = stepSimulation(this.state);
+      
+      for (const customerId in prevOrders) {
+        if (prevOrders[customerId as keyof typeof prevOrders].length > 
+            this.state.remainingOrders[customerId as keyof typeof this.state.remainingOrders].length) {
+          playNiceSfx();
+        }
+      }
+      
+      if (this.state.status === "running") {
+        playStepSfx();
+      }
       this.render();
       this.updateUI();
 
@@ -650,6 +679,7 @@ class GameRenderer {
           this.simInterval = null;
         }
         if (this.state.status === "failed") {
+          playWompSfx();
           this.showFailurePopup();
         } else if (this.state.status === "success" && this.onSuccess && !this.successHandled && !this.showingOptimalReplay) {
           this.successHandled = true;
@@ -975,17 +1005,18 @@ class GameRenderer {
 
     if (inventoryEl) {
       const inventory = this.state.inventory;
-      if (inventory.length === 0) {
-        inventoryEl.innerHTML = `in hand: [ 0/2 ]`;
-      } else {
-        const drinkImages = inventory
-          .map((drinkId) => {
-            const imageSrc = sprites.drinkItems[drinkId]?.src ?? "";
-            return `<img src="${imageSrc}" alt="${drinkId}" class="inventory-drink-icon" />`;
-          })
-          .join("");
-        inventoryEl.innerHTML = `in hand: ${drinkImages}`;
-      }
+      const slot0 = document.getElementById("inventory-slot-0");
+      const slot1 = document.getElementById("inventory-slot-1");
+      [slot0, slot1].forEach((slot, i) => {
+        if (!slot) return;
+        const drinkId = inventory[i];
+        if (drinkId) {
+          const imageSrc = sprites.drinkItems[drinkId]?.src ?? "";
+          slot.innerHTML = `<img src="${imageSrc}" alt="${drinkId}" class="inventory-drink-icon" />`;
+        } else {
+          slot.innerHTML = "";
+        }
+      });
     }
 
     this.updateOrdersDisplay();

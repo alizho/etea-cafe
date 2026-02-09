@@ -116,7 +116,7 @@ function createScoreGraph(
     // draw hovered score label underneath the bar
     if (hoveredScore !== null) {
       ctx.fillStyle = "#76428a";
-      ctx.font = "12px PixelArial";
+      ctx.font = "12px Pixer";
       ctx.textAlign = "center";
       const x = scorePositions.get(hoveredScore)!;
       ctx.fillText(hoveredScore.toString(), x, canvas.height - 5);
@@ -287,7 +287,7 @@ export function showSuccessPopup(
   }
   
   if (graphContainer) {
-    graphContainer.innerHTML = "<div style='color: #76428a; font-family: PixelArial;'>loading graph...</div>";
+    graphContainer.innerHTML = "<div style='color: #76428a; font-family: Pixer;'>loading graph...</div>";
   }
 
   getAllScoresForLevel(levelId)
@@ -310,7 +310,7 @@ export function showSuccessPopup(
       } catch (error) {
         console.error("Error processing scores:", error);
         if (graphContainer) {
-          graphContainer.innerHTML = "<div style='color: #76428a; font-family: PixelArial;'>Error processing data</div>";
+          graphContainer.innerHTML = "<div style='color: #76428a; font-family: Pixer;'>Error processing data</div>";
         }
       }
     })
@@ -320,7 +320,7 @@ export function showSuccessPopup(
         percentileEl.textContent = "N/A";
       }
       if (graphContainer) {
-        graphContainer.innerHTML = "<div style='color: #76428a; font-family: PixelArial;'>Error loading graph</div>";
+        graphContainer.innerHTML = "<div style='color: #76428a; font-family: Pixer;'>Error loading graph</div>";
       }
     });
 }

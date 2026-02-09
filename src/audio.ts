@@ -2,7 +2,9 @@ import {
   BG_MUSIC,
   MUSIC_VOLUME,
   WET_A,
-  WET_B,
+  STEP_SFX,
+  NICE_SFX,
+  WOMP_SFX,
   SFX_VOLUME,
 } from "./config/constants";
 
@@ -29,21 +31,31 @@ async function loadMusicBuffer(ctx: AudioContext): Promise<AudioBuffer> {
   return musicBufferPromise;
 }
 
-const tileSfxA = new Audio(WET_A);
-tileSfxA.preload = "auto";
-tileSfxA.volume = SFX_VOLUME;
+const tileSfx = new Audio(WET_A);
+tileSfx.preload = "auto";
+tileSfx.volume = SFX_VOLUME;
 
-const tileSfxB = new Audio(WET_B);
-tileSfxB.preload = "auto";
-tileSfxB.volume = SFX_VOLUME;
+const stepSfx = new Audio(STEP_SFX);
+stepSfx.preload = "auto";
+stepSfx.volume = SFX_VOLUME;
 
-let nextTileSfx: "A" | "B" = "A";
+const niceSfx = new Audio(NICE_SFX);
+niceSfx.preload = "auto";
+niceSfx.volume = SFX_VOLUME;
+
+const wompSfx = new Audio(WOMP_SFX);
+wompSfx.preload = "auto";
+wompSfx.volume = SFX_VOLUME;
 
 const PATH_TILE_SFX_MIN_INTERVAL_MS = 35;
+const STEP_SFX_MIN_INTERVAL_MS = 50;
 const PATH_TILE_SFX_MAX_POLYPHONY = 6;
+const STEP_SFX_MAX_POLYPHONY = 4;
 
 let lastPathTileSfxAtMs = 0;
+let lastStepSfxAtMs = 0;
 const activePathTileSfx = new Set<HTMLAudioElement>();
+const activeStepSfx = new Set<HTMLAudioElement>();
 
 type ListenerOptions = AddEventListenerOptions & { passive?: boolean };
 
@@ -126,11 +138,8 @@ export function playPathTileSfx(): void {
   if (activePathTileSfx.size >= PATH_TILE_SFX_MAX_POLYPHONY) return;
   lastPathTileSfxAtMs = nowMs;
 
-  const base = nextTileSfx === "A" ? tileSfxA : tileSfxB;
-  nextTileSfx = nextTileSfx === "A" ? "B" : "A";
-
-  // clean rapid path drawing
-  const sfx = base.cloneNode(true) as HTMLAudioElement;
+  // randomize pitch and volume 
+  const sfx = tileSfx.cloneNode(true) as HTMLAudioElement;
   sfx.volume = Math.min(1, SFX_VOLUME * (0.9 + Math.random() * 0.2));
   sfx.playbackRate = 0.98 + Math.random() * 0.04;
 
@@ -141,4 +150,42 @@ export function playPathTileSfx(): void {
   sfx.addEventListener("ended", cleanup, { once: true });
   sfx.addEventListener("error", cleanup, { once: true });
   void sfx.play().catch(cleanup);
+}
+
+export function playStepSfx(): void {
+  if (!hasStarted || !audioEnabled) return;
+
+  const nowMs = performance.now();
+  if (nowMs - lastStepSfxAtMs < STEP_SFX_MIN_INTERVAL_MS) return;
+  if (activeStepSfx.size >= STEP_SFX_MAX_POLYPHONY) return;
+  lastStepSfxAtMs = nowMs;
+
+  // randomize pitch and volume
+  const sfx = stepSfx.cloneNode(true) as HTMLAudioElement;
+  sfx.volume = Math.min(1, SFX_VOLUME * (0.5 + Math.random() * 0.5));
+  sfx.playbackRate = 0.9 + Math.random() * 0.2;
+
+  activeStepSfx.add(sfx);
+  const cleanup = () => {
+    activeStepSfx.delete(sfx);
+  };
+  sfx.addEventListener("ended", cleanup, { once: true });
+  sfx.addEventListener("error", cleanup, { once: true });
+  void sfx.play().catch(cleanup);
+}
+
+export function playNiceSfx(): void {
+  if (!hasStarted || !audioEnabled) return;
+
+  const sfx = niceSfx.cloneNode(true) as HTMLAudioElement;
+  sfx.volume = SFX_VOLUME;
+  void sfx.play().catch(() => {});
+}
+
+export function playWompSfx(): void {
+  if (!hasStarted || !audioEnabled) return;
+
+  const sfx = wompSfx.cloneNode(true) as HTMLAudioElement;
+  sfx.volume = SFX_VOLUME;
+  void sfx.play().catch(() => {});
 }
