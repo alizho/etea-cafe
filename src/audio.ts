@@ -6,6 +6,8 @@ import {
   NICE_SFX,
   WOMP_SFX,
   SFX_VOLUME,
+  PATH_TILE_SFX_VOLUME,
+  STEP_SFX_VOLUME as STEP_VOLUME_SCALE,
 } from "./config/constants";
 
 let hasStarted = false;
@@ -33,11 +35,11 @@ async function loadMusicBuffer(ctx: AudioContext): Promise<AudioBuffer> {
 
 const tileSfx = new Audio(WET_A);
 tileSfx.preload = "auto";
-tileSfx.volume = SFX_VOLUME;
+tileSfx.volume = SFX_VOLUME * PATH_TILE_SFX_VOLUME;
 
 const stepSfx = new Audio(STEP_SFX);
 stepSfx.preload = "auto";
-stepSfx.volume = SFX_VOLUME;
+stepSfx.volume = SFX_VOLUME * STEP_VOLUME_SCALE;
 
 const niceSfx = new Audio(NICE_SFX);
 niceSfx.preload = "auto";
@@ -138,9 +140,9 @@ export function playPathTileSfx(): void {
   if (activePathTileSfx.size >= PATH_TILE_SFX_MAX_POLYPHONY) return;
   lastPathTileSfxAtMs = nowMs;
 
-  // randomize pitch and volume 
+  // randomize pitch and volume
   const sfx = tileSfx.cloneNode(true) as HTMLAudioElement;
-  sfx.volume = Math.min(1, SFX_VOLUME * (0.9 + Math.random() * 0.2));
+  sfx.volume = Math.min(1, SFX_VOLUME * PATH_TILE_SFX_VOLUME * (0.9 + Math.random() * 0.2));
   sfx.playbackRate = 0.98 + Math.random() * 0.04;
 
   activePathTileSfx.add(sfx);
@@ -162,7 +164,7 @@ export function playStepSfx(): void {
 
   // randomize pitch and volume
   const sfx = stepSfx.cloneNode(true) as HTMLAudioElement;
-  sfx.volume = Math.min(1, SFX_VOLUME * (0.5 + Math.random() * 0.5));
+  sfx.volume = Math.min(1, SFX_VOLUME * STEP_VOLUME_SCALE * (0.5 + Math.random() * 0.5));
   sfx.playbackRate = 0.9 + Math.random() * 0.2;
 
   activeStepSfx.add(sfx);

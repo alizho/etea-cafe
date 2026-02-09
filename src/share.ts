@@ -18,6 +18,7 @@ const OBSTACLE_TYPES = [
   "window_single_a",
   "window_double_a",
   "window_double_b",
+  "cat",
 ] as const;
 
 type ObstacleType = (typeof OBSTACLE_TYPES)[number];
@@ -218,6 +219,7 @@ const GROUP_KINDS = [
   "window_single_a",
   "window_double_a",
   "window_double_b",
+  "cat",
 ] as const;
 
 type GroupKind = (typeof GROUP_KINDS)[number];
@@ -295,7 +297,7 @@ function groupedDecorFromLevel(level: LevelData): { idx: number; kind: GroupKind
 
     used.add(k);
 
-    if (t === "plant_a" || t === "plant_b" || t === "shelf_a" || t === "shelf_b" || t === "bookshelf" || t === "stool" || t === "chair_l" || t === "chair_r" || t === "table_single") {
+    if (t === "plant_a" || t === "plant_b" || t === "shelf_a" || t === "shelf_b" || t === "bookshelf" || t === "stool" || t === "chair_l" || t === "chair_r" || t === "table_single" || t === "cat") {
       out.push({ idx: posToIndex(x, y, w), kind: t });
       continue;
     }

@@ -88,6 +88,9 @@ wallRightCorner.src = "/src/assets/wall_right_corner.png";
 const glorboSpriteSheet = new Image();
 glorboSpriteSheet.src = "/src/assets/glorbo_sprite_sheet.png";
 
+const catAltSprite = new Image();
+catAltSprite.src = "/src/assets/cat-2.png";
+
 const hoverSprite = new Image();
 hoverSprite.src = "/src/assets/hover.png";
 
@@ -801,7 +804,12 @@ class GameRenderer {
       const obstacleSprite = sprites.obstacles[type as ObstacleId];
       if (!obstacleSprite) continue;
 
-      ctx.drawImage(obstacleSprite, px, py, TILE_SIZE, TILE_SIZE);
+      let spriteToDraw = obstacleSprite;
+      if (type === "cat") {
+        spriteToDraw = (this.animationFrame % 2 === 0 ? obstacleSprite : catAltSprite);
+      }
+
+      ctx.drawImage(spriteToDraw, px, py, TILE_SIZE, TILE_SIZE);
     }
 
     // draw drink stations
@@ -2224,6 +2232,13 @@ async function init() {
             ctx.drawImage(sprites.obstacles.table_l, ax * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
             ctx.drawImage(sprites.obstacles.table_m, (ax + 1) * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
             ctx.drawImage(sprites.obstacles.table_r, (ax + 2) * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          };
+        }
+        if (decorKind === "cat") {
+          const baseSprite = sprites.obstacles.cat ?? sprites.obstacles.plant_a;
+          return (ctx, tx, ty, animFrame) => {
+            const sprite = (animFrame % 2 === 0 ? baseSprite : catAltSprite);
+            ctx.drawImage(sprite, tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
           };
         }
         const sprite = sprites.obstacles[decorKind as ObstacleId] ?? sprites.obstacles.plant_a; // fallback

@@ -10,3 +10,5 @@ export const WOMP_SFX = "/audio/womp.mp3";
 
 export const MUSIC_VOLUME = 0.18;
 export const SFX_VOLUME = 0.75;
+export const PATH_TILE_SFX_VOLUME = 0.5;
+export const STEP_SFX_VOLUME = 0.5;

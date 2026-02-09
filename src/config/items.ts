@@ -16,7 +16,8 @@ export type ObstacleId =
   | "table_r"
   | "window_single_a"
   | "window_double_a"
-  | "window_double_b";
+  | "window_double_b"
+  | "cat";
 
 export interface DrinkConfig {
   id: DrinkId;
@@ -194,6 +195,13 @@ export const OBSTACLES: Record<ObstacleId, ObstacleConfig> = {
     width: 2,
     placeable: false, // top wall only, spans 2 tiles
   },
+  cat: {
+    id: "cat",
+    name: "cat",
+  spritePath: "/src/assets/cat-1.png",
+    width: 1,
+    placeable: true,
+  },
 };
 
 // Obstacle types that can be placed on the top wall (y === 0) in builder; click cycles through these.
@@ -240,7 +248,8 @@ export const PLACEABLE_DECOR: DecorKind[] = [
   "stool",
   "chair_l",
   "chair_r",
-  "table_single"
+  "table_single",
+  "cat"
 ];
 
 export const ALL_DRINK_IDS: DrinkId[] = Object.keys(DRINKS) as DrinkId[];
