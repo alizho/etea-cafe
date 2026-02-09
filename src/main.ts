@@ -636,6 +636,17 @@ class GameRenderer {
     this.updateUI();
   }
 
+  public getPath(): Pos[] {
+    return this.state.path;
+  }
+
+  public getLevelDimensions(): { width: number; height: number } {
+    return {
+      width: this.state.level.width,
+      height: this.state.level.height,
+    };
+  }
+
   private startSimulation() {
     if (this.uiMode === 'build') return;
     if (this.simInterval) {
@@ -1262,10 +1273,15 @@ async function init() {
 
       // show success popup on every playthrough
       const isCustom = currentMode === 'custom';
+      const path = renderer.getPath();
+      const { width, height } = renderer.getLevelDimensions();
       showSuccessPopup(
         dayNumber,
         moves,
         currentLevelId,
+        path,
+        width,
+        height,
         optimalMoves,
         viewOptimalCallback,
         isCustom
@@ -1274,10 +1290,15 @@ async function init() {
       console.error('Error submitting run:', error);
       // still show popup even if API call fails
       const isCustom = currentMode === 'custom';
+      const path = renderer.getPath();
+      const { width, height } = renderer.getLevelDimensions();
       showSuccessPopup(
         dayNumber,
         moves,
         currentLevelId,
+        path,
+        width,
+        height,
         optimalMoves,
         viewOptimalCallback,
         isCustom

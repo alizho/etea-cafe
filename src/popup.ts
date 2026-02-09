@@ -1,4 +1,5 @@
 import { getAllScoresForLevel } from './supabase/api';
+import type { Pos } from './engine/types';
 
 function createScoreGraph(allScores: number[], userScore: number, container: HTMLElement): void {
   container.innerHTML = '';
@@ -154,6 +155,34 @@ function createScoreGraph(allScores: number[], userScore: number, container: HTM
   redraw();
 }
 
+function generateShareText(
+  score: number,
+  path: Pos[],
+  width: number,
+  height: number,
+  dayNumber: number
+): string {
+  if (path.length === 0) {
+    return `https://etea.cafe day ${dayNumber} — ${score} moves`;
+  }
+
+  // create grid
+  const grid: string[][] = [];
+  for (let y = 0; y < height; y++) {
+    const row: string[] = [];
+    for (let x = 0; x < width; x++) {
+      const isOnPath = path.some((pos) => pos.x === x && pos.y === y);
+      row.push(isOnPath ? '🟪' : '⬜');
+    }
+    grid.push(row);
+  }
+
+  // join grid into string
+  const gridStr = grid.map((row) => row.join('')).join('\n');
+
+  return `https://etea.cafe day ${dayNumber} -- ${score} moves\n\n${gridStr}`;
+}
+
 // determine message based on score vs BFS optimal and other players
 function getScoreMessage(
   userScore: number,
@@ -201,6 +230,9 @@ export function showSuccessPopup(
   dayNumber: number,
   score: number,
   levelId: string,
+  path: Pos[],
+  width: number,
+  height: number,
   optimalMoves?: number,
   onViewOptimal?: () => void,
   hideGraph?: boolean
@@ -253,6 +285,43 @@ export function showSuccessPopup(
     } else {
       viewOptimalBtn.style.display = 'none';
     }
+  }
+
+  const shareBtn = document.getElementById('success-popup-share-btn');
+  if (shareBtn) {
+    shareBtn.addEventListener('click', async () => {
+      const shareText = generateShareText(score, path, width, height, dayNumber);
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(shareText);
+          const originalText = shareBtn.textContent;
+          shareBtn.textContent = 'copied!';
+          setTimeout(() => {
+            shareBtn.textContent = originalText;
+          }, 2000);
+        } else { // clipboard fallback 
+          const ta = document.createElement('textarea');
+          ta.value = shareText;
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          ta.style.top = '0';
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          const ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          if (ok) {
+            const originalText = shareBtn.textContent;
+            shareBtn.textContent = 'copied!';
+            setTimeout(() => {
+              shareBtn.textContent = originalText;
+            }, 2000);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
+    });
   }
 
   // hide or show the distribution section
