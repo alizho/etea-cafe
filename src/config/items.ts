@@ -6,10 +6,17 @@ export type ObstacleId =
   | "plant_two"
   | "shelf_a"
   | "table_single"
+  | "shelf_b"
+  | "bookshelf"
+  | "stool"
+  | "chair_l"
+  | "chair_r"
   | "table_l"
   | "table_m"
   | "table_r"
-  | "window_single_a";
+  | "window_single_a"
+  | "window_double_a"
+  | "window_double_b";
 
 export interface DrinkConfig {
   id: DrinkId;
@@ -103,6 +110,41 @@ export const OBSTACLES: Record<ObstacleId, ObstacleConfig> = {
     width: 1,
     placeable: true,
   },
+  shelf_b: {
+    id: "shelf_b",
+    name: "shelf_b",
+    spritePath: "/src/assets/shelf_b.png",
+    width: 1,
+    placeable: true,
+  },
+  bookshelf: {
+    id: "bookshelf",
+    name: "bookshelf",
+    spritePath: "/src/assets/bookshelf.png",
+    width: 1,
+    placeable: true,
+  },
+  stool: {
+    id: "stool",
+    name: "stool",
+    spritePath: "/src/assets/stool.png",
+    width: 1,
+    placeable: true,
+  },
+  chair_l: {
+    id: "chair_l",
+    name: "chair_l",
+    spritePath: "/src/assets/chair_l.png",
+    width: 1,
+    placeable: true,
+  },
+  chair_r: {
+    id: "chair_r",
+    name: "chair_r",
+    spritePath: "/src/assets/chair_r.png",
+    width: 1,
+    placeable: true,
+  },
   table_single: {
     id: "table_single",
     name: "table_single",
@@ -138,7 +180,34 @@ export const OBSTACLES: Record<ObstacleId, ObstacleConfig> = {
     width: 1,
     placeable: false, // top wall only
   },
+  window_double_a: {
+    id: "window_double_a",
+    name: "window_double_a",
+    spritePath: "/src/assets/window_double_a.png",
+    width: 2,
+    placeable: false, // top wall only, spans 2 tiles
+  },
+  window_double_b: {
+    id: "window_double_b",
+    name: "window_double_b",
+    spritePath: "/src/assets/window_double_b.png",
+    width: 2,
+    placeable: false, // top wall only, spans 2 tiles
+  },
 };
+
+// Obstacle types that can be placed on the top wall (y === 0) in builder; click cycles through these.
+export const WALL_DECOR_TYPES: ObstacleId[] = [
+  "window_single_a",
+  "window_double_a",
+  "window_double_b",
+  "shelf_a",
+  "shelf_b",
+];
+
+export function isWallDecorType(type: ObstacleId): boolean {
+  return (WALL_DECOR_TYPES as readonly ObstacleId[]).includes(type);
+}
 
 export const CUSTOMERS: Record<CustomerId, CustomerConfig> = {
   A: {
@@ -167,9 +236,11 @@ export const PLACEABLE_DECOR: DecorKind[] = [
   "plant_a",
   "plant_b",
   "plant_two",
-  "shelf_a",
-  "table_single",
-  "table_triple",
+  "bookshelf",
+  "stool",
+  "chair_l",
+  "chair_r",
+  "table_single"
 ];
 
 export const ALL_DRINK_IDS: DrinkId[] = Object.keys(DRINKS) as DrinkId[];
@@ -255,9 +326,10 @@ export function getCustomerConfig(id: CustomerId): CustomerConfig {
 export function getDecorWidth(kind: DecorKind): number {
   if (kind === "plant_two") return 2;
   if (kind === "table_triple") return 3;
+  if (kind === "window_double_a" || kind === "window_double_b") return 2;
   return 1;
 }
 
 export function isMultiTileDecor(kind: DecorKind): boolean {
-  return kind === "plant_two" || kind === "table_triple";
+  return kind === "plant_two" || kind === "table_triple" || kind === "window_double_a" || kind === "window_double_b";
 }

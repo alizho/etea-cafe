@@ -5,12 +5,19 @@ const OBSTACLE_TYPES = [
   "plant_a",
   "plant_b",
   "plant_two",
-  "shelf_a",
   "table_single",
+  "shelf_a",
+  "shelf_b",
+  "bookshelf",
+  "stool",
+  "chair_l",
+  "chair_r",
   "table_l",
   "table_m",
   "table_r",
   "window_single_a",
+  "window_double_a",
+  "window_double_b",
 ] as const;
 
 type ObstacleType = (typeof OBSTACLE_TYPES)[number];
@@ -171,7 +178,7 @@ async function deflateIfAvailable(bytes: Uint8Array): Promise<Uint8Array> {
 }
 
 async function inflateMaybe(bytes: Uint8Array): Promise<Uint8Array> {
-  if (bytes.length >= 2 && (bytes[0] === 0x04 || bytes[0] === 0x05)) return bytes;
+  if (bytes.length >= 2 && (bytes[0] === 0x04 || bytes[0] === 0x05 || bytes[0] === 0x06)) return bytes;
   if (typeof (globalThis as any).DecompressionStream !== "function") return bytes;
   try {
     const ds = new (globalThis as any).DecompressionStream("deflate");
@@ -200,13 +207,23 @@ const GROUP_KINDS = [
   "plant_a",
   "plant_b",
   "shelf_a",
+  "shelf_b",
+  "bookshelf",
+  "stool",
+  "chair_l",
+  "chair_r",
   "table_single",
   "plant_two",
   "table_triple",
   "window_single_a",
+  "window_double_a",
+  "window_double_b",
 ] as const;
 
 type GroupKind = (typeof GROUP_KINDS)[number];
+
+const GROUP_KIND_BITS_V5 = 3;
+const GROUP_KIND_BITS_V6 = 4;
 
 const groupKindToBits = (kind: GroupKind): number => {
   const idx = GROUP_KINDS.indexOf(kind);
@@ -214,7 +231,8 @@ const groupKindToBits = (kind: GroupKind): number => {
   return idx;
 };
 
-const bitsToGroupKind = (bits: number): GroupKind | null => {
+const bitsToGroupKind = (bits: number, maxIndex: number): GroupKind | null => {
+  if (bits < 0 || bits > maxIndex) return null;
   return (GROUP_KINDS[bits] as GroupKind | undefined) ?? null;
 };
 
@@ -277,7 +295,7 @@ function groupedDecorFromLevel(level: LevelData): { idx: number; kind: GroupKind
 
     used.add(k);
 
-    if (t === "plant_a" || t === "plant_b" || t === "shelf_a" || t === "table_single") {
+    if (t === "plant_a" || t === "plant_b" || t === "shelf_a" || t === "shelf_b" || t === "bookshelf" || t === "stool" || t === "chair_l" || t === "chair_r" || t === "table_single") {
       out.push({ idx: posToIndex(x, y, w), kind: t });
       continue;
     }
@@ -285,6 +303,26 @@ function groupedDecorFromLevel(level: LevelData): { idx: number; kind: GroupKind
     if (t === "window_single_a") {
       out.push({ idx: posToIndex(x, y, w), kind: "window_single_a" });
       continue;
+    }
+    if (t === "window_double_a") {
+      const rightKey = `${x + 1},${y}`;
+      if (map.get(rightKey) === "window_double_a") {
+        used.add(k);
+        used.add(rightKey);
+        out.push({ idx: posToIndex(x, y, w), kind: "window_double_a" });
+        continue;
+      }
+      throw new Error("invalid window_double_a grouping");
+    }
+    if (t === "window_double_b") {
+      const rightKey = `${x + 1},${y}`;
+      if (map.get(rightKey) === "window_double_b") {
+        used.add(k);
+        used.add(rightKey);
+        out.push({ idx: posToIndex(x, y, w), kind: "window_double_b" });
+        continue;
+      }
+      throw new Error("invalid window_double_b grouping");
     }
 
     throw new Error(`unsupported obstacle type: ${t}`);
@@ -426,7 +464,94 @@ function encodeV5(level: LevelData): Uint8Array {
   for (const g of grouped) {
     if (g.idx < 0 || g.idx >= cellCount) throw new Error("obstacle out of bounds");
     bw.write(g.idx, indexBits);
-    bw.write(groupKindToBits(g.kind), 3);
+    bw.write(groupKindToBits(g.kind), GROUP_KIND_BITS_V5);
+  }
+
+  bw.write(stations.length, 8);
+  for (const s of stations) {
+    const d = s.drink as DrinkType;
+    const idx = posToIndex(clampInt(s.x), clampInt(s.y), w);
+    if (idx < 0 || idx >= cellCount) throw new Error("drink station out of bounds");
+    bw.write(idx, indexBits);
+    bw.write(idxOrThrow(DRINKS, d, "drink"), 3);
+  }
+
+  for (const id of CUSTOMER_IDS) {
+    const c = customerById.get(id)!;
+    const idx = posToIndex(clampInt(c.x), clampInt(c.y), w);
+    if (idx < 0 || idx >= cellCount) throw new Error("customer out of bounds");
+    bw.write(idx, indexBits);
+    bw.write(idxOrThrow(STAND_DIRS, c.standHere as StandDir, "stand"), 2);
+  }
+
+  for (const id of CUSTOMER_IDS) {
+    const a = orders[id][0] ?? "D1";
+    const b = orders[id][1] ?? "";
+    bw.write(idxOrThrow(DRINKS, a, "order"), 3);
+    bw.write(b ? 1 : 0, 1);
+    if (b) bw.write(idxOrThrow(DRINKS, b, "order"), 3);
+  }
+
+  const body = bw.finish();
+  const out = new Uint8Array(header.length + body.length);
+  out.set(header, 0);
+  out.set(body, header.length);
+  return out;
+}
+
+function encodeV6(level: LevelData): Uint8Array {
+  const w = clampInt(level.width);
+  const h = clampInt(level.height);
+
+  if (w < 1 || w > 32 || h < 1 || h > 32) {
+    throw new Error("share supports sizes 1–32 only");
+  }
+
+  const cellCount = w * h;
+  if (cellCount < 1 || cellCount > 1024) {
+    throw new Error("share supports up to 32×32 (1024) tiles");
+  }
+
+  const indexBits = bitsNeeded(cellCount);
+  if (indexBits < 1 || indexBits > 16) {
+    throw new Error("unsupported share index width");
+  }
+
+  const startX = clampInt(level.start?.x ?? 0);
+  const startY = clampInt(level.start?.y ?? 0);
+  const startIdx = posToIndex(startX, startY, w);
+  if (startIdx < 0 || startIdx >= cellCount) {
+    throw new Error("start is out of bounds");
+  }
+
+  const grouped = groupedDecorFromLevel(level);
+  const stations = level.drinkStations ?? [];
+  const customers = level.customers ?? [];
+
+  assertCountFitsByte(grouped.length, "grouped obstacles");
+  assertCountFitsByte(stations.length, "drink stations");
+
+  const customerById = new Map<CustomerId, (typeof customers)[number]>();
+  for (const c of customers) customerById.set(c.id as CustomerId, c);
+  for (const id of CUSTOMER_IDS) {
+    if (!customerById.get(id)) throw new Error(`missing customer ${id}`);
+  }
+
+  const orders = ensureOrders(level);
+
+  const bw = new BitWriter();
+  const header = new Uint8Array([0x06]);
+
+  bw.write(w - 1, 5);
+  bw.write(h - 1, 5);
+  bw.write(indexBits - 1, 4);
+  bw.write(startIdx, indexBits);
+
+  bw.write(grouped.length, 8);
+  for (const g of grouped) {
+    if (g.idx < 0 || g.idx >= cellCount) throw new Error("obstacle out of bounds");
+    bw.write(g.idx, indexBits);
+    bw.write(groupKindToBits(g.kind), GROUP_KIND_BITS_V6);
   }
 
   bw.write(stations.length, 8);
@@ -483,7 +608,7 @@ function decodeV4Bytes(bytes: Uint8Array): LevelData | null {
     const idx = br.read(8);
     const kindBits = br.read(3);
     if (idx === null || kindBits === null) return null;
-    const kind = bitsToGroupKind(kindBits);
+    const kind = bitsToGroupKind(kindBits, (1 << GROUP_KIND_BITS_V5) - 1);
     if (!kind) return null;
     const p = indexToPos(idx, w);
 
@@ -497,6 +622,11 @@ function decodeV4Bytes(bytes: Uint8Array): LevelData | null {
       obstacles.push(
         { x: p.x, y: p.y, type: "plant_two" },
         { x: p.x + 1, y: p.y, type: "plant_two" },
+      );
+    } else if (kind === "window_double_a" || kind === "window_double_b") {
+      obstacles.push(
+        { x: p.x, y: p.y, type: kind },
+        { x: p.x + 1, y: p.y, type: kind },
       );
     } else {
       obstacles.push({ x: p.x, y: p.y, type: kind });
@@ -597,7 +727,7 @@ function decodeV5Bytes(bytes: Uint8Array): LevelData | null {
     const kindBits = br.read(3);
     if (idx === null || kindBits === null) return null;
     if (idx >= cellCount) return null;
-    const kind = bitsToGroupKind(kindBits);
+    const kind = bitsToGroupKind(kindBits, (1 << GROUP_KIND_BITS_V5) - 1);
     if (!kind) return null;
     const p = indexToPos(idx, w);
     if (p.x < 0 || p.x >= w || p.y < 0 || p.y >= h) return null;
@@ -612,6 +742,134 @@ function decodeV5Bytes(bytes: Uint8Array): LevelData | null {
       obstacles.push(
         { x: p.x, y: p.y, type: "plant_two" },
         { x: p.x + 1, y: p.y, type: "plant_two" },
+      );
+    } else if (kind === "window_double_a" || kind === "window_double_b") {
+      obstacles.push(
+        { x: p.x, y: p.y, type: kind },
+        { x: p.x + 1, y: p.y, type: kind },
+      );
+    } else {
+      obstacles.push({ x: p.x, y: p.y, type: kind });
+    }
+  }
+
+  const stCount = br.read(8);
+  if (stCount === null) return null;
+  const drinkStations: LevelData["drinkStations"] = [];
+  for (let i = 0; i < stCount; i++) {
+    const idx = br.read(indexBits);
+    const dIdx = br.read(3);
+    if (idx === null || dIdx === null) return null;
+    if (idx >= cellCount) return null;
+    const drink = DRINKS[dIdx];
+    if (!drink) return null;
+    const p = indexToPos(idx, w);
+    drinkStations.push({ x: p.x, y: p.y, drink });
+  }
+
+  const customers: LevelData["customers"] = [];
+  for (const id of CUSTOMER_IDS) {
+    const idx = br.read(indexBits);
+    const standIdx = br.read(2);
+    if (idx === null || standIdx === null) return null;
+    if (idx >= cellCount) return null;
+    const standHere = STAND_DIRS[standIdx];
+    if (!standHere) return null;
+    const p = indexToPos(idx, w);
+    customers.push({ x: p.x, y: p.y, id, standHere });
+  }
+
+  const orders: Record<CustomerId, DrinkId[]> = {
+    A: ["D1"],
+    B: ["D1"],
+    C: ["D1"],
+  };
+  for (const id of CUSTOMER_IDS) {
+    const aIdx = br.read(3);
+    const has2 = br.read(1);
+    if (aIdx === null || has2 === null) return null;
+    const a = (DRINKS[aIdx] ?? "D1") as DrinkId;
+    if (has2) {
+      const bIdx = br.read(3);
+      if (bIdx === null) return null;
+      const b = (DRINKS[bIdx] ?? "D1") as DrinkId;
+      orders[id] = [a, b];
+    } else {
+      orders[id] = [a];
+    }
+  }
+
+  const walls = buildBorderWalls(w, h, start);
+  return {
+    id: "shared",
+    width: w,
+    height: h,
+    start,
+    walls,
+    obstacles,
+    drinkStations,
+    customers,
+    orders,
+  };
+}
+
+function decodeV6Bytes(bytes: Uint8Array): LevelData | null {
+  if (bytes.length < 2 || bytes[0] !== 0x06) return null;
+  const br = new BitReader(bytes.slice(1));
+
+  const wMinus1 = br.read(5);
+  const hMinus1 = br.read(5);
+  const indexBitsMinus1 = br.read(4);
+  if (wMinus1 === null || hMinus1 === null || indexBitsMinus1 === null) return null;
+
+  const w = wMinus1 + 1;
+  const h = hMinus1 + 1;
+  const indexBits = indexBitsMinus1 + 1;
+
+  if (w < 1 || w > 32 || h < 1 || h > 32) return null;
+  if (indexBits < 1 || indexBits > 16) return null;
+
+  const cellCount = w * h;
+  if (cellCount < 1 || cellCount > 1024) return null;
+  if (cellCount > (1 << Math.min(indexBits, 30))) {
+    return null;
+  }
+
+  const startIdx = br.read(indexBits);
+  if (startIdx === null || startIdx >= cellCount) return null;
+  const start = indexToPos(startIdx, w);
+  if (start.x < 0 || start.x >= w || start.y < 0 || start.y >= h) return null;
+
+  const groupedCount = br.read(8);
+  if (groupedCount === null) return null;
+
+  const obstacles: LevelData["obstacles"] = [];
+  const maxKindIndex = (1 << GROUP_KIND_BITS_V6) - 1;
+  for (let i = 0; i < groupedCount; i++) {
+    const idx = br.read(indexBits);
+    const kindBits = br.read(GROUP_KIND_BITS_V6);
+    if (idx === null || kindBits === null) return null;
+    if (idx >= cellCount) return null;
+    const kind = bitsToGroupKind(kindBits, maxKindIndex);
+    if (!kind) return null;
+    const p = indexToPos(idx, w);
+    if (p.x < 0 || p.x >= w || p.y < 0 || p.y >= h) return null;
+
+    if (kind === "table_triple") {
+      obstacles.push(
+        { x: p.x, y: p.y, type: "table_l" },
+        { x: p.x + 1, y: p.y, type: "table_m" },
+        { x: p.x + 2, y: p.y, type: "table_r" },
+      );
+    } else if (kind === "plant_two") {
+      obstacles.push(
+        { x: p.x, y: p.y, type: "plant_two" },
+        { x: p.x + 1, y: p.y, type: "plant_two" },
+      );
+    } else if (kind === "window_double_a" || kind === "window_double_b") {
+      obstacles.push(
+        { x: p.x, y: p.y, type: kind },
+        { x: p.x + 1, y: p.y, type: kind },
       );
     } else {
       obstacles.push({ x: p.x, y: p.y, type: kind });
@@ -681,7 +939,7 @@ function decodeV5Bytes(bytes: Uint8Array): LevelData | null {
 export async function encodeLevelShareToken(level: LevelData): Promise<string> {
   const w = clampInt(level.width);
   const h = clampInt(level.height);
-  const raw = (w >= 6 && w <= 12 && h >= 6 && h <= 12) ? encodeV4(level) : encodeV5(level);
+  const raw = (w >= 6 && w <= 12 && h >= 6 && h <= 12) ? encodeV4(level) : encodeV6(level);
   const maybeCompressed = await deflateIfAvailable(raw);
   return `~${bytesToBase64Url(maybeCompressed)}`;
 }
@@ -694,10 +952,11 @@ export async function decodeLevelShareToken(token: string): Promise<LevelData | 
   if (!b) return null;
   const maybeInflated = await inflateMaybe(b);
 
-  const looksRaw = maybeInflated[0] === 0x04 || maybeInflated[0] === 0x05;
+  const looksRaw = maybeInflated[0] === 0x04 || maybeInflated[0] === 0x05 || maybeInflated[0] === 0x06;
   const raw = looksRaw ? maybeInflated : b;
   if (raw[0] === 0x04) return decodeV4Bytes(raw);
   if (raw[0] === 0x05) return decodeV5Bytes(raw);
+  if (raw[0] === 0x06) return decodeV6Bytes(raw);
   return null;
 }
 

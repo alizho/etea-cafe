@@ -30,6 +30,8 @@ import {
   PLACEABLE_DECOR,
   ALL_DRINK_IDS,
   getDecorWidth,
+  WALL_DECOR_TYPES,
+  isWallDecorType,
 } from "./config/items";
 
 const HAMMER_SFX_URL = "/audio/hammer.mp3";
@@ -753,25 +755,36 @@ class GameRenderer {
 
     // draw obstacles
 
-    const plantTwoXsByRow = new Map<number, number[]>();
+    const twoTileTypes = ["plant_two", "window_double_a", "window_double_b"] as const;
+    const twoTileByRow = new Map<string, Map<string, number[]>>();
+    for (const t of twoTileTypes) {
+      twoTileByRow.set(t, new Map());
+    }
     for (const [key, type] of Object.entries(level.obstacles)) {
-      if (type !== "plant_two") continue;
+      if (!twoTileTypes.includes(type as typeof twoTileTypes[number])) continue;
       const [x, y] = key.split(",").map(Number);
-      const xs = plantTwoXsByRow.get(y) ?? [];
+      const byRow = twoTileByRow.get(type as typeof twoTileTypes[number])!;
+      const xs = byRow.get(String(y)) ?? [];
       xs.push(x);
-      plantTwoXsByRow.set(y, xs);
+      byRow.set(String(y), xs);
     }
 
-    for (const [y, xsRaw] of plantTwoXsByRow.entries()) {
-      const xs = Array.from(new Set(xsRaw)).sort((a, b) => a - b);
-      for (let i = 0; i < xs.length - 1; ) {
-        const x = xs[i]!;
-        const x2 = xs[i + 1]!;
-        if (x2 === x + 1) {
-          ctx.drawImage(sprites.obstacles.plant_two, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE);
-          i += 2;
-        } else {
-          i += 1;
+    for (const t of twoTileTypes) {
+      const byRow = twoTileByRow.get(t)!;
+      const sprite = sprites.obstacles[t as ObstacleId];
+      if (!sprite) continue;
+      for (const [yStr, xsRaw] of byRow.entries()) {
+        const y = Number(yStr);
+        const xs = Array.from(new Set(xsRaw)).sort((a, b) => a - b);
+        for (let i = 0; i < xs.length - 1; ) {
+          const x = xs[i]!;
+          const x2 = xs[i + 1]!;
+          if (x2 === x + 1) {
+            ctx.drawImage(sprite, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE);
+            i += 2;
+          } else {
+            i += 1;
+          }
         }
       }
     }
@@ -781,7 +794,7 @@ class GameRenderer {
       const px = x * TILE_SIZE;
       const py = y * TILE_SIZE;
 
-      if (type === "plant_two") continue;
+      if (twoTileTypes.includes(type as typeof twoTileTypes[number])) continue;
 
       const obstacleSprite = sprites.obstacles[type as ObstacleId];
       if (!obstacleSprite) continue;
@@ -1555,9 +1568,9 @@ async function init() {
     const inB = (p: Pos) => inBounds(builderData.width, builderData.height, p);
     const startKey = posKey(builderData.start);
 
-    // special case for windows
-    const topBorderWindows: { x: number; y: number; type: ObstacleId }[] = [];
-    const topBorderWindowsSet = new Set<string>();
+    // special case for wall decor (top row only)
+    const topBorderWallDecor: { x: number; y: number; type: ObstacleId }[] = [];
+    const topBorderWallDecorSet = new Set<string>();
 
     const byKey = new Map<string, ObstacleId>();
     for (const o of builderData.obstacles) {
@@ -1565,15 +1578,15 @@ async function init() {
       if (!inB(p)) continue;
       if (isBorderTile(builderData.width, builderData.height, p)) {
         if (
-          o.type === "window_single_a" &&
           p.y === 0 &&
           p.x > 0 &&
-          p.x < builderData.width - 1
+          p.x < builderData.width - 1 &&
+          isWallDecorType(o.type as ObstacleId)
         ) {
           const key = posKey(p);
-          if (key !== startKey && !topBorderWindowsSet.has(key)) {
-            topBorderWindowsSet.add(key);
-            topBorderWindows.push({ x: p.x, y: p.y, type: "window_single_a" });
+          if (key !== startKey && !topBorderWallDecorSet.has(key)) {
+            topBorderWallDecorSet.add(key);
+            topBorderWallDecor.push({ x: p.x, y: p.y, type: o.type as ObstacleId });
           }
         }
         continue;
@@ -1622,14 +1635,14 @@ async function init() {
       }
     }
 
-    // 1x1 stuff (keep anything not part of a multi-tile group or window)
+    // 1x1 stuff (keep anything not part of a multi-tile group or wall decor)
     for (const [key, type] of byKey.entries()) {
       if (
         type !== "plant_two" &&
         type !== "table_l" &&
         type !== "table_m" &&
         type !== "table_r" &&
-        type !== "window_single_a"
+        !isWallDecorType(type as ObstacleId)
       ) {
         keep.add(key);
       }
@@ -1641,7 +1654,7 @@ async function init() {
       return { x, y, type };
     });
 
-    builderData.obstacles = [...interior, ...topBorderWindows];
+    builderData.obstacles = [...interior, ...topBorderWallDecor];
   };
 
   const isValidStandTile = (p: Pos): boolean => {
@@ -1685,7 +1698,7 @@ async function init() {
       const isBorder = isBorderTile(w, h, { x: o.x, y: o.y });
       if (!isBorder) return true;
 
-      return o.type === "window_single_a" && o.y === 0 && o.x > 0 && o.x < w - 1;
+      return isWallDecorType(o.type as ObstacleId) && o.y === 0 && o.x > 0 && o.x < w - 1;
     });
 
     const wallSet = new Set(builderData.walls.map((wall) => `${wall.x},${wall.y}`));
@@ -1714,12 +1727,11 @@ async function init() {
     if (!o) return [p];
     const type = o.type as ObstacleId;
 
-    if (type === "plant_two") {
+    const twoTileGroup = (t: ObstacleId): Pos[] => {
       const xs = builderData.obstacles
-        .filter((ob) => ob.type === "plant_two" && ob.y === p.y)
+        .filter((ob) => ob.type === t && ob.y === p.y)
         .map((ob) => ob.x)
         .sort((a, b) => a - b);
-
       for (let i = 0; i < xs.length - 1; ) {
         const x = xs[i]!;
         const x2 = xs[i + 1]!;
@@ -1730,9 +1742,12 @@ async function init() {
           i += 1;
         }
       }
-
       return [p];
-    }
+    };
+
+    if (type === "plant_two") return twoTileGroup("plant_two");
+    if (type === "window_double_a") return twoTileGroup("window_double_a");
+    if (type === "window_double_b") return twoTileGroup("window_double_b");
 
     if (type === "table_l") return [p, { x: p.x + 1, y: p.y }, { x: p.x + 2, y: p.y }];
     if (type === "table_m") return [{ x: p.x - 1, y: p.y }, p, { x: p.x + 1, y: p.y }];
@@ -1779,7 +1794,7 @@ async function init() {
     if (isBorderTile(builderData.width, builderData.height, p)) return false;
     if (posKey(p) === posKey(builderData.start)) return false;
 
-    if (kind === "window_single_a") return false;
+    if (isWallDecorType(kind as ObstacleId)) return false;
 
     if (kind === "plant_two") {
       const right = { x: p.x + 1, y: p.y };
@@ -1822,7 +1837,7 @@ async function init() {
       return fail("can’t place decor on start");
     }
 
-    if (kind === "window_single_a") {
+    if (isWallDecorType(kind as ObstacleId)) {
       return fail("windows can only go on the top wall");
     }
 
@@ -1909,28 +1924,46 @@ async function init() {
     return null;
   };
 
-  const toggleWindowAtTopBorder = (p: Pos) => {
+  const cycleWallDecorAt = (p: Pos) => {
     if (p.y !== 0 || p.x <= 0 || p.x >= builderData.width - 1) {
-      setBuilderStatus("windows only go on the top wall (not corners)");
+      setBuilderStatus("wall items only go on the top wall (not corners)");
       return;
     }
-    //  overlay window on wall
-    const key = posKey(p);
-    const hasWindow = obstacleAt(p)?.type === "window_single_a";
-    if (hasWindow) {
-      builderData.obstacles = builderData.obstacles.filter(
-        (o) => `${o.x},${o.y}` !== key,
-      );
-      return;
-    }
+    const current = obstacleAt(p);
+    const currentType = current?.type as ObstacleId | undefined;
+    const currentIndex =
+      currentType != null ? WALL_DECOR_TYPES.indexOf(currentType) : -1;
+    const nextIndex = currentIndex < WALL_DECOR_TYPES.length - 1 ? currentIndex + 1 : -1;
 
+    // Remove current: for 2-tile wall decor, remove both tiles
+    const toRemove = getObstacleGroupAt(p);
+    const keysToRemove = new Set(toRemove.map(posKey));
     builderData.obstacles = builderData.obstacles.filter(
-      (o) => `${o.x},${o.y}` !== key,
+      (o) => !keysToRemove.has(`${o.x},${o.y}`),
     );
-    builderData.obstacles = [
-      ...builderData.obstacles,
-      { x: p.x, y: p.y, type: "window_single_a" },
-    ];
+
+    if (nextIndex >= 0) {
+      const nextType = WALL_DECOR_TYPES[nextIndex];
+      if (!nextType) return;
+      const width = getDecorWidth(nextType);
+      // For 2-tile types, right tile must not be the corner (p.x + width - 1 < width - 1 => p.x < 1 for width 2, so p.x must be 0... no: corner is at x = width-1, so we need p.x + width - 1 <= width - 2, i.e. p.x + 1 < width - 1 for width 2, so p.x < builderData.width - 2)
+      if (width === 2 && p.x >= builderData.width - 2) {
+        setBuilderStatus("double window needs space: use a tile further left");
+        return;
+      }
+      if (width === 2) {
+        builderData.obstacles = [
+          ...builderData.obstacles,
+          { x: p.x, y: p.y, type: nextType },
+          { x: p.x + 1, y: p.y, type: nextType },
+        ];
+      } else {
+        builderData.obstacles = [
+          ...builderData.obstacles,
+          { x: p.x, y: p.y, type: nextType },
+        ];
+      }
+    }
   };
 
   const cycleDecorAt = (p: Pos) => {
@@ -2175,6 +2208,14 @@ async function init() {
             ctx.drawImage(sprites.obstacles.plant_two, ax, ty * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE);
           };
         }
+        if (decorKind === "window_double_a" || decorKind === "window_double_b") {
+          const sprite = sprites.obstacles[decorKind];
+          return (ctx, tx, ty) => {
+            if (!sprite) return;
+            const ax = (tx - clickOffset) * TILE_SIZE;
+            ctx.drawImage(sprite, ax, ty * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE);
+          };
+        }
         if (decorKind === "table_triple") {
           return (ctx, tx, ty) => {
             const ax = tx - clickOffset;
@@ -2221,7 +2262,7 @@ async function init() {
 
     // obstacle/decor (excluding border windows)
     const obstacle = obstacleAt(p);
-    if (obstacle && obstacle.type !== "window_single_a") {
+    if (obstacle && !isWallDecorType(obstacle.type as ObstacleId)) {
       const dKind = decorKindAt(p);
       if (dKind) {
         const group = getObstacleGroupAt(p);
@@ -2370,16 +2411,16 @@ async function init() {
     if (isBorderTile(builderData.width, builderData.height, p)) {
 
       if (p.y === 0 && builderTool === "decor") {
-        toggleWindowAtTopBorder(p);
+        cycleWallDecorAt(p);
         rebuildPreview();
         setBuilderStatus("edited! check again");
         return;
       }
 
-      // erase windows
+      // erase wall decor
       if (p.y === 0 && builderTool === "erase") {
-        if (obstacleAt(p)?.type === "window_single_a") {
-          toggleWindowAtTopBorder(p);
+        if (obstacleAt(p) && isWallDecorType(obstacleAt(p)!.type as ObstacleId)) {
+          cycleWallDecorAt(p);
           playHammerSfx();
           rebuildPreview();
           setBuilderStatus("edited! check again");

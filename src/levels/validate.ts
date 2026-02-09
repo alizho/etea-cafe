@@ -1,5 +1,6 @@
 import type { CustomerId } from "../engine/types";
-import { ALL_CUSTOMER_IDS, ALL_DRINK_IDS } from "../config/items";
+import type { ObstacleId } from "../config/items";
+import { ALL_CUSTOMER_IDS, ALL_DRINK_IDS, isWallDecorType } from "../config/items";
 import type { LevelData } from "./level.schema";
 
 // builder mode checks b4 solver script lol
@@ -31,14 +32,14 @@ export function validateLevelData(data: LevelData): LevelValidation {
   for (const o of data.obstacles) {
     if (!inBounds(o.x, o.y)) errors.push(`obstacle out of bounds at (${o.x},${o.y})`);
     const key = k(o.x, o.y);
-    if (o.type === "window_single_a") {
+    if (isWallDecorType(o.type as ObstacleId)) {
       const isTopBorder = o.y === 0;
       const isNonCorner = o.x > 0 && o.x < data.width - 1;
       if (!isTopBorder || !isNonCorner) {
-        errors.push(`window must be on the top wall at (${o.x},${o.y})`);
+        errors.push(`wall item must be on the top wall at (${o.x},${o.y})`);
       }
       if (!wallSet.has(key)) {
-        errors.push(`window must overlap a wall at (${o.x},${o.y})`);
+        errors.push(`wall item must overlap a wall at (${o.x},${o.y})`);
       }
     } else if (wallSet.has(key)) {
       errors.push(`obstacle overlaps wall at (${o.x},${o.y})`);
