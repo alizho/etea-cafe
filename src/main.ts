@@ -663,8 +663,8 @@ class GameRenderer {
       this.state = stepSimulation(this.state);
       
       for (const customerId in prevOrders) {
-        if (prevOrders[customerId as keyof typeof prevOrders].length > 0 && 
-            this.state.remainingOrders[customerId as keyof typeof this.state.remainingOrders].length === 0) {
+        if (prevOrders[customerId as keyof typeof prevOrders].length > 
+            this.state.remainingOrders[customerId as keyof typeof this.state.remainingOrders].length) {
           playNiceSfx();
         }
       }
