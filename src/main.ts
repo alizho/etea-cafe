@@ -21,7 +21,7 @@ import { validateLevelData } from "./levels/validate";
 import { solveLevel } from "./engine/solver";
 import { pathImagesLoaded, renderPath, renderPathArrow, PATH_TINT_GREEN } from "./paths";
 import { TILE_SIZE } from "./config/constants";
-import { ensureAudioStartedOnFirstGesture, playPathTileSfx } from "./audio";
+import { ensureAudioStartedOnFirstGesture, playPathTileSfx, playStepSfx } from "./audio";
 import { initMenu } from "./menu";
 import {
   loadAllSprites,
@@ -641,8 +641,28 @@ class GameRenderer {
 
     if (this.state.status !== "running") return;
 
+    this.state = stepSimulation(this.state);
+    if (this.state.status === "running") {
+      playStepSfx();
+    }
+    this.render();
+    this.updateUI();
+
+    if (this.state.status !== "running") {
+      if (this.state.status === "failed") {
+        this.showFailurePopup();
+      } else if (this.state.status === "success" && this.onSuccess && !this.successHandled && !this.showingOptimalReplay) {
+        this.successHandled = true;
+        this.onSuccess(this.state.stepsTaken);
+      }
+      return;
+    }
+
     this.simInterval = window.setInterval(() => {
       this.state = stepSimulation(this.state);
+      if (this.state.status === "running") {
+        playStepSfx();
+      }
       this.render();
       this.updateUI();
 
