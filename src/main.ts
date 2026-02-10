@@ -2459,7 +2459,9 @@ async function init() {
       // erase wall decor
       if (p.y === 0 && builderTool === 'erase') {
         if (obstacleAt(p) && isWallDecorType(obstacleAt(p)!.type as ObstacleId)) {
-          cycleWallDecorAt(p);
+          const toRemove = getObstacleGroupAt(p);
+          const keysToRemove = new Set(toRemove.map(posKey));
+          builderData.obstacles = builderData.obstacles.filter((o) => !keysToRemove.has(`${o.x},${o.y}`));
           playHammerSfx();
           rebuildPreview();
           setBuilderStatus('edited! check again');
