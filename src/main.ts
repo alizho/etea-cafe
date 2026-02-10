@@ -1211,7 +1211,7 @@ async function init() {
       // extract day number from
       const dayMatch = levelData.id.match(/day-(\d+)/);
       const dayNumber = dayMatch ? parseInt(dayMatch[1], 10) : 1;
-      dayTextEl.textContent = `day ${dayNumber}`;
+      dayTextEl.textContent = `day ${dayNumber} playtest`;
     }
   }
 
@@ -1232,7 +1232,7 @@ async function init() {
     if (!dayTextEl) return;
     if (mode === 'shared') dayTextEl.textContent = 'shared level';
     else if (mode === 'custom') dayTextEl.textContent = 'your level';
-    else dayTextEl.textContent = `day ${dayNumber}`;
+    else dayTextEl.textContent = `day ${dayNumber} playtester ver`;
   };
 
   const applyLevelDataToRenderer = (
