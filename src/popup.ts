@@ -299,7 +299,8 @@ export function showSuccessPopup(
           setTimeout(() => {
             shareBtn.textContent = originalText;
           }, 2000);
-        } else { // clipboard fallback 
+        } else {
+          // clipboard fallback
           const ta = document.createElement('textarea');
           ta.value = shareText;
           ta.style.position = 'fixed';
