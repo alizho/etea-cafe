@@ -46,38 +46,38 @@ export const DRINKS: Record<DrinkId, DrinkConfig> = {
   D1: {
     id: 'D1',
     name: 'drink_a',
-    spritePath: '/src/assets/drink_a.png',
-    itemSpritePath: '/src/assets/drink_a_item.png',
-    pressedSpritePath: '/src/assets/drink_pressed.png',
+    spritePath: '/img/drink_a.png',
+    itemSpritePath: '/img/drink_a_item.png',
+    pressedSpritePath: '/img/drink_pressed.png',
     category: 'drink',
   },
   D2: {
     id: 'D2',
     name: 'drink_b',
-    spritePath: '/src/assets/drink_b.png',
-    itemSpritePath: '/src/assets/drink_b_item.png',
-    pressedSpritePath: '/src/assets/drink_pressed.png',
+    spritePath: '/img/drink_b.png',
+    itemSpritePath: '/img/drink_b_item.png',
+    pressedSpritePath: '/img/drink_pressed.png',
     category: 'drink',
   },
   F1: {
     id: 'F1',
     name: 'food_a',
-    spritePath: '/src/assets/food_a.png',
-    itemSpritePath: '/src/assets/food_a_item.png',
+    spritePath: '/img/food_a.png',
+    itemSpritePath: '/img/food_a_item.png',
     category: 'food',
   },
   F2: {
     id: 'F2',
     name: 'food_b',
-    spritePath: '/src/assets/food_b.png',
-    itemSpritePath: '/src/assets/food_b_item.png',
+    spritePath: '/img/food_b.png',
+    itemSpritePath: '/img/food_b_item.png',
     category: 'food',
   },
   F3: {
     id: 'F3',
     name: 'food_c',
-    spritePath: '/src/assets/food_c.png',
-    itemSpritePath: '/src/assets/food_c_item.png',
+    spritePath: '/img/food_c.png',
+    itemSpritePath: '/img/food_c_item.png',
     category: 'food',
   },
 };
@@ -86,119 +86,119 @@ export const OBSTACLES: Record<ObstacleId, ObstacleConfig> = {
   plant_a: {
     id: 'plant_a',
     name: 'plant_a',
-    spritePath: '/src/assets/plant_a.png',
+    spritePath: '/img/plant_a.png',
     width: 1,
     placeable: true,
   },
   plant_b: {
     id: 'plant_b',
     name: 'plant_b',
-    spritePath: '/src/assets/plant_b.png',
+    spritePath: '/img/plant_b.png',
     width: 1,
     placeable: true,
   },
   plant_two: {
     id: 'plant_two',
     name: 'plant_two',
-    spritePath: '/src/assets/plant_two.png',
+    spritePath: '/img/plant_two.png',
     width: 2,
     placeable: true,
   },
   shelf_a: {
     id: 'shelf_a',
     name: 'shelf_a',
-    spritePath: '/src/assets/shelf_a.png',
+    spritePath: '/img/shelf_a.png',
     width: 1,
     placeable: true,
   },
   shelf_b: {
     id: 'shelf_b',
     name: 'shelf_b',
-    spritePath: '/src/assets/shelf_b.png',
+    spritePath: '/img/shelf_b.png',
     width: 1,
     placeable: true,
   },
   bookshelf: {
     id: 'bookshelf',
     name: 'bookshelf',
-    spritePath: '/src/assets/bookshelf.png',
+    spritePath: '/img/bookshelf.png',
     width: 1,
     placeable: true,
   },
   stool: {
     id: 'stool',
     name: 'stool',
-    spritePath: '/src/assets/stool.png',
+    spritePath: '/img/stool.png',
     width: 1,
     placeable: true,
   },
   chair_l: {
     id: 'chair_l',
     name: 'chair_l',
-    spritePath: '/src/assets/chair_l.png',
+    spritePath: '/img/chair_l.png',
     width: 1,
     placeable: true,
   },
   chair_r: {
     id: 'chair_r',
     name: 'chair_r',
-    spritePath: '/src/assets/chair_r.png',
+    spritePath: '/img/chair_r.png',
     width: 1,
     placeable: true,
   },
   table_single: {
     id: 'table_single',
     name: 'table_single',
-    spritePath: '/src/assets/table_single.png',
+    spritePath: '/img/table_single.png',
     width: 1,
     placeable: true,
   },
   table_l: {
     id: 'table_l',
     name: 'table_l',
-    spritePath: '/src/assets/table_l.png',
+    spritePath: '/img/table_l.png',
     width: 1,
     placeable: false, // part of table_triple
   },
   table_m: {
     id: 'table_m',
     name: 'table_m',
-    spritePath: '/src/assets/table_m.png',
+    spritePath: '/img/table_m.png',
     width: 1,
     placeable: false, // part of table_triple
   },
   table_r: {
     id: 'table_r',
     name: 'table_r',
-    spritePath: '/src/assets/table_r.png',
+    spritePath: '/img/table_r.png',
     width: 1,
     placeable: false, // part of table_triple
   },
   window_single_a: {
     id: 'window_single_a',
     name: 'window_single_a',
-    spritePath: '/src/assets/window_single_a.png',
+    spritePath: '/img/window_single_a.png',
     width: 1,
     placeable: false, // top wall only
   },
   window_double_a: {
     id: 'window_double_a',
     name: 'window_double_a',
-    spritePath: '/src/assets/window_double_a.png',
+    spritePath: '/img/window_double_a.png',
     width: 2,
     placeable: false, // top wall only, spans 2 tiles
   },
   window_double_b: {
     id: 'window_double_b',
     name: 'window_double_b',
-    spritePath: '/src/assets/window_double_b.png',
+    spritePath: '/img/window_double_b.png',
     width: 2,
     placeable: false, // top wall only, spans 2 tiles
   },
   cat: {
     id: 'cat',
     name: 'cat',
-    spritePath: '/src/assets/cat-1.png',
+    spritePath: '/img/cat-1.png',
     width: 1,
     placeable: true,
   },
@@ -221,17 +221,17 @@ export const CUSTOMERS: Record<CustomerId, CustomerConfig> = {
   A: {
     id: 'A',
     name: 'customer_a',
-    spritePath: '/src/assets/customer_a.png',
+    spritePath: '/img/customer_a.png',
   },
   B: {
     id: 'B',
     name: 'customer_b',
-    spritePath: '/src/assets/customer_b.png',
+    spritePath: '/img/customer_b.png',
   },
   C: {
     id: 'C',
     name: 'customer_c',
-    spritePath: '/src/assets/customer_c.png',
+    spritePath: '/img/customer_c.png',
   },
 };
 
@@ -301,7 +301,7 @@ export async function loadAllSprites(): Promise<LoadedSprites> {
     return [id, img] as const;
   });
 
-  const drinkPressed = await loadImage('/src/assets/drink_pressed.png');
+  const drinkPressed = await loadImage('/img/drink_pressed.png');
 
   const [drinkResults, drinkItemResults, obstacleResults, customerResults] = await Promise.all([
     Promise.all(drinkPromises),

@@ -4,34 +4,34 @@ import { TILE_SIZE } from './config/constants';
 
 // sprites
 const pathH = new Image();
-pathH.src = '/src/assets/path_h.png';
+pathH.src = '/img/path_h.png';
 
 const pathHAlt = new Image();
-pathHAlt.src = '/src/assets/path_h_alt.png';
+pathHAlt.src = '/img/path_h_alt.png';
 
 const pathV = new Image();
-pathV.src = '/src/assets/path_v.png';
+pathV.src = '/img/path_v.png';
 
 const pathVAlt = new Image();
-pathVAlt.src = '/src/assets/path_v_alt.png';
+pathVAlt.src = '/img/path_v_alt.png';
 
 const pathCornerLD = new Image();
-pathCornerLD.src = '/src/assets/path_corner_ld.png';
+pathCornerLD.src = '/img/path_corner_ld.png';
 
 const pathCornerLDAlt = new Image();
-pathCornerLDAlt.src = '/src/assets/path_corner_ld_alt.png';
+pathCornerLDAlt.src = '/img/path_corner_ld_alt.png';
 
 const pathButt = new Image();
-pathButt.src = '/src/assets/path_butt.png';
+pathButt.src = '/img/path_butt.png';
 
 const pathButtAlt = new Image();
-pathButtAlt.src = '/src/assets/path_butt_alt.png';
+pathButtAlt.src = '/img/path_butt_alt.png';
 
 const pathArrow = new Image();
-pathArrow.src = '/src/assets/path_arrow.png';
+pathArrow.src = '/img/path_arrow.png';
 
 const pathArrowAlt = new Image();
-pathArrowAlt.src = '/src/assets/path_arrow_alt.png';
+pathArrowAlt.src = '/img/path_arrow_alt.png';
 
 export const pathImagesLoaded = Promise.all([
   new Promise<void>((resolve) => {

@@ -53,61 +53,61 @@ let sprites: LoadedSprites;
 
 // wall and ui cuz they static
 const floorOpen = new Image();
-floorOpen.src = '/src/assets/floor_open.png';
+floorOpen.src = '/img/floor_open.png';
 
 const wallTop = new Image();
-wallTop.src = '/src/assets/wall_top.png';
+wallTop.src = '/img/wall_top.png';
 
 const wallBot = new Image();
-wallBot.src = '/src/assets/wall_bot.png';
+wallBot.src = '/img/wall_bot.png';
 
 const wallLeftTop = new Image();
-wallLeftTop.src = '/src/assets/wall_left_top.png';
+wallLeftTop.src = '/img/wall_left_top.png';
 
 const wallLeftMid = new Image();
-wallLeftMid.src = '/src/assets/wall_left_mid.png';
+wallLeftMid.src = '/img/wall_left_mid.png';
 
 const wallLeftBot = new Image();
-wallLeftBot.src = '/src/assets/wall_left_bot.png';
+wallLeftBot.src = '/img/wall_left_bot.png';
 
 const wallLeftCorner = new Image();
-wallLeftCorner.src = '/src/assets/wall_left_corner.png';
+wallLeftCorner.src = '/img/wall_left_corner.png';
 
 const wallRightTop = new Image();
-wallRightTop.src = '/src/assets/wall_right_top.png';
+wallRightTop.src = '/img/wall_right_top.png';
 
 const wallRightMid = new Image();
-wallRightMid.src = '/src/assets/wall_right_mid.png';
+wallRightMid.src = '/img/wall_right_mid.png';
 
 const wallRightBot = new Image();
-wallRightBot.src = '/src/assets/wall_right_bot.png';
+wallRightBot.src = '/img/wall_right_bot.png';
 
 const wallRightCorner = new Image();
-wallRightCorner.src = '/src/assets/wall_right_corner.png';
+wallRightCorner.src = '/img/wall_right_corner.png';
 
 const glorboSpriteSheet = new Image();
-glorboSpriteSheet.src = '/src/assets/glorbo_sprite_sheet.png';
+glorboSpriteSheet.src = '/img/glorbo_sprite_sheet.png';
 
 const catAltSprite = new Image();
-catAltSprite.src = '/src/assets/cat-2.png';
+catAltSprite.src = '/img/cat-2.png';
 
 const hoverSprite = new Image();
-hoverSprite.src = '/src/assets/hover.png';
+hoverSprite.src = '/img/hover.png';
 
 const hoverHammerSprite = new Image();
-hoverHammerSprite.src = '/src/assets/hover-hammer.png';
+hoverHammerSprite.src = '/img/hover-hammer.png';
 
 const hoverDragSprite = new Image();
-hoverDragSprite.src = '/src/assets/hover-drag.png';
+hoverDragSprite.src = '/img/hover-drag.png';
 
 const hoverNopeSprite = new Image();
-hoverNopeSprite.src = '/src/assets/hover_nope.png';
+hoverNopeSprite.src = '/img/hover_nope.png';
 
 const hoverYepSprite = new Image();
-hoverYepSprite.src = '/src/assets/hover_yep.png';
+hoverYepSprite.src = '/img/hover_yep.png';
 
 const standHere = new Image();
-standHere.src = '/src/assets/stand_here.png';
+standHere.src = '/img/stand_here.png';
 
 // load dynamic stuff
 const imagesLoaded = Promise.all([
@@ -1179,7 +1179,7 @@ async function init() {
   if (b1) b1.src = getCustomerIconDataUrl(sprites.customers.A, 2);
   if (b2) b2.src = getCustomerIconDataUrl(sprites.customers.B, 2);
   if (b3) b3.src = getCustomerIconDataUrl(sprites.customers.C, 2);
-  if (decorIcon) decorIcon.src = '/src/assets/plant_a.png';
+  if (decorIcon) decorIcon.src = '/img/plant_a.png';
 
   const { levelData, levelId } = await getTodayLevelFromSupabase();
   const dailyLevelData: LevelData = levelData;
@@ -1455,7 +1455,7 @@ async function init() {
     // replace normal orders list w button ver... idk if i like this approach but whatever
 
     const drinkIconSrc = (drink: DrinkId) => {
-      return sprites.drinkItems[drink]?.src ?? '/src/assets/drink_a_item.png';
+      return sprites.drinkItems[drink]?.src ?? '/img/drink_a_item.png';
     };
 
     const renderDrinkButtonContent = (value: DrinkId | '') => {
@@ -2880,18 +2880,18 @@ function scatterDecorations(): void {
   const count: number = 30;
   const container: HTMLElement = document.body;
   const animationPairs: [string, string][] = [
-    ['src/assets/bg1-1.png', 'src/assets/bg1-2.png'],
-    ['src/assets/bg2-1.png', 'src/assets/bg2-2.png'],
-    ['src/assets/bg3-1.png', 'src/assets/bg3-2.png'],
-    ['src/assets/bg4-1.png', 'src/assets/bg4-2.png'],
-    ['src/assets/bg5-1.png', 'src/assets/bg5-2.png'],
-    ['src/assets/bg6-1.png', 'src/assets/bg6-2.png'],
-    ['src/assets/bg7-1.png', 'src/assets/bg7-2.png'],
-    ['src/assets/bg8-1.png', 'src/assets/bg8-2.png'],
-    ['src/assets/bg9-1.png', 'src/assets/bg9-2.png'],
-    ['src/assets/bg10-1.png', 'src/assets/bg10-2.png'],
-    ['src/assets/bg11-1.png', 'src/assets/bg11-2.png'],
-    ['src/assets/bg12-1.png', 'src/assets/bg12-2.png'],
+    ['/img/bg1-1.png', '/img/bg1-2.png'],
+    ['/img/bg2-1.png', '/img/bg2-2.png'],
+    ['/img/bg3-1.png', '/img/bg3-2.png'],
+    ['/img/bg4-1.png', '/img/bg4-2.png'],
+    ['/img/bg5-1.png', '/img/bg5-2.png'],
+    ['/img/bg6-1.png', '/img/bg6-2.png'],
+    ['/img/bg7-1.png', '/img/bg7-2.png'],
+    ['/img/bg8-1.png', '/img/bg8-2.png'],
+    ['/img/bg9-1.png', '/img/bg9-2.png'],
+    ['/img/bg10-1.png', '/img/bg10-2.png'],
+    ['/img/bg11-1.png', '/img/bg11-2.png'],
+    ['/img/bg12-1.png', '/img/bg12-2.png'],
   ];
 
   const cols = Math.ceil(Math.sqrt(count));
