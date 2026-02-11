@@ -1,4 +1,4 @@
-import type { CustomerId, DrinkId, ObstacleId } from "../engine/types";
+import type { CustomerId, DrinkId, ObstacleId } from '../engine/types';
 
 export type LevelData = {
   id: string;
@@ -25,7 +25,7 @@ export type LevelData = {
     x: number;
     y: number;
     id: CustomerId;
-    standHere: "left" | "right" | "up" | "down";
+    standHere: 'left' | 'right' | 'up' | 'down';
   }[];
 
   orders: Record<CustomerId, DrinkId[]>;

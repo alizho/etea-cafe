@@ -1,0 +1,9 @@
+node_modules
+dist
+*.png
+*.gif
+*.woff
+*.ttf
+*.mp3
+*.wav
+*.svg

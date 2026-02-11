@@ -1,37 +1,37 @@
-import { type Pos } from "./engine/types";
-import type { GameState } from "./engine/game";
-import { TILE_SIZE } from "./config/constants";
+import { type Pos } from './engine/types';
+import type { GameState } from './engine/game';
+import { TILE_SIZE } from './config/constants';
 
 // sprites
 const pathH = new Image();
-pathH.src = "/src/assets/path_h.png";
+pathH.src = '/img/path_h.png';
 
 const pathHAlt = new Image();
-pathHAlt.src = "/src/assets/path_h_alt.png";
+pathHAlt.src = '/img/path_h_alt.png';
 
 const pathV = new Image();
-pathV.src = "/src/assets/path_v.png";
+pathV.src = '/img/path_v.png';
 
 const pathVAlt = new Image();
-pathVAlt.src = "/src/assets/path_v_alt.png";
+pathVAlt.src = '/img/path_v_alt.png';
 
 const pathCornerLD = new Image();
-pathCornerLD.src = "/src/assets/path_corner_ld.png";
+pathCornerLD.src = '/img/path_corner_ld.png';
 
 const pathCornerLDAlt = new Image();
-pathCornerLDAlt.src = "/src/assets/path_corner_ld_alt.png";
+pathCornerLDAlt.src = '/img/path_corner_ld_alt.png';
 
 const pathButt = new Image();
-pathButt.src = "/src/assets/path_butt.png";
+pathButt.src = '/img/path_butt.png';
 
 const pathButtAlt = new Image();
-pathButtAlt.src = "/src/assets/path_butt_alt.png";
+pathButtAlt.src = '/img/path_butt_alt.png';
 
 const pathArrow = new Image();
-pathArrow.src = "/src/assets/path_arrow.png";
+pathArrow.src = '/img/path_arrow.png';
 
 const pathArrowAlt = new Image();
-pathArrowAlt.src = "/src/assets/path_arrow_alt.png";
+pathArrowAlt.src = '/img/path_arrow_alt.png';
 
 export const pathImagesLoaded = Promise.all([
   new Promise<void>((resolve) => {
@@ -66,15 +66,15 @@ export const pathImagesLoaded = Promise.all([
   }),
 ]);
 
-type Direction = "left" | "right" | "up" | "down";
+type Direction = 'left' | 'right' | 'up' | 'down';
 
 function getDirection(from: Pos, to: Pos): Direction | null {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
-  if (dx > 0) return "right";
-  if (dx < 0) return "left";
-  if (dy > 0) return "down";
-  if (dy < 0) return "up";
+  if (dx > 0) return 'right';
+  if (dx < 0) return 'left';
+  if (dy > 0) return 'down';
+  if (dy < 0) return 'up';
   return null;
 }
 
@@ -82,16 +82,14 @@ function isOppositeDirection(
   dirFrom: Direction | null,
   dirTo: Direction | null,
   path: Pos[],
-  i: number,
+  i: number
 ): boolean {
   if (!dirFrom || !dirTo) return false;
 
   const isVerticalBacktrack =
-    (dirFrom === "down" && dirTo === "up") ||
-    (dirFrom === "up" && dirTo === "down");
+    (dirFrom === 'down' && dirTo === 'up') || (dirFrom === 'up' && dirTo === 'down');
   const isHorizontalBacktrack =
-    (dirFrom === "left" && dirTo === "right") ||
-    (dirFrom === "right" && dirTo === "left");
+    (dirFrom === 'left' && dirTo === 'right') || (dirFrom === 'right' && dirTo === 'left');
 
   // back tracking if we r going straight in one direction then reversing
   // are previous and next movements on the same axis
@@ -135,12 +133,11 @@ export function renderPath(
   tempCtx: CanvasRenderingContext2D,
   state: GameState,
   animationFrame: number,
-  tint: PathTint = PATH_TINT_BLUE,
+  tint: PathTint = PATH_TINT_BLUE
 ): void {
   const { path, stepIndex } = state;
   const pathLength = path.length;
-  const lastIndexToDraw =
-    state.status === "idle" && pathLength > 0 ? pathLength - 1 : pathLength;
+  const lastIndexToDraw = state.status === 'idle' && pathLength > 0 ? pathLength - 1 : pathLength;
 
   for (let i = 0; i < lastIndexToDraw; i++) {
     if (i <= stepIndex) continue;
@@ -149,8 +146,7 @@ export function renderPath(
     const py = pos.y * TILE_SIZE;
 
     // calculate gradient: newest segment (highest index) = white, oldest (lowest index) = tint color
-    const gradientValue =
-      pathLength > 1 ? (pathLength - 1 - i) / (pathLength - 1) : 1;
+    const gradientValue = pathLength > 1 ? (pathLength - 1 - i) / (pathLength - 1) : 1;
 
     // determine direction from previous to current, and current to next
     let dirFrom: Direction | null = null;
@@ -185,25 +181,18 @@ export function renderPath(
 
       // rotation angle based on corner type
       let rotation = 0;
-      if (dirFrom === "right" && dirTo === "down") rotation = 0;
-      else if (dirFrom === "up" && dirTo === "left") rotation = 0;
-      else if (dirFrom === "down" && dirTo === "right") rotation = 180;
-      else if (dirFrom === "left" && dirTo === "up") rotation = 180;
-      else if (dirFrom === "right" && dirTo === "up") rotation = 90;
-      else if (dirFrom === "down" && dirTo === "left") rotation = 90;
-      else if (dirFrom === "left" && dirTo === "down") rotation = 270;
-      else if (dirFrom === "up" && dirTo === "right") rotation = 270;
+      if (dirFrom === 'right' && dirTo === 'down') rotation = 0;
+      else if (dirFrom === 'up' && dirTo === 'left') rotation = 0;
+      else if (dirFrom === 'down' && dirTo === 'right') rotation = 180;
+      else if (dirFrom === 'left' && dirTo === 'up') rotation = 180;
+      else if (dirFrom === 'right' && dirTo === 'up') rotation = 90;
+      else if (dirFrom === 'down' && dirTo === 'left') rotation = 90;
+      else if (dirFrom === 'left' && dirTo === 'down') rotation = 270;
+      else if (dirFrom === 'up' && dirTo === 'right') rotation = 270;
 
-      const cornerSprite =
-        animationFrame === 0 ? pathCornerLD : pathCornerLDAlt;
+      const cornerSprite = animationFrame === 0 ? pathCornerLD : pathCornerLDAlt;
       tempCtx.rotate((rotation * Math.PI) / 180);
-      tempCtx.drawImage(
-        cornerSprite,
-        -TILE_SIZE / 2,
-        -TILE_SIZE / 2,
-        TILE_SIZE,
-        TILE_SIZE,
-      );
+      tempCtx.drawImage(cornerSprite, -TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
       tempCtx.restore();
     } else if (oppositeDir) {
       // backtracking on same axis
@@ -212,27 +201,21 @@ export function renderPath(
 
       // rotation based on direction we're coming from
       let rotation = 0;
-      if (dirFrom === "down")
+      if (dirFrom === 'down')
         rotation = 0; // down down up
-      else if (dirFrom === "up")
+      else if (dirFrom === 'up')
         rotation = 180; // up up down
-      else if (dirFrom === "left")
+      else if (dirFrom === 'left')
         rotation = 90; // left left right
-      else if (dirFrom === "right") rotation = 270; // right right left
+      else if (dirFrom === 'right') rotation = 270; // right right left
 
       const buttSprite = animationFrame === 0 ? pathButt : pathButtAlt;
       tempCtx.rotate((rotation * Math.PI) / 180);
-      tempCtx.drawImage(
-        buttSprite,
-        -TILE_SIZE / 2,
-        -TILE_SIZE / 2,
-        TILE_SIZE,
-        TILE_SIZE,
-      );
+      tempCtx.drawImage(buttSprite, -TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
       tempCtx.restore();
     } else if (dirTo) {
       // direction to next tile
-      if (dirTo === "left" || dirTo === "right") {
+      if (dirTo === 'left' || dirTo === 'right') {
         const hSprite = animationFrame === 0 ? pathH : pathHAlt;
         tempCtx.drawImage(hSprite, 0, 0, TILE_SIZE, TILE_SIZE);
       } else {
@@ -241,7 +224,7 @@ export function renderPath(
       }
     } else if (dirFrom) {
       // direction from previous
-      if (dirFrom === "left" || dirFrom === "right") {
+      if (dirFrom === 'left' || dirFrom === 'right') {
         const hSprite = animationFrame === 0 ? pathH : pathHAlt;
         tempCtx.drawImage(hSprite, 0, 0, TILE_SIZE, TILE_SIZE);
       } else {
@@ -278,12 +261,12 @@ export function renderPath(
 export function renderPathArrow(
   ctx: CanvasRenderingContext2D,
   state: GameState,
-  animationFrame: number,
+  animationFrame: number
 ): void {
   const { path } = state;
 
   // draw path arrow on the last tile (current point user is on)
-  if (path.length > 0 && state.status === "idle") {
+  if (path.length > 0 && state.status === 'idle') {
     const lastIndex = path.length - 1;
     const lastPos = path[lastIndex];
     const arrowX = lastPos.x * TILE_SIZE;
@@ -295,13 +278,13 @@ export function renderPathArrow(
       const prevPos = path[lastIndex - 1];
       const dir = getDirection(prevPos, lastPos);
 
-      if (dir === "right")
+      if (dir === 'right')
         arrowRotation = 270; // right
-      else if (dir === "left")
+      else if (dir === 'left')
         arrowRotation = 90; // left
-      else if (dir === "down")
+      else if (dir === 'down')
         arrowRotation = 0; // down
-      else if (dir === "up") arrowRotation = 180; // up
+      else if (dir === 'up') arrowRotation = 180; // up
     } else {
       arrowRotation = 0;
     }
@@ -311,13 +294,7 @@ export function renderPathArrow(
     ctx.translate(arrowX + TILE_SIZE / 2, arrowY + TILE_SIZE / 2);
     ctx.rotate((arrowRotation * Math.PI) / 180);
     const arrowSprite = animationFrame === 0 ? pathArrow : pathArrowAlt;
-    ctx.drawImage(
-      arrowSprite,
-      -TILE_SIZE / 2,
-      -TILE_SIZE / 2,
-      TILE_SIZE,
-      TILE_SIZE,
-    );
+    ctx.drawImage(arrowSprite, -TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
     ctx.restore();
   }
 }
