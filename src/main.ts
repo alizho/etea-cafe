@@ -2774,6 +2774,9 @@ async function init() {
       );
       const s = renderer.getState();
       renderer.setState({ ...s, message: 'invalid share link' });
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+      forceExitBuilderMode();
+      applyLevelDataToRenderer(dailyLevelData, dailyLevelId, 'daily');
       return;
     }
 
