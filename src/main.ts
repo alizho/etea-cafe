@@ -1677,7 +1677,35 @@ async function init() {
       return { x, y, type };
     });
 
-    builderData.obstacles = [...interior, ...topBorderWallDecor];
+    const filteredTopBorderWallDecor: { x: number; y: number; type: ObstacleId }[] = [];
+    const doubleWindowXsByType = new Map<ObstacleId, number[]>();
+
+    for (const o of topBorderWallDecor) {
+      if (o.type === 'window_double_a' || o.type === 'window_double_b') {
+        const xs = doubleWindowXsByType.get(o.type) ?? [];
+        xs.push(o.x);
+        doubleWindowXsByType.set(o.type, xs);
+      } else {
+        filteredTopBorderWallDecor.push(o);
+      }
+    }
+
+    for (const [type, xsRaw] of doubleWindowXsByType.entries()) {
+      const xs = Array.from(new Set(xsRaw)).sort((a, b) => a - b);
+      for (let i = 0; i < xs.length - 1; ) {
+        const x = xs[i]!;
+        const x2 = xs[i + 1]!;
+        if (x2 === x + 1) {
+          filteredTopBorderWallDecor.push({ x, y: 0, type });
+          filteredTopBorderWallDecor.push({ x: x2, y: 0, type });
+          i += 2;
+        } else {
+          i += 1;
+        }
+      }
+    }
+
+    builderData.obstacles = [...interior, ...filteredTopBorderWallDecor];
   };
 
   const isValidStandTile = (p: Pos): boolean => {
