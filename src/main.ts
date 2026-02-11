@@ -1983,32 +1983,47 @@ async function init() {
     const current = obstacleAt(p);
     const currentType = current?.type as ObstacleId | undefined;
     const currentIndex = currentType != null ? WALL_DECOR_TYPES.indexOf(currentType) : -1;
-    const nextIndex = currentIndex < WALL_DECOR_TYPES.length - 1 ? currentIndex + 1 : -1;
 
-    // Remove current: for 2-tile wall decor, remove both tiles
-    const toRemove = getObstacleGroupAt(p);
-    const keysToRemove = new Set(toRemove.map(posKey));
-    builderData.obstacles = builderData.obstacles.filter((o) => !keysToRemove.has(`${o.x},${o.y}`));
+    const canPlaceWallDecorAt = (type: ObstacleId): boolean => {
+      const width = getDecorWidth(type);
 
-    if (nextIndex >= 0) {
-      const nextType = WALL_DECOR_TYPES[nextIndex];
-      if (!nextType) return;
-      const width = getDecorWidth(nextType);
-      // For 2-tile types, right tile must not be the corner (p.x + width - 1 < width - 1 => p.x < 1 for width 2, so p.x must be 0... no: corner is at x = width-1, so we need p.x + width - 1 <= width - 2, i.e. p.x + 1 < width - 1 for width 2, so p.x < builderData.width - 2)
-      if (width === 2 && p.x >= builderData.width - 2) {
-        setBuilderStatus('double window needs space: use a tile further left');
-        return;
+      if (width === 2 && p.x + 1 >= builderData.width - 1) return false;
+
+      for (let i = 0; i < width; i++) {
+        const checkX = p.x + i;
+        if (obstacleAt({ x: checkX, y: p.y })) return false;
       }
+      return true;
+    };
+
+    if (currentType) {
+      const toRemove = getObstacleGroupAt(p);
+      const keysToRemove = new Set(toRemove.map(posKey));
+      builderData.obstacles = builderData.obstacles.filter(
+        (o) => !keysToRemove.has(`${o.x},${o.y}`)
+      );
+    }
+
+    const startIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % WALL_DECOR_TYPES.length;
+    for (let i = 0; i < WALL_DECOR_TYPES.length; i++) {
+      const idx = (startIndex + i) % WALL_DECOR_TYPES.length;
+      const candidate = WALL_DECOR_TYPES[idx];
+      if (!canPlaceWallDecorAt(candidate)) continue;
+
+      const width = getDecorWidth(candidate);
       if (width === 2) {
         builderData.obstacles = [
           ...builderData.obstacles,
-          { x: p.x, y: p.y, type: nextType },
-          { x: p.x + 1, y: p.y, type: nextType },
+          { x: p.x, y: p.y, type: candidate },
+          { x: p.x + 1, y: p.y, type: candidate },
         ];
       } else {
-        builderData.obstacles = [...builderData.obstacles, { x: p.x, y: p.y, type: nextType }];
+        builderData.obstacles = [...builderData.obstacles, { x: p.x, y: p.y, type: candidate }];
       }
+      return;
     }
+
+    setBuilderStatus('no wall decor fits here');
   };
 
   const cycleDecorAt = (p: Pos) => {
