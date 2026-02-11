@@ -1383,7 +1383,7 @@ async function init() {
     shareBtn.disabled = false;
     shareBtn.classList.toggle('builder-share-disabled', !builderShareReady);
     shareBtn.setAttribute('aria-disabled', builderShareReady ? 'false' : 'true');
-    shareBtn.title = builderShareReady ? 'share this level' : 'run check first';
+    shareBtn.title = builderShareReady ? 'copy level json' : 'run check first';
   };
   const updateExitUI = () => {
     const exitBtn = document.getElementById('exit-builder-btn') as HTMLButtonElement | null;
@@ -2638,13 +2638,13 @@ async function init() {
       enforceBorderWalls();
 
       try {
-        const token = await encodeLevelShareToken(builderData);
-        const url = makeShareUrlFromToken(token);
-        const copied = await copyTextToClipboard(url);
-        setBuilderStatus(copied ? 'copied share link!' : 'couldn’t copy link :(');
+        const levelJson = JSON.stringify(builderData, null, 2);
+        
+        const copied = await copyTextToClipboard(levelJson);
+        setBuilderStatus(copied ? 'copied level json!' : 'couldn’t copy json :(');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        setBuilderStatus(`couldn’t share: ${msg}`);
+        setBuilderStatus(`couldn’t copy: ${msg}`);
       }
     });
   }
