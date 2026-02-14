@@ -312,13 +312,7 @@ class GameRenderer {
   }
 
   private scheduleUIUpdate() {
-    if (!this.uiUpdateQueued) {
-      this.uiUpdateQueued = true;
-      requestAnimationFrame(() => {
-        this.uiUpdateQueued = false;
-        this.updateUI();
-      });
-    }
+    this.updateUI();
   }
 
   private startAnimation() {
