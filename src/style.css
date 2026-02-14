@@ -25,8 +25,20 @@ body {
   padding: 0;
   background-color: #000000;
   color: #fff;
-  overflow: hidden;
   height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (max-width: 600px) {
+  html,
+  body {
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 body {
@@ -39,6 +51,7 @@ body {
   align-items: center;
   justify-content: center;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   position: relative;
   z-index: 1;
@@ -49,9 +62,10 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 8px;
+  padding: 8px 4px;
   text-align: center;
   flex-shrink: 0;
+  gap: 4px;
 }
 
 .logo {
@@ -64,8 +78,8 @@ body {
 }
 
 .day-text {
-  margin-top: 20px;
-  font-size: 18px;
+  margin-top: 8px;
+  font-size: clamp(14px, 4vw, 18px);
   font-family: PixelPoiiz;
 }
 
@@ -778,33 +792,238 @@ body {
   color: #ffffff;
 }
 
-@media (max-width: 768px) {
+/* ── Mobile ── */
+
+@media (max-width: 600px) {
+  #root {
+    justify-content: flex-start;
+    overflow: visible;
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .header {
+    padding: 4px 4px 0;
+  }
+
+  .logo {
+    transform: scale(1.5);
+    margin: 8px 0 4px;
+  }
+
+  .day-text {
+    margin-top: 4px;
+    font-size: 14px;
+  }
+
   .game-container {
     flex-direction: column;
+    gap: 8px;
+    padding: 4px;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .game-section {
     width: 100%;
+    max-width: 100vw;
+    gap: 8px;
+    align-items: center;
     order: 1;
-    display: flex;
-    flex-direction: column;
   }
 
   .game-canvas {
-    width: 110% !important;
-    max-width: 100vw;
-    height: auto !important;
-    margin-left: -5%;
+    max-width: 96vw;
   }
 
   .game-controls {
+    justify-content: center;
+    gap: 6px;
     order: -1;
-    margin-bottom: 10px;
+  }
+
+  .game-info {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .inventory-display {
+    gap: 8px;
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .inventory-slot {
+    width: 44px;
+    height: 44px;
+  }
+
+  .inventory-slot .inventory-drink-icon {
+    width: 44px;
+    height: 44px;
   }
 
   .sidebar {
     margin-top: 0;
     width: 100%;
+    min-width: unset;
     order: 2;
+    padding: 0 4px 12px;
+    box-sizing: border-box;
+  }
+
+  .sidebar h3 {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  #orders {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+
+  .order-item {
+    width: auto;
+    flex: 1 1 0;
+    min-width: 0;
+    margin-bottom: 0;
+    padding: 4px;
+  }
+
+  .order-header {
+    font-size: 11px;
+    margin-bottom: 2px;
+  }
+
+  .order-row:has(.builder-drink-btn) {
+    flex-direction: column;
+    gap: 2px;
+    align-items: flex-start;
+  }
+
+  .order-item.order-served::after {
+    font-size: 10px;
+    top: 2px;
+    right: 2px;
+  }
+
+  .customer-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .drink-items {
+    gap: 2px;
+  }
+
+  .drink-item-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .builder-drink-btn {
+    padding: 2px 4px;
+    min-width: 36px;
+  }
+
+  .builder-none-placeholder {
+    width: 32px;
+    height: 32px;
+  }
+
+  .popup-overlay {
+    padding: 12px;
+    box-sizing: border-box;
+  }
+
+  .popup-content {
+    min-width: 0;
+    max-width: 95vw;
+    max-height: 90vh;
+    max-height: 90dvh;
+    overflow-y: auto;
+    padding: 20px 16px;
+  }
+
+  .menu-panel-content {
+    max-width: 90vw;
+    min-width: 0;
+    width: 80vw;
+  }
+
+  .puzzle-list {
+    max-height: 50vh;
+    max-height: 50dvh;
+  }
+
+  .builder-panel {
+    padding: 6px;
+    margin-top: 6px;
+  }
+
+  .builder-row {
+    margin-bottom: 4px;
+  }
+
+  .builder-label {
+    font-size: 11px;
+  }
+
+  .builder-tip {
+    font-size: 9px;
+  }
+
+  .builder-tools {
+    gap: 3px;
+  }
+
+  .builder-tool-btn {
+    padding: 3px;
+  }
+
+  .builder-drink-icon,
+  .builder-erase-icon,
+  .builder-drag-icon,
+  .builder-customer-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  .builder-actions {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .builder-dimensions {
+    flex-wrap: wrap;
+    margin-left: 0;
+    gap: 4px;
+  }
+
+  .builder-dimension-input {
+    width: 40px;
+    padding: 3px 4px;
+    font-size: 12px;
+  }
+
+  .builder-dimension-label {
+    font-size: 11px;
+    gap: 3px;
+  }
+
+  .builder-status {
+    font-size: 12px;
+    margin-top: 4px;
+  }
+
+  .success-graph-canvas {
+    max-width: 85vw;
+    height: auto !important;
   }
 }

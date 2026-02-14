@@ -341,6 +341,8 @@ class GameRenderer {
 
   private updateCanvasDisplaySize(baseCanvasWidth: number, baseCanvasHeight: number) {
     // fit display size w current layout
+    const isMobile = window.innerWidth <= 600;
+
     const headerEl = document.querySelector('.header') as HTMLElement | null;
     const controlsEl = document.querySelector('.game-controls') as HTMLElement | null;
     const infoEl = document.querySelector('.game-info') as HTMLElement | null;
@@ -351,13 +353,15 @@ class GameRenderer {
     const controlsH = controlsEl?.getBoundingClientRect().height ?? 0;
     const inventoryH = inventoryEl?.getBoundingClientRect().height ?? 0;
     const infoH = infoEl?.getBoundingClientRect().height ?? 0;
-    const sidebarW = sidebarEl?.getBoundingClientRect().width ?? 0;
+   
+    const sidebarW = isMobile ? 0 : (sidebarEl?.getBoundingClientRect().width ?? 0);
 
     const logo = document.querySelector('.logo') as HTMLElement | null;
-    const extraLogoSpace = logo ? logo.getBoundingClientRect().height * 0.5 : 0;
+    
+    const extraLogoSpace = logo && !isMobile ? logo.getBoundingClientRect().height * 0.5 : 0;
 
-    const paddingW = 64;
-    const paddingH = 72;
+    const paddingW = isMobile ? 8 : 64;
+    const paddingH = isMobile ? 16 : 72;
 
     const maxW = Math.max(120, window.innerWidth - sidebarW - paddingW);
     const maxH = Math.max(
