@@ -269,8 +269,6 @@ class GameRenderer {
 
   private uiMode: 'play' | 'build' = 'play';
   private onBuildTileClick: ((pos: Pos) => void) | null = null;
-  private pendingPointer: { clientX: number; clientY: number } | null = null;
-  private pointerRaf: number | null = null;
   private onSuccess: ((moves: number) => void) | null = null;
   private successHandled: boolean = false;
   private currentLevelId: string | null = null;
@@ -278,6 +276,9 @@ class GameRenderer {
 
   // avoid build mode spamming paint calls on same tile
   private lastBuildPaintKey: string | null = null;
+
+  private renderQueued: boolean = false;
+  private uiUpdateQueued: boolean = false;
 
   constructor(canvas: HTMLCanvasElement, state: GameState) {
     this.canvas = canvas;
@@ -298,6 +299,26 @@ class GameRenderer {
     this.setupEventListeners();
     this.startSimulation();
     this.startAnimation();
+  }
+
+  private scheduleRender() {
+    if (!this.renderQueued) {
+      this.renderQueued = true;
+      requestAnimationFrame(() => {
+        this.renderQueued = false;
+        this.render();
+      });
+    }
+  }
+
+  private scheduleUIUpdate() {
+    if (!this.uiUpdateQueued) {
+      this.uiUpdateQueued = true;
+      requestAnimationFrame(() => {
+        this.uiUpdateQueued = false;
+        this.updateUI();
+      });
+    }
   }
 
   private startAnimation() {
@@ -381,7 +402,10 @@ class GameRenderer {
 
   private setupEventListeners() {
     this.canvas.addEventListener('mousedown', (e) => this.handlePointerDown(e));
-    this.canvas.addEventListener('mousemove', (e) => this.queuePointerMove(e));
+    this.canvas.addEventListener('mousemove', (e) => {
+      this.handlePointerMove(e);
+      this.handleHover(e);
+    });
     this.canvas.addEventListener('mouseup', () => this.stopDrawing());
     this.canvas.addEventListener('mouseleave', () => {
       this.stopDrawing();
@@ -397,18 +421,20 @@ class GameRenderer {
         clientX: touch.clientX,
         clientY: touch.clientY,
       });
-    });
+    }, { passive: false });
     this.canvas.addEventListener('touchmove', (e) => {
       e.preventDefault();
       const touch = e.touches[0];
-      this.queuePointerMove({ clientX: touch.clientX, clientY: touch.clientY });
-    });
-    this.canvas.addEventListener('touchend', () => this.stopDrawing());
+      const coords = { clientX: touch.clientX, clientY: touch.clientY };
+      this.handlePointerMove(coords);
+      this.handleHover(coords);
+    }, { passive: false });
+    this.canvas.addEventListener('touchend', () => this.stopDrawing(), { passive: true });
 
     window.addEventListener('resize', () => {
       const level = this.state.level;
       this.updateCanvasDisplaySize(level.width * TILE_SIZE, level.height * TILE_SIZE);
-      this.render();
+      this.scheduleRender();
     });
 
     // undo only while drawing paths
@@ -429,8 +455,8 @@ class GameRenderer {
     if (this.state.path.length <= 1) return;
     this.state = { ...this.state, path: this.state.path.slice(0, -1) };
     playPathTileSfx();
-    this.render();
-    this.updateUI();
+    this.scheduleRender();
+    this.scheduleUIUpdate();
   }
 
   private handlePointerDown(e: { clientX: number; clientY: number }) {
@@ -499,24 +525,11 @@ class GameRenderer {
 
     const prevLen = this.state.path.length;
     this.state = tryAppendPath(this.state, pos);
-    if (this.state.path.length === prevLen) return;
-    playPathTileSfx();
-    this.render();
-    this.updateUI();
-  }
-
-  private queuePointerMove(e: { clientX: number; clientY: number }) {
-    this.pendingPointer = { clientX: e.clientX, clientY: e.clientY };
-    if (this.pointerRaf !== null) return;
-
-    this.pointerRaf = window.requestAnimationFrame(() => {
-      this.pointerRaf = null;
-      const pending = this.pendingPointer;
-      this.pendingPointer = null;
-      if (!pending) return;
-      this.handlePointerMove(pending);
-      this.handleHover(pending);
-    });
+    if (this.state.path.length > prevLen) {
+      playPathTileSfx();
+    }
+    this.scheduleRender();
+    this.scheduleUIUpdate();
   }
 
   private stopDrawing() {
@@ -535,7 +548,7 @@ class GameRenderer {
     if (pos && inBounds(this.state.level.width, this.state.level.height, pos)) {
       if (this.hoverTile?.x !== pos.x || this.hoverTile?.y !== pos.y) {
         this.hoverTile = pos;
-        this.render();
+        this.scheduleRender();
       }
 
       if (this.uiMode === 'build') {
@@ -556,7 +569,7 @@ class GameRenderer {
     } else {
       if (this.hoverTile !== null) {
         this.hoverTile = null;
-        this.render();
+        this.scheduleRender();
       }
       this.canvas.style.cursor = 'default';
     }

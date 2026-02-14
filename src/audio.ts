@@ -17,20 +17,27 @@ let musicContext: AudioContext | null = null;
 let musicGain: GainNode | null = null;
 let musicSource: AudioBufferSourceNode | null = null;
 let musicBufferPromise: Promise<AudioBuffer> | null = null;
+let startInProgress = false;
 
-async function unlockAudioContext(ctx: AudioContext): Promise<void> {
+async function ensureContextRunning(ctx: AudioContext): Promise<void> {
   if (ctx.state === 'running') return;
-  await ctx.resume();
+  try {
+    await ctx.resume();
+  } catch (e) {
+    console.warn('[audio] ctx.resume() failed:', e);
+  }
 
-  const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
-  source.connect(ctx.destination);
+  if (ctx.state === 'suspended' || ctx.state === 'interrupted') {
+    try {
+      const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start(0);
+    } catch {
 
-  await new Promise<void>((resolve) => {
-    source.addEventListener('ended', () => resolve(), { once: true });
-    source.start(0);
-  });
+    }
+  }
 }
 
 async function loadMusicBuffer(ctx: AudioContext): Promise<AudioBuffer> {
@@ -38,11 +45,15 @@ async function loadMusicBuffer(ctx: AudioContext): Promise<AudioBuffer> {
     musicBufferPromise = fetch(BG_MUSIC)
       .then(async (res) => {
         if (!res.ok) {
-          throw new Error(`music err Lol`);
+          throw new Error(`music fetch failed: ${res.status}`);
         }
         return res.arrayBuffer();
       })
-      .then((buf) => ctx.decodeAudioData(buf));
+      .then((buf) => ctx.decodeAudioData(buf))
+      .catch((err) => {
+        musicBufferPromise = null;
+        throw err;
+      });
   }
 
   return musicBufferPromise;
@@ -76,52 +87,58 @@ const activeStepSfx = new Set<HTMLAudioElement>();
 
 type ListenerOptions = AddEventListenerOptions & { passive?: boolean };
 
-function onceStartHandler() {
-  // after first user gesture
-
+function gestureHandler() {
   if (!musicContext) {
     musicContext = new AudioContext();
   }
 
-  void unlockAudioContext(musicContext);
-  
-  void startBackgroundMusic();
-  detachStartListeners();
+  void ensureContextRunning(musicContext);
+
+  if (!hasStarted && !startInProgress) {
+    void startBackgroundMusic();
+  }
 }
 
-const START_EVENTS: Array<[keyof WindowEventMap, ListenerOptions]> = [
-  ['pointerdown', { once: true, passive: true, capture: true }],
-  ['mousedown', { once: true, passive: true, capture: true }],
-  ['touchstart', { once: true, passive: true, capture: true }],
-  ['keydown', { once: true, capture: true }],
+const GESTURE_EVENTS: Array<[keyof WindowEventMap, ListenerOptions]> = [
+  ['pointerdown', { passive: true, capture: true }],
+  ['touchstart', { passive: true, capture: true }],
+  ['keydown', { capture: true }],
 ];
 
-function detachStartListeners() {
-  for (const [event, opts] of START_EVENTS) {
-    window.removeEventListener(event, onceStartHandler, opts);
+let gestureListenersAttached = false;
+
+function detachGestureListeners() {
+  if (!gestureListenersAttached) return;
+  for (const [event, opts] of GESTURE_EVENTS) {
+    window.removeEventListener(event, gestureHandler, opts);
   }
+  gestureListenersAttached = false;
 }
 
 export function ensureAudioStartedOnFirstGesture(): void {
-  for (const [event, opts] of START_EVENTS) {
-    window.addEventListener(event, onceStartHandler, opts);
+  if (gestureListenersAttached) return;
+  for (const [event, opts] of GESTURE_EVENTS) {
+    window.addEventListener(event, gestureHandler, opts);
   }
+  gestureListenersAttached = true;
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && musicContext) {
+      void ensureContextRunning(musicContext);
+    }
+  });
 }
 
 export async function startBackgroundMusic(): Promise<void> {
   if (hasStarted) return;
-  hasStarted = true;
+  startInProgress = true;
 
   try {
-   
     if (!musicContext) {
       musicContext = new AudioContext();
     }
 
-
-    if (musicContext.state === 'suspended') {
-      await musicContext.resume();
-    }
+    await ensureContextRunning(musicContext);
 
     if (!musicGain) {
       musicGain = musicContext.createGain();
@@ -133,14 +150,22 @@ export async function startBackgroundMusic(): Promise<void> {
     if (musicSource) return;
 
     const buffer = await loadMusicBuffer(musicContext);
+
+    await ensureContextRunning(musicContext);
+
     const source = musicContext.createBufferSource();
     source.buffer = buffer;
     source.loop = true;
     source.connect(musicGain);
     source.start(0);
     musicSource = source;
-  } catch {
-    hasStarted = false;
+    hasStarted = true;
+
+    detachGestureListeners();
+  } catch (err) {
+  
+  } finally {
+    startInProgress = false;
   }
 }
 
