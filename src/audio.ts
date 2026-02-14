@@ -63,6 +63,15 @@ type ListenerOptions = AddEventListenerOptions & { passive?: boolean };
 
 function onceStartHandler() {
   // after first user gesture
+
+  if (!musicContext) {
+    musicContext = new AudioContext();
+  }
+
+  if (musicContext.state !== 'running') {
+    void musicContext.resume();
+  }
+  
   void startBackgroundMusic();
   detachStartListeners();
 }
@@ -91,20 +100,22 @@ export async function startBackgroundMusic(): Promise<void> {
   hasStarted = true;
 
   try {
+   
     if (!musicContext) {
       musicContext = new AudioContext();
     }
 
-    if (musicContext.state !== 'running') {
+
+    if (musicContext.state === 'suspended') {
       await musicContext.resume();
     }
 
     if (!musicGain) {
       musicGain = musicContext.createGain();
-      musicGain.gain.value = MUSIC_VOLUME;
+      musicGain.gain.value = audioEnabled ? MUSIC_VOLUME : 0;
       musicGain.connect(musicContext.destination);
     } else {
-      musicGain.gain.value = MUSIC_VOLUME;
+      musicGain.gain.value = audioEnabled ? MUSIC_VOLUME : 0;
     }
     if (musicSource) return;
 
