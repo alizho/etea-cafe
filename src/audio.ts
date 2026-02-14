@@ -18,6 +18,21 @@ let musicGain: GainNode | null = null;
 let musicSource: AudioBufferSourceNode | null = null;
 let musicBufferPromise: Promise<AudioBuffer> | null = null;
 
+async function unlockAudioContext(ctx: AudioContext): Promise<void> {
+  if (ctx.state === 'running') return;
+  await ctx.resume();
+
+  const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(ctx.destination);
+
+  await new Promise<void>((resolve) => {
+    source.addEventListener('ended', () => resolve(), { once: true });
+    source.start(0);
+  });
+}
+
 async function loadMusicBuffer(ctx: AudioContext): Promise<AudioBuffer> {
   if (!musicBufferPromise) {
     musicBufferPromise = fetch(BG_MUSIC)
@@ -68,9 +83,7 @@ function onceStartHandler() {
     musicContext = new AudioContext();
   }
 
-  if (musicContext.state !== 'running') {
-    void musicContext.resume();
-  }
+  void unlockAudioContext(musicContext);
   
   void startBackgroundMusic();
   detachStartListeners();

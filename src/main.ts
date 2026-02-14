@@ -269,6 +269,8 @@ class GameRenderer {
 
   private uiMode: 'play' | 'build' = 'play';
   private onBuildTileClick: ((pos: Pos) => void) | null = null;
+  private pendingPointer: { clientX: number; clientY: number } | null = null;
+  private pointerRaf: number | null = null;
   private onSuccess: ((moves: number) => void) | null = null;
   private successHandled: boolean = false;
   private currentLevelId: string | null = null;
@@ -379,10 +381,7 @@ class GameRenderer {
 
   private setupEventListeners() {
     this.canvas.addEventListener('mousedown', (e) => this.handlePointerDown(e));
-    this.canvas.addEventListener('mousemove', (e) => {
-      this.handlePointerMove(e);
-      this.handleHover(e);
-    });
+    this.canvas.addEventListener('mousemove', (e) => this.queuePointerMove(e));
     this.canvas.addEventListener('mouseup', () => this.stopDrawing());
     this.canvas.addEventListener('mouseleave', () => {
       this.stopDrawing();
@@ -402,9 +401,7 @@ class GameRenderer {
     this.canvas.addEventListener('touchmove', (e) => {
       e.preventDefault();
       const touch = e.touches[0];
-      const coords = { clientX: touch.clientX, clientY: touch.clientY };
-      this.handlePointerMove(coords);
-      this.handleHover(coords);
+      this.queuePointerMove({ clientX: touch.clientX, clientY: touch.clientY });
     });
     this.canvas.addEventListener('touchend', () => this.stopDrawing());
 
@@ -502,11 +499,24 @@ class GameRenderer {
 
     const prevLen = this.state.path.length;
     this.state = tryAppendPath(this.state, pos);
-    if (this.state.path.length > prevLen) {
-      playPathTileSfx();
-    }
+    if (this.state.path.length === prevLen) return;
+    playPathTileSfx();
     this.render();
     this.updateUI();
+  }
+
+  private queuePointerMove(e: { clientX: number; clientY: number }) {
+    this.pendingPointer = { clientX: e.clientX, clientY: e.clientY };
+    if (this.pointerRaf !== null) return;
+
+    this.pointerRaf = window.requestAnimationFrame(() => {
+      this.pointerRaf = null;
+      const pending = this.pendingPointer;
+      this.pendingPointer = null;
+      if (!pending) return;
+      this.handlePointerMove(pending);
+      this.handleHover(pending);
+    });
   }
 
   private stopDrawing() {
