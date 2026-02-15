@@ -280,6 +280,8 @@ class GameRenderer {
   private renderQueued: boolean = false;
   private uiUpdateQueued: boolean = false;
 
+  private lastOrdersKey: string = '';
+
   constructor(canvas: HTMLCanvasElement, state: GameState) {
     this.canvas = canvas;
     const ctx = canvas.getContext('2d');
@@ -1103,7 +1105,14 @@ class GameRenderer {
       });
     }
 
-    this.updateOrdersDisplay();
+    const ordersKey = JSON.stringify({
+      orders: this.state.level.orders,
+      remaining: this.state.remainingOrders,
+    });
+    if (ordersKey !== this.lastOrdersKey) {
+      this.lastOrdersKey = ordersKey;
+      this.updateOrdersDisplay();
+    }
 
     if (runButton) {
       runButton.disabled = this.uiMode === 'build' || this.state.status !== 'idle';
