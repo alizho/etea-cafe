@@ -415,6 +415,16 @@ class GameRenderer {
       this.render();
     });
 
+    const undoBtn = document.getElementById('undo-btn') as HTMLButtonElement | null;
+    if (undoBtn) {
+      undoBtn.addEventListener('click', () => {
+        if (this.uiMode !== 'play') return;
+        if (this.state.status !== 'idle') return;
+        if (this.showingOptimalReplay) return;
+        this.undoLastPathStep();
+      });
+    }
+
     // touch svreen support
     this.canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
@@ -1064,6 +1074,8 @@ class GameRenderer {
     const runButton = document.getElementById('run-btn') as HTMLButtonElement;
     const retryButton = document.getElementById('retry-btn') as HTMLButtonElement;
 
+    const undoButton = document.getElementById('undo-btn') as HTMLButtonElement | null;
+
     if (stepsEl) {
       const pathSteps = Math.max(0, this.state.path.length - 1);
       const displaySteps = this.state.status === 'idle' ? pathSteps : this.state.stepsTaken;
@@ -1120,6 +1132,11 @@ class GameRenderer {
 
     if (retryButton) {
       retryButton.disabled = this.uiMode === 'build' || this.state.status === 'running';
+    }
+
+    if (undoButton) {
+      const canUndo = this.uiMode === 'play' && this.state.status === 'idle' && !this.showingOptimalReplay && this.state.path.length > 1;
+      undoButton.disabled = !canUndo;
     }
   }
 
