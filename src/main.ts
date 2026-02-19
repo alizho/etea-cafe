@@ -2747,6 +2747,7 @@ async function init() {
 
   const runBtn = document.getElementById('run-btn');
   const retryBtn = document.getElementById('retry-btn');
+  const undoBtn = document.getElementById('undo-btn');
   const exitBuilderBtn = document.getElementById('exit-builder-btn');
 
   const enterBuilderMode = () => {
@@ -2769,6 +2770,7 @@ async function init() {
     if (builderPanel) builderPanel.style.display = 'block';
     if (runBtn) runBtn.style.display = 'none';
     if (retryBtn) retryBtn.style.display = 'none';
+    if (undoBtn) undoBtn.style.display = 'none';
     if (exitBuilderBtn) exitBuilderBtn.style.display = '';
 
     const exitHint = document.getElementById('exit-builder-hint');
@@ -2791,6 +2793,7 @@ async function init() {
     if (builderPanel) builderPanel.style.display = 'none';
     if (runBtn) runBtn.style.display = '';
     if (retryBtn) retryBtn.style.display = '';
+    if (undoBtn) undoBtn.style.display = '';
     if (exitBuilderBtn) exitBuilderBtn.style.display = 'none';
 
     const exitHint = document.getElementById('exit-builder-hint');
@@ -2817,6 +2820,7 @@ async function init() {
     if (builderPanel) builderPanel.style.display = 'none';
     if (runBtn) runBtn.style.display = '';
     if (retryBtn) retryBtn.style.display = '';
+    if (undoBtn) undoBtn.style.display = '';
     if (exitBuilderBtn) exitBuilderBtn.style.display = 'none';
 
     const exitHint = document.getElementById('exit-builder-hint');
