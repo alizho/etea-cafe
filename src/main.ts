@@ -277,6 +277,11 @@ class GameRenderer {
   // avoid build mode spamming paint calls on same tile
   private lastBuildPaintKey: string | null = null;
 
+  private renderQueued: boolean = false;
+  private uiUpdateQueued: boolean = false;
+
+  private lastOrdersKey: string = '';
+
   constructor(canvas: HTMLCanvasElement, state: GameState) {
     this.canvas = canvas;
     const ctx = canvas.getContext('2d');
@@ -296,6 +301,26 @@ class GameRenderer {
     this.setupEventListeners();
     this.startSimulation();
     this.startAnimation();
+  }
+
+  private scheduleRender() {
+    if (!this.renderQueued) {
+      this.renderQueued = true;
+      requestAnimationFrame(() => {
+        this.renderQueued = false;
+        this.render();
+      });
+    }
+  }
+
+  private scheduleUIUpdate() {
+    if (!this.uiUpdateQueued) {
+      this.uiUpdateQueued = true;
+      requestAnimationFrame(() => {
+        this.uiUpdateQueued = false;
+        this.updateUI();
+      });
+    }
   }
 
   private startAnimation() {
@@ -341,6 +366,8 @@ class GameRenderer {
 
   private updateCanvasDisplaySize(baseCanvasWidth: number, baseCanvasHeight: number) {
     // fit display size w current layout
+    const isMobile = window.innerWidth <= 600;
+
     const headerEl = document.querySelector('.header') as HTMLElement | null;
     const controlsEl = document.querySelector('.game-controls') as HTMLElement | null;
     const infoEl = document.querySelector('.game-info') as HTMLElement | null;
@@ -351,13 +378,15 @@ class GameRenderer {
     const controlsH = controlsEl?.getBoundingClientRect().height ?? 0;
     const inventoryH = inventoryEl?.getBoundingClientRect().height ?? 0;
     const infoH = infoEl?.getBoundingClientRect().height ?? 0;
-    const sidebarW = sidebarEl?.getBoundingClientRect().width ?? 0;
+   
+    const sidebarW = isMobile ? 0 : (sidebarEl?.getBoundingClientRect().width ?? 0);
 
     const logo = document.querySelector('.logo') as HTMLElement | null;
-    const extraLogoSpace = logo ? logo.getBoundingClientRect().height * 0.5 : 0;
+    
+    const extraLogoSpace = logo && !isMobile ? logo.getBoundingClientRect().height * 0.5 : 0;
 
-    const paddingW = 64;
-    const paddingH = 72;
+    const paddingW = isMobile ? 8 : 64;
+    const paddingH = isMobile ? 16 : 72;
 
     const maxW = Math.max(120, window.innerWidth - sidebarW - paddingW);
     const maxH = Math.max(
@@ -386,6 +415,16 @@ class GameRenderer {
       this.render();
     });
 
+    const undoBtn = document.getElementById('undo-btn') as HTMLButtonElement | null;
+    if (undoBtn) {
+      undoBtn.addEventListener('click', () => {
+        if (this.uiMode !== 'play') return;
+        if (this.state.status !== 'idle') return;
+        if (this.showingOptimalReplay) return;
+        this.undoLastPathStep();
+      });
+    }
+
     // touch svreen support
     this.canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
@@ -394,20 +433,20 @@ class GameRenderer {
         clientX: touch.clientX,
         clientY: touch.clientY,
       });
-    });
+    }, { passive: false });
     this.canvas.addEventListener('touchmove', (e) => {
       e.preventDefault();
       const touch = e.touches[0];
       const coords = { clientX: touch.clientX, clientY: touch.clientY };
       this.handlePointerMove(coords);
       this.handleHover(coords);
-    });
-    this.canvas.addEventListener('touchend', () => this.stopDrawing());
+    }, { passive: false });
+    this.canvas.addEventListener('touchend', () => this.stopDrawing(), { passive: true });
 
     window.addEventListener('resize', () => {
       const level = this.state.level;
       this.updateCanvasDisplaySize(level.width * TILE_SIZE, level.height * TILE_SIZE);
-      this.render();
+      this.scheduleRender();
     });
 
     // undo only while drawing paths
@@ -428,8 +467,8 @@ class GameRenderer {
     if (this.state.path.length <= 1) return;
     this.state = { ...this.state, path: this.state.path.slice(0, -1) };
     playPathTileSfx();
-    this.render();
-    this.updateUI();
+    this.scheduleRender();
+    this.scheduleUIUpdate();
   }
 
   private handlePointerDown(e: { clientX: number; clientY: number }) {
@@ -501,8 +540,8 @@ class GameRenderer {
     if (this.state.path.length > prevLen) {
       playPathTileSfx();
     }
-    this.render();
-    this.updateUI();
+    this.scheduleRender();
+    this.scheduleUIUpdate();
   }
 
   private stopDrawing() {
@@ -521,7 +560,7 @@ class GameRenderer {
     if (pos && inBounds(this.state.level.width, this.state.level.height, pos)) {
       if (this.hoverTile?.x !== pos.x || this.hoverTile?.y !== pos.y) {
         this.hoverTile = pos;
-        this.render();
+        this.scheduleRender();
       }
 
       if (this.uiMode === 'build') {
@@ -542,7 +581,7 @@ class GameRenderer {
     } else {
       if (this.hoverTile !== null) {
         this.hoverTile = null;
-        this.render();
+        this.scheduleRender();
       }
       this.canvas.style.cursor = 'default';
     }
@@ -1035,6 +1074,8 @@ class GameRenderer {
     const runButton = document.getElementById('run-btn') as HTMLButtonElement;
     const retryButton = document.getElementById('retry-btn') as HTMLButtonElement;
 
+    const undoButton = document.getElementById('undo-btn') as HTMLButtonElement | null;
+
     if (stepsEl) {
       const pathSteps = Math.max(0, this.state.path.length - 1);
       const displaySteps = this.state.status === 'idle' ? pathSteps : this.state.stepsTaken;
@@ -1076,7 +1117,14 @@ class GameRenderer {
       });
     }
 
-    this.updateOrdersDisplay();
+    const ordersKey = JSON.stringify({
+      orders: this.state.level.orders,
+      remaining: this.state.remainingOrders,
+    });
+    if (ordersKey !== this.lastOrdersKey) {
+      this.lastOrdersKey = ordersKey;
+      this.updateOrdersDisplay();
+    }
 
     if (runButton) {
       runButton.disabled = this.uiMode === 'build' || this.state.status !== 'idle';
@@ -1084,6 +1132,11 @@ class GameRenderer {
 
     if (retryButton) {
       retryButton.disabled = this.uiMode === 'build' || this.state.status === 'running';
+    }
+
+    if (undoButton) {
+      const canUndo = this.uiMode === 'play' && this.state.status === 'idle' && !this.showingOptimalReplay && this.state.path.length > 1;
+      undoButton.disabled = !canUndo;
     }
   }
 
@@ -1983,32 +2036,47 @@ async function init() {
     const current = obstacleAt(p);
     const currentType = current?.type as ObstacleId | undefined;
     const currentIndex = currentType != null ? WALL_DECOR_TYPES.indexOf(currentType) : -1;
-    const nextIndex = currentIndex < WALL_DECOR_TYPES.length - 1 ? currentIndex + 1 : -1;
 
-    // Remove current: for 2-tile wall decor, remove both tiles
-    const toRemove = getObstacleGroupAt(p);
-    const keysToRemove = new Set(toRemove.map(posKey));
-    builderData.obstacles = builderData.obstacles.filter((o) => !keysToRemove.has(`${o.x},${o.y}`));
+    const canPlaceWallDecorAt = (type: ObstacleId): boolean => {
+      const width = getDecorWidth(type);
 
-    if (nextIndex >= 0) {
-      const nextType = WALL_DECOR_TYPES[nextIndex];
-      if (!nextType) return;
-      const width = getDecorWidth(nextType);
-      // For 2-tile types, right tile must not be the corner (p.x + width - 1 < width - 1 => p.x < 1 for width 2, so p.x must be 0... no: corner is at x = width-1, so we need p.x + width - 1 <= width - 2, i.e. p.x + 1 < width - 1 for width 2, so p.x < builderData.width - 2)
-      if (width === 2 && p.x >= builderData.width - 2) {
-        setBuilderStatus('double window needs space: use a tile further left');
-        return;
+      if (width === 2 && p.x + 1 >= builderData.width - 1) return false;
+
+      for (let i = 0; i < width; i++) {
+        const checkX = p.x + i;
+        if (obstacleAt({ x: checkX, y: p.y })) return false;
       }
+      return true;
+    };
+
+    if (currentType) {
+      const toRemove = getObstacleGroupAt(p);
+      const keysToRemove = new Set(toRemove.map(posKey));
+      builderData.obstacles = builderData.obstacles.filter(
+        (o) => !keysToRemove.has(`${o.x},${o.y}`)
+      );
+    }
+
+    const startIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % WALL_DECOR_TYPES.length;
+    for (let i = 0; i < WALL_DECOR_TYPES.length; i++) {
+      const idx = (startIndex + i) % WALL_DECOR_TYPES.length;
+      const candidate = WALL_DECOR_TYPES[idx];
+      if (!canPlaceWallDecorAt(candidate)) continue;
+
+      const width = getDecorWidth(candidate);
       if (width === 2) {
         builderData.obstacles = [
           ...builderData.obstacles,
-          { x: p.x, y: p.y, type: nextType },
-          { x: p.x + 1, y: p.y, type: nextType },
+          { x: p.x, y: p.y, type: candidate },
+          { x: p.x + 1, y: p.y, type: candidate },
         ];
       } else {
-        builderData.obstacles = [...builderData.obstacles, { x: p.x, y: p.y, type: nextType }];
+        builderData.obstacles = [...builderData.obstacles, { x: p.x, y: p.y, type: candidate }];
       }
+      return;
     }
+
+    setBuilderStatus('no wall decor fits here');
   };
 
   const cycleDecorAt = (p: Pos) => {
@@ -2679,6 +2747,7 @@ async function init() {
 
   const runBtn = document.getElementById('run-btn');
   const retryBtn = document.getElementById('retry-btn');
+  const undoBtn = document.getElementById('undo-btn');
   const exitBuilderBtn = document.getElementById('exit-builder-btn');
 
   const enterBuilderMode = () => {
@@ -2701,6 +2770,7 @@ async function init() {
     if (builderPanel) builderPanel.style.display = 'block';
     if (runBtn) runBtn.style.display = 'none';
     if (retryBtn) retryBtn.style.display = 'none';
+    if (undoBtn) undoBtn.style.display = 'none';
     if (exitBuilderBtn) exitBuilderBtn.style.display = '';
 
     const exitHint = document.getElementById('exit-builder-hint');
@@ -2723,6 +2793,7 @@ async function init() {
     if (builderPanel) builderPanel.style.display = 'none';
     if (runBtn) runBtn.style.display = '';
     if (retryBtn) retryBtn.style.display = '';
+    if (undoBtn) undoBtn.style.display = '';
     if (exitBuilderBtn) exitBuilderBtn.style.display = 'none';
 
     const exitHint = document.getElementById('exit-builder-hint');
@@ -2749,6 +2820,7 @@ async function init() {
     if (builderPanel) builderPanel.style.display = 'none';
     if (runBtn) runBtn.style.display = '';
     if (retryBtn) retryBtn.style.display = '';
+    if (undoBtn) undoBtn.style.display = '';
     if (exitBuilderBtn) exitBuilderBtn.style.display = 'none';
 
     const exitHint = document.getElementById('exit-builder-hint');
@@ -2774,6 +2846,9 @@ async function init() {
       );
       const s = renderer.getState();
       renderer.setState({ ...s, message: 'invalid share link' });
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+      forceExitBuilderMode();
+      applyLevelDataToRenderer(dailyLevelData, dailyLevelId, 'daily');
       return;
     }
 
