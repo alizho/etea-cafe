@@ -5,10 +5,14 @@ import {
   STEP_SFX,
   NICE_SFX,
   WOMP_SFX,
+  JET_SFX,
+  CHER_SFX,
+  MELODY_SFX,
   SFX_VOLUME,
   PATH_TILE_SFX_VOLUME,
   STEP_SFX_VOLUME as STEP_VOLUME_SCALE,
 } from './config/constants';
+import type { CustomerId } from './engine/types';
 
 let hasStarted = false;
 let audioEnabled = true;
@@ -74,6 +78,18 @@ niceSfx.volume = SFX_VOLUME;
 const wompSfx = new Audio(WOMP_SFX);
 wompSfx.preload = 'auto';
 wompSfx.volume = SFX_VOLUME;
+
+const jetSfx = new Audio(JET_SFX);
+jetSfx.preload = 'auto';
+jetSfx.volume = SFX_VOLUME;
+
+const cherSfx = new Audio(CHER_SFX);
+cherSfx.preload = 'auto';
+cherSfx.volume = SFX_VOLUME;
+
+const melodySfx = new Audio(MELODY_SFX);
+melodySfx.preload = 'auto';
+melodySfx.volume = SFX_VOLUME;
 
 const PATH_TILE_SFX_MIN_INTERVAL_MS = 35;
 const STEP_SFX_MIN_INTERVAL_MS = 50;
@@ -239,4 +255,29 @@ export function playWompSfx(): void {
   const sfx = wompSfx.cloneNode(true) as HTMLAudioElement;
   sfx.volume = SFX_VOLUME;
   void sfx.play().catch(() => {});
+}
+
+export function playCustomerServeSfx(customerId: CustomerId): void {
+  if (!hasStarted || !audioEnabled) return;
+
+  let base: HTMLAudioElement;
+  if (customerId === 'A') {
+    base = melodySfx;
+  } else if (customerId === 'B') {
+    base = jetSfx;
+  } else if (customerId === 'C') {
+    base = cherSfx;
+  } else {
+    return;
+  }
+
+  for (let i = 0; i < 3; i++) {
+    setTimeout(() => {
+      if (!audioEnabled) return;
+      const sfx = base.cloneNode(true) as HTMLAudioElement;
+      sfx.volume = SFX_VOLUME * 0.4;
+      sfx.playbackRate = 1.4;
+      void sfx.play().catch(() => {});
+    }, i * 100);
+  }
 }

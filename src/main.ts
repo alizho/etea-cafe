@@ -21,6 +21,7 @@ import {
   playStepSfx,
   playNiceSfx,
   playWompSfx,
+  playCustomerServeSfx,
 } from './audio';
 import { initMenu } from './menu';
 import {
@@ -732,6 +733,7 @@ class GameRenderer {
         !this.successHandled &&
         !this.showingOptimalReplay
       ) {
+        playNiceSfx();
         this.successHandled = true;
         this.onSuccess(this.state.stepsTaken);
       }
@@ -747,7 +749,7 @@ class GameRenderer {
           prevOrders[customerId as keyof typeof prevOrders].length >
           this.state.remainingOrders[customerId as keyof typeof this.state.remainingOrders].length
         ) {
-          playNiceSfx();
+          playCustomerServeSfx(customerId as CustomerId);
         }
       }
 
@@ -771,6 +773,7 @@ class GameRenderer {
           !this.successHandled &&
           !this.showingOptimalReplay
         ) {
+          playNiceSfx();
           this.successHandled = true;
           this.onSuccess(this.state.stepsTaken);
         }

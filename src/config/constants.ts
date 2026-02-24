@@ -7,6 +7,9 @@ export const WET_A = '/audio/path.mp3';
 export const STEP_SFX = '/audio/step.mp3';
 export const NICE_SFX = '/audio/nice.mp3';
 export const WOMP_SFX = '/audio/womp.mp3';
+export const JET_SFX = '/audio/jet.wav';
+export const CHER_SFX = '/audio/cher.wav';
+export const MELODY_SFX = '/audio/melody.wav';
 
 export const MUSIC_VOLUME = 0.18;
 export const SFX_VOLUME = 0.75;
