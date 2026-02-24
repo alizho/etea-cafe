@@ -22,7 +22,7 @@ import {
   playNiceSfx,
   playWompSfx,
 } from './audio';
-import { initMenu } from './menu';
+import { initMenu, showTutorialIfFirstVisit } from './menu';
 import {
   loadAllSprites,
   type LoadedSprites,
@@ -1231,6 +1231,7 @@ class GameRenderer {
 
 // initialize game
 async function init() {
+  showTutorialIfFirstVisit();
   ensureAudioStartedOnFirstGesture();
   await imagesLoaded;
 

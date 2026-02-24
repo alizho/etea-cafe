@@ -2,6 +2,42 @@ import { toggleAudio, getAudioEnabled } from './audio';
 import { getLevelHistory, getLevelByDate, getTodayDateEST } from './supabase/api';
 import type { LevelData } from './levels/level.schema';
 
+const TUTORIAL_SEEN_KEY = 'tutorialSeen';
+
+const glorboSprite =
+  `<span class="tutorial-sprite" style="width:24px;height:24px">` +
+  `<img src="/img/glorbo_sprite_sheet.png" style="width:300%;height:200%">` +
+  `</span>`;
+
+const itemSprites = ['/img/drink_b_item.png', '/img/food_c_item.png', '/img/drink_a_item.png']
+  .map((src) => `<span class="tutorial-sprite tutorial-sprite--full" style="width:24px;height:24px"><img src="${src}" style="width:100%;height:100%"></span>`)
+  .join('');
+
+const customerSprites = ['/img/customer_a.png', '/img/customer_b.png', '/img/customer_c.png']
+  .map((src) => `<span class="tutorial-sprite" style="width:24px;height:24px"><img src="${src}" style="width:200%;height:200%"></span>`)
+  .join('');
+
+const tutorialHTML =
+  `<h3 class="menu-panel-title">how to play</h3>` +
+  `<p class="menu-panel-text">- meet glorbo ${glorboSprite}. click and drag to draw a path from glorbo to complete the level.</p>` +
+  `<p class="menu-panel-text">- make sure you serve everyone their order by stepping on the items ${itemSprites} they want before you reach them.</p>` +
+  `<p class="menu-panel-text">- you can only hold 2 items at a time.</p>` +
+  `<p class="menu-panel-text">- press run to see if you served everyone ${customerSprites} their order.</p>` +
+  `<p class="menu-panel-text">- try to find the shortest path possible.</p>` +
+  `<p class="menu-panel-text">- have fun!</p>`;
+
+export function showTutorialIfFirstVisit(): void {
+  if (localStorage.getItem(TUTORIAL_SEEN_KEY)) return;
+
+  const menuPanel = document.getElementById('menu-panel');
+  const menuPanelBody = document.getElementById('menu-panel-body');
+  if (!menuPanel || !menuPanelBody) return;
+
+  menuPanelBody.innerHTML = tutorialHTML;
+  menuPanel.style.display = 'flex';
+  localStorage.setItem(TUTORIAL_SEEN_KEY, '1');
+}
+
 export function initMenu(): void {
   const hamburgerBtn = document.getElementById('hamburger-btn');
   const hamburgerMenu = document.getElementById('hamburger-menu');
@@ -104,15 +140,7 @@ export function initMenu(): void {
           break;
 
         case 'tutorial':
-          showPanel(
-            `<h3 class="menu-panel-title">how to play</h3>` +
-              `<p class="menu-panel-text">- click and drag to draw a path from glorbo.</p>` +
-              `<p class="menu-panel-text">- make sure you serve everyone their order by stepping on the items they want before you reach them.</p>` +
-              `<p class="menu-panel-text">- you can only hold 2 items at a time.</p>` +
-              `<p class="menu-panel-text">- press run to see if you served everyone their order.</p>` +
-              `<p class="menu-panel-text">- try to find the shortest path possible.</p>` +
-              `<p class="menu-panel-text">- have fun!</p>`
-          );
+          showPanel(tutorialHTML);
           break;
 
         case 'settings':

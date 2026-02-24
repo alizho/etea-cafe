@@ -201,10 +201,18 @@ body {
 }
 
 .game-button .undo-icon {
-  height: 1.25em;
+  height: 1em;
   width: auto;
   vertical-align: middle;
   display: block;
+}
+
+#undo-btn {
+  height: 2.4em;
+}
+
+.game-button:hover:not(:disabled) .undo-icon {
+  filter: brightness(0) invert(1);
 }
 
 .exit-builder-hint {
@@ -704,6 +712,26 @@ body {
 
 .menu-panel-text:last-of-type {
   margin-bottom: 0;
+}
+
+.tutorial-sprite {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: middle;
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+.tutorial-sprite img {
+  display: block;
+  image-rendering: pixelated;
+  object-position: 0 0;
+}
+
+/* single-item sprites (food/drink) stay within container */
+.tutorial-sprite.tutorial-sprite--full img {
+  max-width: 100%;
+  max-height: 100%;
 }
 
 #menu-panel-close {
