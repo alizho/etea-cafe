@@ -266,7 +266,7 @@ export function renderPathArrow(
   const { path } = state;
 
   // draw path arrow on the last tile (current point user is on)
-  if (path.length > 0 && state.status === 'idle') {
+  if (path.length > 1 && state.status === 'idle') {
     const lastIndex = path.length - 1;
     const lastPos = path[lastIndex];
     const arrowX = lastPos.x * TILE_SIZE;

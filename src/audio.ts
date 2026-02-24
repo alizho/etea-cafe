@@ -38,9 +38,7 @@ async function ensureContextRunning(ctx: AudioContext): Promise<void> {
       source.buffer = buffer;
       source.connect(ctx.destination);
       source.start(0);
-    } catch {
-
-    }
+    } catch {}
   }
 }
 
@@ -179,7 +177,6 @@ export async function startBackgroundMusic(): Promise<void> {
 
     detachGestureListeners();
   } catch (err) {
-  
   } finally {
     startInProgress = false;
   }
