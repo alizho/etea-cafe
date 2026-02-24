@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1, minimum-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1, minimum-scale=1"
+    />
     <meta name="apple-mobile-web-app-capable" content="true" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#000000" />
@@ -22,7 +25,9 @@
           <div class="game-controls">
             <button id="run-btn" class="game-button">run</button>
             <button id="retry-btn" class="game-button">reset</button>
-            <button id="undo-btn" class="game-button" title="undo last step">undo</button>
+            <button id="undo-btn" class="game-button" title="undo last step">
+              <img src="/img/undo.png" alt="undo" class="undo-icon" />
+            </button>
             <button id="builder-btn" class="game-button" style="display: none">builder</button>
             <button id="exit-builder-btn" class="game-button" style="display: none">
               exit and save build
@@ -94,11 +99,7 @@
                     aria-label="place station"
                     title="station - place a drink or food station (click again to cycle)"
                   >
-                    <img
-                      src="/img/drink_a_item.png"
-                      alt="station"
-                      class="builder-drink-icon"
-                    />
+                    <img src="/img/drink_a_item.png" alt="station" class="builder-drink-icon" />
                   </button>
                   <button
                     class="game-button builder-tool-btn"

@@ -200,6 +200,13 @@ body {
   animation: shake 0.4s ease-in-out;
 }
 
+.game-button .undo-icon {
+  height: 1.25em;
+  width: auto;
+  vertical-align: middle;
+  display: block;
+}
+
 .exit-builder-hint {
   color: var(--secondary-color);
   font-size: 12px;

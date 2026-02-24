@@ -378,11 +378,11 @@ class GameRenderer {
     const controlsH = controlsEl?.getBoundingClientRect().height ?? 0;
     const inventoryH = inventoryEl?.getBoundingClientRect().height ?? 0;
     const infoH = infoEl?.getBoundingClientRect().height ?? 0;
-   
+
     const sidebarW = isMobile ? 0 : (sidebarEl?.getBoundingClientRect().width ?? 0);
 
     const logo = document.querySelector('.logo') as HTMLElement | null;
-    
+
     const extraLogoSpace = logo && !isMobile ? logo.getBoundingClientRect().height * 0.5 : 0;
 
     const paddingW = isMobile ? 8 : 64;
@@ -426,21 +426,29 @@ class GameRenderer {
     }
 
     // touch svreen support
-    this.canvas.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      const touch = e.touches[0];
-      this.handlePointerDown({
-        clientX: touch.clientX,
-        clientY: touch.clientY,
-      });
-    }, { passive: false });
-    this.canvas.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      const touch = e.touches[0];
-      const coords = { clientX: touch.clientX, clientY: touch.clientY };
-      this.handlePointerMove(coords);
-      this.handleHover(coords);
-    }, { passive: false });
+    this.canvas.addEventListener(
+      'touchstart',
+      (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        this.handlePointerDown({
+          clientX: touch.clientX,
+          clientY: touch.clientY,
+        });
+      },
+      { passive: false }
+    );
+    this.canvas.addEventListener(
+      'touchmove',
+      (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const coords = { clientX: touch.clientX, clientY: touch.clientY };
+        this.handlePointerMove(coords);
+        this.handleHover(coords);
+      },
+      { passive: false }
+    );
     this.canvas.addEventListener('touchend', () => this.stopDrawing(), { passive: true });
 
     window.addEventListener('resize', () => {
@@ -1135,7 +1143,11 @@ class GameRenderer {
     }
 
     if (undoButton) {
-      const canUndo = this.uiMode === 'play' && this.state.status === 'idle' && !this.showingOptimalReplay && this.state.path.length > 1;
+      const canUndo =
+        this.uiMode === 'play' &&
+        this.state.status === 'idle' &&
+        !this.showingOptimalReplay &&
+        this.state.path.length > 1;
       undoButton.disabled = !canUndo;
     }
   }
