@@ -143,11 +143,6 @@ export function initMenu(): void {
           showPanel(tutorialHTML);
           break;
 
-        case 'settings':
-          showPanel(buildSettingsHTML());
-          attachSettingsListeners();
-          break;
-
         case 'about':
           showPanel(
             `<h3 class="menu-panel-title">about</h3>` +
@@ -160,25 +155,20 @@ export function initMenu(): void {
     });
   });
 
-  /* ── settings helpers ── */
+  /* ── audio toggle (bottom-left) ── */
 
-  function buildSettingsHTML(): string {
-    const enabled = getAudioEnabled();
-    return (
-      `<h3 class="menu-panel-title">settings</h3>` +
-      `<div class="settings-row">` +
-      `<span class="settings-label">audio</span>` +
-      `<button id="audio-toggle-btn" class="game-button settings-toggle">${enabled ? 'on' : 'off'}</button>` +
-      `</div>`
-    );
-  }
-
-  function attachSettingsListeners(): void {
-    const btn = document.getElementById('audio-toggle-btn');
-    if (!btn) return;
-    btn.addEventListener('click', () => {
+  const audioToggleBtn = document.getElementById('audio-toggle-btn');
+  const audioToggleImg = audioToggleBtn?.querySelector<HTMLImageElement>('img');
+  if (audioToggleBtn && audioToggleImg) {
+    const setAudioIcon = (enabled: boolean) => {
+      const base = enabled ? '/img/volume.png' : '/img/volume_mute.png';
+      audioToggleImg.src = `${base}?v=${enabled ? 'on' : 'off'}`;
+      audioToggleBtn.setAttribute('aria-label', enabled ? 'mute' : 'unmute');
+    };
+    setAudioIcon(getAudioEnabled());
+    audioToggleBtn.addEventListener('click', () => {
       const newState = toggleAudio();
-      btn.textContent = newState ? 'on' : 'off';
+      setAudioIcon(newState);
     });
   }
 
