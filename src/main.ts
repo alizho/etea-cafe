@@ -8,6 +8,7 @@ import {
   getBestScoreFromStorage,
   setBestScoreInStorage,
   hasRunInDatabase,
+  getTodayDateEST,
 } from './supabase/api';
 import { showSuccessPopup, hideSuccessPopup } from './popup';
 import type { LevelData } from './levels/level.schema';
@@ -48,6 +49,65 @@ import {
   makeShareUrlFromToken,
 } from './share';
 import './style.css';
+
+type StreakData = {
+  currentStreak: number;
+  lastCompletedDate: string | null;
+};
+
+const STREAK_STORAGE_KEY = 'etea_daily_streak';
+
+function loadStreak(): StreakData {
+  try {
+    const raw = localStorage.getItem(STREAK_STORAGE_KEY);
+    if (!raw) {
+      return { currentStreak: 0, lastCompletedDate: null };
+    }
+    const parsed = JSON.parse(raw) as Partial<StreakData>;
+    return {
+      currentStreak: typeof parsed.currentStreak === 'number' ? parsed.currentStreak : 0,
+      lastCompletedDate:
+        typeof parsed.lastCompletedDate === 'string' ? parsed.lastCompletedDate : null,
+    };
+  } catch {
+    return { currentStreak: 0, lastCompletedDate: null };
+  }
+}
+
+function saveStreak(data: StreakData): void {
+  try {
+    localStorage.setItem(STREAK_STORAGE_KEY, JSON.stringify(data));
+  } catch {
+
+  }
+}
+
+function offsetDate(dateStr: string, deltaDays: number): string {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + deltaDays);
+  return d.toISOString().slice(0, 10);
+}
+
+function updateStreakForPuzzleDate(puzzleDate: string): StreakData {
+  const today = getTodayDateEST();
+  const existing = loadStreak();
+
+  if (puzzleDate !== today) {
+    return existing;
+  }
+
+  if (existing.lastCompletedDate === today) {
+    return existing;
+  }
+
+  const yesterday = offsetDate(today, -1);
+  const currentStreak =
+    existing.lastCompletedDate === yesterday ? existing.currentStreak + 1 : 1;
+
+  const updated: StreakData = { currentStreak, lastCompletedDate: today };
+  saveStreak(updated);
+  return updated;
+}
 
 // store loaded sprites
 let sprites: LoadedSprites;
@@ -1250,9 +1310,10 @@ async function init() {
   if (b3) b3.src = getCustomerIconDataUrl(sprites.customers.C, 2);
   if (decorIcon) decorIcon.src = '/img/plant_a.png';
 
-  const { levelData, levelId } = await getTodayLevelFromSupabase();
+  const { levelData, levelId, date } = await getTodayLevelFromSupabase();
   const dailyLevelData: LevelData = levelData;
   const dailyLevelId: string | null = levelId;
+  const dailyPuzzleDate: string = date;
 
   // url hash? shared level time
   const sharedToken = getShareTokenFromUrlHash();
@@ -1271,15 +1332,18 @@ async function init() {
   // store level ID for submitting runs
   let currentLevelId: string | null = initialLevelId;
 
-  // setup day text
+  const initialDayMatch = levelData.id.match(/day-(\d+)/);
+  let dayNumber = initialDayMatch ? parseInt(initialDayMatch[1], 10) : 1;
+  let currentMode: 'shared' | 'daily' | 'custom' = hasSharedLevel ? 'shared' : 'daily';
+  let currentPuzzleDate: string | null = hasSharedLevel ? null : dailyPuzzleDate;
+
   const dayTextEl = document.getElementById('day-text');
+
+  // setup day text
   if (dayTextEl) {
     if (hasSharedLevel) {
       dayTextEl.textContent = 'shared level';
     } else {
-      // extract day number from
-      const dayMatch = levelData.id.match(/day-(\d+)/);
-      const dayNumber = dayMatch ? parseInt(dayMatch[1], 10) : 1;
       dayTextEl.textContent = `day ${dayNumber}`;
     }
   }
@@ -1290,14 +1354,8 @@ async function init() {
   const renderer = new GameRenderer(canvas, state);
   renderer.setLevelId(currentLevelId);
 
-  // extract day number for popup
-  const dayMatch = levelData.id.match(/day-(\d+)/);
-  let dayNumber = dayMatch ? parseInt(dayMatch[1], 10) : 1;
-  let currentMode: 'shared' | 'daily' | 'custom' = hasSharedLevel ? 'shared' : 'daily';
-
   const setDayText = (mode: 'shared' | 'daily' | 'custom') => {
     currentMode = mode;
-    const dayTextEl = document.getElementById('day-text');
     if (!dayTextEl) return;
     if (mode === 'shared') dayTextEl.textContent = 'shared level';
     else if (mode === 'custom') dayTextEl.textContent = 'your level';
@@ -1307,13 +1365,15 @@ async function init() {
   const applyLevelDataToRenderer = (
     data: LevelData,
     id: string | null,
-    mode: 'shared' | 'daily' | 'custom'
+    mode: 'shared' | 'daily' | 'custom',
+    puzzleDate: string | null
   ) => {
     hideSuccessPopup();
     renderer.hideFailurePopup();
 
     currentLevelData = JSON.parse(JSON.stringify(data)) as LevelData;
     currentLevelId = id;
+    currentPuzzleDate = puzzleDate;
 
     renderer.setLevelId(currentLevelId);
     renderer.setState(initGame(buildLevel(currentLevelData)));
@@ -1322,11 +1382,6 @@ async function init() {
 
   // submit run and show top score
   renderer.setOnSuccess(async (moves: number) => {
-    if (!currentLevelId) {
-      // no level id => can't submit
-      return;
-    }
-
     // compute optimal path via BFS solver
     let optimalMoves: number | undefined;
     let optimalPath: Pos[] | undefined;
@@ -1345,24 +1400,32 @@ async function init() {
       ? () => renderer.showOptimalPath(optimalPath!)
       : undefined;
 
+    let streakLabel: string | undefined;
+    if (currentMode === 'daily' && currentPuzzleDate) {
+      const { currentStreak } = updateStreakForPuzzleDate(currentPuzzleDate);
+      const dayLabel = currentStreak === 1 ? 'day' : 'days';
+      streakLabel = `streak: ${currentStreak} ${dayLabel}`;
+    }
+
     try {
-      const playerId = getPlayerId();
-      const storedBest = getBestScoreFromStorage(currentLevelId);
-      const isNewBest = storedBest === null || moves < storedBest;
+      if (currentLevelId) {
+        const playerId = getPlayerId();
+        const storedBest = getBestScoreFromStorage(currentLevelId);
+        const isNewBest = storedBest === null || moves < storedBest;
 
-      // check if player already has a run in database for this level
-      const hasExistingRun = await hasRunInDatabase(currentLevelId, playerId);
+        // check if player already has a run in database for this level
+        const hasExistingRun = await hasRunInDatabase(currentLevelId, playerId);
 
-      // only save to database if this is the first run
-      if (!hasExistingRun) {
-        await submitRun(currentLevelId, playerId, moves, true);
-      }
+        // only save to database if this is the first run
+        if (!hasExistingRun) {
+          await submitRun(currentLevelId, playerId, moves, true);
+        }
 
-      // update localStorage if it's a new best (for display purposes)
-      if (isNewBest) {
-        setBestScoreInStorage(currentLevelId, moves);
-        // update UI to show new best score
-        renderer.updateBestScoreDisplay();
+        if (isNewBest) {
+          setBestScoreInStorage(currentLevelId, moves);
+          // update UI to show new best score
+          renderer.updateBestScoreDisplay();
+        }
       }
 
       // show success popup on every playthrough
@@ -1378,7 +1441,8 @@ async function init() {
         height,
         optimalMoves,
         viewOptimalCallback,
-        isCustom
+        isCustom,
+        streakLabel
       );
     } catch (error) {
       console.error('Error submitting run:', error);
@@ -1395,7 +1459,8 @@ async function init() {
         height,
         optimalMoves,
         viewOptimalCallback,
-        isCustom
+        isCustom,
+        streakLabel
       );
     }
   });
@@ -2824,6 +2889,7 @@ async function init() {
     renderer.setState(initGame(buildLevel(currentLevelData)));
 
     setDayText('custom');
+    currentPuzzleDate = null;
   };
 
   const forceExitBuilderMode = () => {
@@ -2852,7 +2918,7 @@ async function init() {
       const validation = decoded ? validateLevelData(decoded) : null;
       if (decoded && validation && validation.ok) {
         forceExitBuilderMode();
-        applyLevelDataToRenderer(decoded as LevelData, null, 'shared');
+        applyLevelDataToRenderer(decoded as LevelData, null, 'shared', null);
         return;
       }
 
@@ -2864,12 +2930,12 @@ async function init() {
       renderer.setState({ ...s, message: 'invalid share link' });
       history.replaceState(null, '', window.location.pathname + window.location.search);
       forceExitBuilderMode();
-      applyLevelDataToRenderer(dailyLevelData, dailyLevelId, 'daily');
+      applyLevelDataToRenderer(dailyLevelData, dailyLevelId, 'daily', dailyPuzzleDate);
       return;
     }
 
     forceExitBuilderMode();
-    applyLevelDataToRenderer(dailyLevelData, dailyLevelId, 'daily');
+    applyLevelDataToRenderer(dailyLevelData, dailyLevelId, 'daily', dailyPuzzleDate);
   };
 
   window.addEventListener('hashchange', () => {
@@ -2981,13 +3047,18 @@ async function init() {
 
   // listen for level loads from the menu
   document.addEventListener('loadLevel', ((e: CustomEvent) => {
-    const { levelData: ld, levelId: lid } = e.detail;
+    const { levelData: ld, levelId: lid, date: puzzleDate } = e.detail;
     forceExitBuilderMode();
 
     const m = (ld as LevelData).id?.match(/day-(\d+)/);
     dayNumber = m ? parseInt(m[1], 10) : 1;
 
-    applyLevelDataToRenderer(ld as LevelData, lid as string, 'daily');
+    applyLevelDataToRenderer(
+      ld as LevelData,
+      lid as string,
+      'daily',
+      typeof puzzleDate === 'string' ? puzzleDate : null
+    );
   }) as EventListener);
 
   // initial render and orders display

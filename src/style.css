@@ -82,6 +82,7 @@ body {
   font-size: clamp(14px, 4vw, 18px);
   font-family: PixelPoiiz;
 }
+ 
 
 .game-container {
   display: flex;
@@ -553,6 +554,13 @@ body {
   font-weight: bold;
   font-family: 'Pixer', Arial, sans-serif;
   color: var(--primary-color);
+}
+
+.success-streak {
+  font-family: 'Pixer', Arial, sans-serif;
+  font-size: 1em;
+  color: var(--primary-color);
+  margin-top: 8px;
 }
 
 .success-optimal-score {
