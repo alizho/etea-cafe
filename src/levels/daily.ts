@@ -20,11 +20,13 @@ export function getDailyLevelData(): LevelData {
 export type DailyLevelResult = {
   levelData: LevelData;
   levelId: string | null; // database level ID, null if using fallback
+  date: string;
 };
 
 // get todays lvl with fallback to levels.json
 export async function getTodayLevelFromSupabase(): Promise<DailyLevelResult> {
   try {
+    const todayDate = getTodayDateEST();
     const supabaseLevel = await getTodayLevel();
 
     console.log('Supabase response:', supabaseLevel);
@@ -32,13 +34,13 @@ export async function getTodayLevelFromSupabase(): Promise<DailyLevelResult> {
     if (!supabaseLevel) {
       console.warn('no lvl in supabase, using fallback');
       const fallback = getDailyLevelData();
-      return { levelData: fallback, levelId: null };
+      return { levelData: fallback, levelId: null, date: todayDate };
     }
 
     if (!supabaseLevel.json) {
       console.warn('supabase lvl has no json, using fallback');
       const fallback = getDailyLevelData();
-      return { levelData: fallback, levelId: null };
+      return { levelData: fallback, levelId: null, date: todayDate };
     }
 
     // handle jsonb array response from supabase
@@ -47,17 +49,18 @@ export async function getTodayLevelFromSupabase(): Promise<DailyLevelResult> {
     if (!jsonData) {
       console.warn('supabase lvl json is empty, using fallback');
       const fallback = getDailyLevelData();
-      return { levelData: fallback, levelId: null };
+      return { levelData: fallback, levelId: null, date: todayDate };
     }
 
     const levelData = jsonData as LevelData;
     console.log('loaded', levelData.id);
-    return { levelData, levelId: supabaseLevel.id };
+    return { levelData, levelId: supabaseLevel.id, date: todayDate };
   } catch (error) {
     console.error('supabase error', error);
     console.log('using fallback');
     const fallback = getDailyLevelData();
     console.log('loaded fallback', fallback.id);
-    return { levelData: fallback, levelId: null };
+    const todayDate = getTodayDateEST();
+    return { levelData: fallback, levelId: null, date: todayDate };
   }
 }

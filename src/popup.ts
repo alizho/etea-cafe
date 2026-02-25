@@ -160,10 +160,15 @@ function generateShareText(
   path: Pos[],
   width: number,
   height: number,
-  dayNumber: number
+  dayNumber: number,
+  streakLabel?: string
 ): string {
+  const header = streakLabel
+    ? `https://etea.cafe/ day ${dayNumber} -- ${score} moves -- ${streakLabel}`
+    : `https://etea.cafe/ day ${dayNumber} -- ${score} moves`;
+
   if (path.length === 0) {
-    return `https://etea.cafe day ${dayNumber} — ${score} moves`;
+    return header;
   }
 
   // create grid
@@ -180,7 +185,7 @@ function generateShareText(
   // join grid into string
   const gridStr = grid.map((row) => row.join('')).join('\n');
 
-  return `https://etea.cafe day ${dayNumber} -- ${score} moves\n\n${gridStr}`;
+  return `${header}\n\n${gridStr}`;
 }
 
 // determine message based on score vs BFS optimal and other players
@@ -229,13 +234,14 @@ function getScoreMessage(
 export function showSuccessPopup(
   dayNumber: number,
   score: number,
-  levelId: string,
+  levelId: string | null,
   path: Pos[],
   width: number,
   height: number,
   optimalMoves?: number,
   onViewOptimal?: () => void,
-  hideGraph?: boolean
+  hideGraph?: boolean,
+  streakLabel?: string
 ): void {
   const popup = document.getElementById('success-popup');
   if (!popup) return;
@@ -250,6 +256,17 @@ export function showSuccessPopup(
   const scoreEl = popup.querySelector('.success-score-value');
   if (scoreEl) {
     scoreEl.textContent = score.toString();
+  }
+
+  // set streak
+  const streakEl = popup.querySelector('.success-streak');
+  if (streakEl && streakEl instanceof HTMLElement) {
+    if (streakLabel) {
+      streakEl.textContent = streakLabel;
+      streakEl.style.display = 'block';
+    } else {
+      streakEl.style.display = 'none';
+    }
   }
 
   // show optimal score reference
@@ -290,7 +307,16 @@ export function showSuccessPopup(
   const shareBtn = document.getElementById('success-popup-share-btn');
   if (shareBtn) {
     shareBtn.addEventListener('click', async () => {
-      const shareText = generateShareText(score, path, width, height, dayNumber);
+      const streakEl = popup.querySelector('.success-streak') as HTMLElement | null;
+      const streakLabel = streakEl?.style.display !== 'none' ? streakEl?.textContent ?? '' : '';
+      const shareText = generateShareText(
+        score,
+        path,
+        width,
+        height,
+        dayNumber,
+        streakLabel || undefined
+      );
       try {
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(shareText);
@@ -334,7 +360,7 @@ export function showSuccessPopup(
   // show popup immediately, even before data loads
   popup.style.display = 'flex';
 
-  if (hideGraph) {
+  if (hideGraph || !levelId) {
     // no graph to show — just determine message from BFS optimal alone
     const message = getScoreMessage(score, [], optimalMoves);
     if (messageEl && messageEl instanceof HTMLElement) {
