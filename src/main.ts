@@ -1359,7 +1359,7 @@ async function init() {
     if (!dayTextEl) return;
     if (mode === 'shared') dayTextEl.textContent = 'shared level';
     else if (mode === 'custom') dayTextEl.textContent = 'your level';
-    else dayTextEl.textContent = `day ${dayNumber} playtest`;
+    else dayTextEl.textContent = `day ${dayNumber}`;
   };
 
   const applyLevelDataToRenderer = (
