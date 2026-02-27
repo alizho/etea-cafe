@@ -735,6 +735,23 @@ body {
   color: #f3f2ed;
 }
 
+/* Mobile-only menu items (mute, discord) – shown in hamburger on mobile, hidden on desktop */
+.menu-item--mobile-only {
+  display: none;
+}
+
+.menu-item .menu-item-icon {
+  height: 1em;
+  width: auto;
+  vertical-align: middle;
+  margin-right: 8px;
+  display: inline-block;
+}
+
+a.menu-item {
+  text-decoration: none;
+}
+
 /* ── Menu Panel ── */
 
 .menu-panel-content {
@@ -858,6 +875,16 @@ body {
 /* ── Mobile ── */
 
 @media (max-width: 600px) {
+  .audio-toggle-wrapper,
+  .discord-cta-wrapper {
+    display: none;
+  }
+
+  .menu-item--mobile-only {
+    display: flex;
+    align-items: center;
+  }
+
   #root {
     justify-content: flex-start;
     overflow: visible;

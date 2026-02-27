@@ -38,6 +38,44 @@ import {
   isWallDecorType,
 } from './config/items';
 
+
+const _outlineCache = new Map<HTMLImageElement, HTMLCanvasElement>();
+function getWhiteSilhouette(sprite: HTMLImageElement): HTMLCanvasElement {
+  let cached = _outlineCache.get(sprite);
+  if (cached) return cached;
+  const off = document.createElement('canvas');
+  off.width = sprite.width;
+  off.height = sprite.height;
+  const offCtx = off.getContext('2d')!;
+  offCtx.drawImage(sprite, 0, 0);
+  offCtx.globalCompositeOperation = 'source-in';
+  offCtx.fillStyle = 'white';
+  offCtx.fillRect(0, 0, off.width, off.height);
+  _outlineCache.set(sprite, off);
+  return off;
+}
+
+function drawSpriteWithOutline(
+  ctx: CanvasRenderingContext2D,
+  sprite: HTMLImageElement,
+  px: number,
+  py: number,
+  w: number,
+  h: number,
+  outlinePx = 4,
+  outlineAlpha = 0.7,
+) {
+  const silhouette = getWhiteSilhouette(sprite);
+  const o = outlinePx;
+  const prevAlpha = ctx.globalAlpha;
+  ctx.globalAlpha = outlineAlpha;
+  for (const [dx, dy] of [[-o,0],[o,0],[0,-o],[0,o],[-o,-o],[o,-o],[-o,o],[o,o]]) {
+    ctx.drawImage(silhouette, px + dx, py + dy, w, h);
+  }
+  ctx.globalAlpha = prevAlpha;
+  ctx.drawImage(sprite, px, py, w, h);
+}
+
 const HAMMER_SFX_URL = '/audio/hammer.mp3';
 
 function playHammerSfx(): void {
@@ -978,7 +1016,8 @@ class GameRenderer {
       // use pressed sprite if glorbo is on it and has pressed sprite
       const spriteToUse =
         isGlorboOnStation && sprites.drinkPressed ? sprites.drinkPressed : drinkSprite;
-      ctx.drawImage(spriteToUse, px, py, TILE_SIZE, TILE_SIZE);
+      const outlineAlpha = this.animationFrame % 2 === 0 ? 0.7 : 0.3;
+      drawSpriteWithOutline(ctx, spriteToUse, px, py, TILE_SIZE, TILE_SIZE, 4, outlineAlpha);
     }
 
     // serve boxes
@@ -2377,8 +2416,9 @@ async function init() {
       case 'station': {
         const sprite = sprites.drinks[item.drink];
         if (!sprite) return () => {}; // fallback
-        return (ctx, tx, ty) => {
-          ctx.drawImage(sprite, tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        return (ctx, tx, ty, animFrame) => {
+          const outlineAlpha = animFrame % 2 === 0 ? 0.7 : 0.3;
+          drawSpriteWithOutline(ctx, sprite, tx * TILE_SIZE, ty * TILE_SIZE, TILE_SIZE, TILE_SIZE, 4, outlineAlpha);
         };
       }
       case 'customer': {

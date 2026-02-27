@@ -126,6 +126,12 @@ export function initMenu(): void {
       const action = item.dataset.action;
 
       switch (action) {
+        case 'toggle-audio': {
+          const newState = toggleAudio();
+          setAudioIconBoth(newState);
+          break;
+        }
+
         case 'past-puzzles':
           showPanel(
             `<h3 class="menu-panel-title">puzzles</h3>` +
@@ -155,20 +161,28 @@ export function initMenu(): void {
     });
   });
 
-  /* ── audio toggle (bottom-left) ── */
+  /* ── audio toggle (bottom-left + hamburger on mobile) ── */
 
   const audioToggleBtn = document.getElementById('audio-toggle-btn');
   const audioToggleImg = audioToggleBtn?.querySelector<HTMLImageElement>('img');
+  const audioToggleMenuBtn = document.getElementById('audio-toggle-menu-btn');
+  const audioToggleMenuImg = audioToggleMenuBtn?.querySelector<HTMLImageElement>('img');
+
+  const setAudioIconBoth = (enabled: boolean) => {
+    const base = enabled ? '/img/volume.png' : '/img/volume_mute.png';
+    const src = `${base}?v=${enabled ? 'on' : 'off'}`;
+    const label = enabled ? 'mute' : 'unmute';
+    if (audioToggleImg) audioToggleImg.src = src;
+    if (audioToggleBtn) audioToggleBtn.setAttribute('aria-label', label);
+    if (audioToggleMenuImg) audioToggleMenuImg.src = src;
+    if (audioToggleMenuBtn) audioToggleMenuBtn.setAttribute('aria-label', label);
+  };
+
   if (audioToggleBtn && audioToggleImg) {
-    const setAudioIcon = (enabled: boolean) => {
-      const base = enabled ? '/img/volume.png' : '/img/volume_mute.png';
-      audioToggleImg.src = `${base}?v=${enabled ? 'on' : 'off'}`;
-      audioToggleBtn.setAttribute('aria-label', enabled ? 'mute' : 'unmute');
-    };
-    setAudioIcon(getAudioEnabled());
+    setAudioIconBoth(getAudioEnabled());
     audioToggleBtn.addEventListener('click', () => {
       const newState = toggleAudio();
-      setAudioIcon(newState);
+      setAudioIconBoth(newState);
     });
   }
 
