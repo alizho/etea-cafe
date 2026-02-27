@@ -121,14 +121,6 @@ const GESTURE_EVENTS: Array<[keyof WindowEventMap, ListenerOptions]> = [
 
 let gestureListenersAttached = false;
 
-function detachGestureListeners() {
-  if (!gestureListenersAttached) return;
-  for (const [event, opts] of GESTURE_EVENTS) {
-    window.removeEventListener(event, gestureHandler, opts);
-  }
-  gestureListenersAttached = false;
-}
-
 export function ensureAudioStartedOnFirstGesture(): void {
   if (gestureListenersAttached) return;
   for (const [event, opts] of GESTURE_EVENTS) {
@@ -175,7 +167,6 @@ export async function startBackgroundMusic(): Promise<void> {
     musicSource = source;
     hasStarted = true;
 
-    detachGestureListeners();
   } catch (err) {
   } finally {
     startInProgress = false;
