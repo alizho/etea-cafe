@@ -18,6 +18,7 @@ import { pathImagesLoaded, renderPath, renderPathArrow, PATH_TINT_GREEN } from '
 import { TILE_SIZE } from './config/constants';
 import {
   ensureAudioStartedOnFirstGesture,
+  startBackgroundMusic,
   playPathTileSfx,
   playStepSfx,
   playNiceSfx,
@@ -1296,6 +1297,7 @@ class GameRenderer {
 async function init() {
   showTutorialIfFirstVisit();
   ensureAudioStartedOnFirstGesture();
+  void startBackgroundMusic();
   await imagesLoaded;
 
   // builder tool icons
