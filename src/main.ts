@@ -746,6 +746,11 @@ class GameRenderer {
     this.updateUI();
   }
 
+  public forceUpdateOrdersDisplay() {
+    this.lastOrdersKey = '';
+    this.updateOrdersDisplay();
+  }
+
   /** Show the optimal path laid out on the board (idle, user presses run to play it) */
   public showOptimalPath(path: Pos[]) {
     this.showingOptimalReplay = true;
@@ -2893,6 +2898,7 @@ async function init() {
 
     setDayText('custom');
     currentPuzzleDate = null;
+    renderer.forceUpdateOrdersDisplay();
   };
 
   const forceExitBuilderMode = () => {
@@ -2912,6 +2918,7 @@ async function init() {
     if (exitHint) exitHint.style.display = 'none';
 
     if (ordersHeadingEl) ordersHeadingEl.textContent = "today's orders:";
+    renderer.forceUpdateOrdersDisplay();
   };
 
   const applyFromHash = async () => {
