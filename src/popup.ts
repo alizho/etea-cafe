@@ -157,38 +157,37 @@ function createScoreGraph(allScores: number[], userScore: number, container: HTM
 
 function generateShareText(
   score: number,
-  path: Pos[],
-  width: number,
-  height: number,
   dayNumber: number | null,
+  optimalMoves?: number,
   streakLabel?: string
 ): string {
-  const headerBase =
+  const base =
     dayNumber === null
-      ? `https://etea.cafe/ custom level - ${score} moves`
-      : `https://etea.cafe/ day ${dayNumber} - ${score} moves`;
+      ? 'https://etea.cafe/ custom level'
+      : `https://etea.cafe/ day ${dayNumber}`;
 
-  const header = streakLabel ? `${headerBase} - ${streakLabel}` : headerBase;
+  let status: string;
 
-  if (path.length === 0) {
-    return header;
-  }
-
-  // create grid
-  const grid: string[][] = [];
-  for (let y = 0; y < height; y++) {
-    const row: string[] = [];
-    for (let x = 0; x < width; x++) {
-      const isOnPath = path.some((pos) => pos.x === x && pos.y === y);
-      row.push(isOnPath ? '🟪' : '⬜');
+  if (optimalMoves !== undefined) {
+    if (score === optimalMoves) {
+      status = 'OPTIMAL!';
+    } else if (score > optimalMoves) {
+      const extraSteps = score - optimalMoves;
+      status = `suboptimal (+${extraSteps})`;
+    } else {
+      status = 'OPTIMAL!';
     }
-    grid.push(row);
+  } else {
+    status = `${score} moves`;
   }
 
-  // join grid into string
-  const gridStr = grid.map((row) => row.join('')).join('\n');
+  const parts = [base, status];
 
-  return `${header}\n\n${gridStr}`;
+  if (streakLabel) {
+    parts.push(streakLabel);
+  }
+
+  return parts.join(' – ');
 }
 
 // determine message based on score vs BFS optimal and other players
@@ -238,13 +237,14 @@ export function showSuccessPopup(
   dayNumber: number,
   score: number,
   levelId: string | null,
-  path: Pos[],
-  width: number,
-  height: number,
+  _path: Pos[],
+  _width: number,
+  _height: number,
   optimalMoves?: number,
   onViewOptimal?: () => void,
   hideGraph?: boolean,
-  streakLabel?: string
+  streakLabel?: string,
+  isFirst?: boolean
 ): void {
   const popup = document.getElementById('success-popup');
   if (!popup) return;
@@ -299,7 +299,6 @@ export function showSuccessPopup(
   if (viewOptimalBtn) {
     if (optimalMoves !== undefined && score !== optimalMoves && onViewOptimal) {
       viewOptimalBtn.style.display = 'inline-block';
-      // replace button to clear old listeners
       const freshBtn = viewOptimalBtn.cloneNode(true) as HTMLElement;
       viewOptimalBtn.parentNode?.replaceChild(freshBtn, viewOptimalBtn);
       freshBtn.addEventListener('click', () => {
@@ -313,54 +312,59 @@ export function showSuccessPopup(
 
   const shareBtn = document.getElementById('success-popup-share-btn');
   if (shareBtn) {
+    const shouldShowShare = isFirst === true;
 
-    shareBtn.textContent = 'share';
+    if (!shouldShowShare) {
+      shareBtn.style.display = 'none';
+    } else {
+      shareBtn.style.display = 'inline-block';
+      const freshShareBtn = shareBtn.cloneNode(true) as HTMLElement;
+      shareBtn.parentNode?.replaceChild(freshShareBtn, shareBtn);
+      freshShareBtn.textContent = 'share';
 
-    shareBtn.addEventListener('click', async () => {
-      const streakEl = popup.querySelector('.success-streak') as HTMLElement | null;
-      const streakLabel = streakEl?.style.display !== 'none' ? streakEl?.textContent ?? '' : '';
-      const isDaily = !!streakLabel;
-      const dayForShare = isDaily ? dayNumber : null;
-      const shareText = generateShareText(
-        score,
-        path,
-        width,
-        height,
-        dayForShare,
-        streakLabel || undefined
-      );
-      try {
-        if (navigator.clipboard && window.isSecureContext) {
-          await navigator.clipboard.writeText(shareText);
-          const originalText = shareBtn.textContent;
-          shareBtn.textContent = 'copied!';
-          setTimeout(() => {
-            shareBtn.textContent = originalText;
-          }, 2000);
-        } else {
-          // clipboard fallback
-          const ta = document.createElement('textarea');
-          ta.value = shareText;
-          ta.style.position = 'fixed';
-          ta.style.left = '-9999px';
-          ta.style.top = '0';
-          document.body.appendChild(ta);
-          ta.focus();
-          ta.select();
-          const ok = document.execCommand('copy');
-          document.body.removeChild(ta);
-          if (ok) {
-            const originalText = shareBtn.textContent;
-            shareBtn.textContent = 'copied!';
+      freshShareBtn.addEventListener('click', async () => {
+        const streakEl = popup.querySelector('.success-streak') as HTMLElement | null;
+        const streakLabel = streakEl?.style.display !== 'none' ? streakEl?.textContent ?? '' : '';
+        const isDaily = !!streakLabel;
+        const dayForShare = isDaily ? dayNumber : null;
+        const shareText = generateShareText(
+          score,
+          dayForShare,
+          optimalMoves,
+          streakLabel || undefined
+        );
+        try {
+          if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(shareText);
+            const originalText = freshShareBtn.textContent;
+            freshShareBtn.textContent = 'copied!';
             setTimeout(() => {
-              shareBtn.textContent = originalText;
+              freshShareBtn.textContent = originalText;
             }, 2000);
+          } else {
+            const ta = document.createElement('textarea');
+            ta.value = shareText;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            ta.style.top = '0';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            const ok = document.execCommand('copy');
+            document.body.removeChild(ta);
+            if (ok) {
+              const originalText = freshShareBtn.textContent;
+              freshShareBtn.textContent = 'copied!';
+              setTimeout(() => {
+                freshShareBtn.textContent = originalText;
+              }, 2000);
+            }
           }
+        } catch (err) {
+          console.error('Failed to copy:', err);
         }
-      } catch (err) {
-        console.error('Failed to copy:', err);
-      }
-    });
+      });
+    }
   }
 
   // hide or show the distribution section

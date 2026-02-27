@@ -1454,6 +1454,8 @@ async function init() {
       streakLabel = `streak: ${currentStreak} ${dayLabel}`;
     }
 
+    let isFirst = false;
+
     try {
       if (currentLevelId) {
         const playerId = getPlayerId();
@@ -1462,10 +1464,9 @@ async function init() {
 
         // check if player already has a run in database for this level
         const hasExistingRun = await hasRunInDatabase(currentLevelId, playerId);
-
-        // only save to database if this is the first run
         if (!hasExistingRun) {
           await submitRun(currentLevelId, playerId, moves, true);
+          isFirst = true;
         }
 
         if (isNewBest) {
@@ -1489,7 +1490,8 @@ async function init() {
         optimalMoves,
         viewOptimalCallback,
         isCustom,
-        streakLabel
+        streakLabel,
+        isFirst
       );
     } catch (error) {
       console.error('Error submitting run:', error);
@@ -1507,7 +1509,8 @@ async function init() {
         optimalMoves,
         viewOptimalCallback,
         isCustom,
-        streakLabel
+        streakLabel,
+        isFirst
       );
     }
   });
