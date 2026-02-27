@@ -313,6 +313,9 @@ export function showSuccessPopup(
 
   const shareBtn = document.getElementById('success-popup-share-btn');
   if (shareBtn) {
+=
+    shareBtn.textContent = 'share';
+
     shareBtn.addEventListener('click', async () => {
       const streakEl = popup.querySelector('.success-streak') as HTMLElement | null;
       const streakLabel = streakEl?.style.display !== 'none' ? streakEl?.textContent ?? '' : '';
