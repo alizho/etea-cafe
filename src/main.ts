@@ -19,6 +19,7 @@ import { pathImagesLoaded, renderPath, renderPathArrow, PATH_TINT_GREEN } from '
 import { TILE_SIZE } from './config/constants';
 import {
   ensureAudioStartedOnFirstGesture,
+  startBackgroundMusic,
   playPathTileSfx,
   playStepSfx,
   playNiceSfx,
@@ -1297,6 +1298,7 @@ class GameRenderer {
 async function init() {
   showTutorialIfFirstVisit();
   ensureAudioStartedOnFirstGesture();
+  void startBackgroundMusic();
   await imagesLoaded;
 
   // builder tool icons
@@ -1360,7 +1362,7 @@ async function init() {
     if (!dayTextEl) return;
     if (mode === 'shared') dayTextEl.textContent = 'shared level';
     else if (mode === 'custom') dayTextEl.textContent = 'your level';
-    else dayTextEl.textContent = `day ${dayNumber} playtest`;
+    else dayTextEl.textContent = `day ${dayNumber}`;
   };
 
   const applyLevelDataToRenderer = (
