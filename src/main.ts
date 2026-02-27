@@ -1,3 +1,4 @@
+import { inject } from '@vercel/analytics';
 import { type DrinkId, type ObstacleId, type Pos, type CustomerId } from './engine/types';
 import { clearPath, initGame, stepSimulation, tryAppendPath, type GameState } from './engine/game';
 import { buildLevel } from './levels/loader';
@@ -3128,6 +3129,8 @@ function playClickSound(): void {
   const audio = new Audio(soundEffectUrl);
   audio.play().catch((error) => console.error('Audio play failed:', error));
 }
+
+inject();
 
 document.addEventListener('DOMContentLoaded', () => {
   scatterDecorations();
