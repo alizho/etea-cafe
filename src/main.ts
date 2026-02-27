@@ -79,9 +79,7 @@ function loadStreak(): StreakData {
 function saveStreak(data: StreakData): void {
   try {
     localStorage.setItem(STREAK_STORAGE_KEY, JSON.stringify(data));
-  } catch {
-
-  }
+  } catch {}
 }
 
 function offsetDate(dateStr: string, deltaDays: number): string {
@@ -103,8 +101,7 @@ function updateStreakForPuzzleDate(puzzleDate: string): StreakData {
   }
 
   const yesterday = offsetDate(today, -1);
-  const currentStreak =
-    existing.lastCompletedDate === yesterday ? existing.currentStreak + 1 : 1;
+  const currentStreak = existing.lastCompletedDate === yesterday ? existing.currentStreak + 1 : 1;
 
   const updated: StreakData = { currentStreak, lastCompletedDate: today };
   saveStreak(updated);

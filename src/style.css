@@ -82,7 +82,6 @@ body {
   font-size: clamp(14px, 4vw, 18px);
   font-family: PixelPoiiz;
 }
- 
 
 .game-container {
   display: flex;

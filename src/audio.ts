@@ -166,7 +166,6 @@ export async function startBackgroundMusic(): Promise<void> {
     source.start(0);
     musicSource = source;
     hasStarted = true;
-
   } catch (err) {
   } finally {
     startInProgress = false;
