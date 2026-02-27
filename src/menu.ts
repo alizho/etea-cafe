@@ -10,11 +10,17 @@ const glorboSprite =
   `</span>`;
 
 const itemSprites = ['/img/drink_b_item.png', '/img/food_c_item.png', '/img/drink_a_item.png']
-  .map((src) => `<span class="tutorial-sprite tutorial-sprite--full" style="width:24px;height:24px"><img src="${src}" style="width:100%;height:100%"></span>`)
+  .map(
+    (src) =>
+      `<span class="tutorial-sprite tutorial-sprite--full" style="width:24px;height:24px"><img src="${src}" style="width:100%;height:100%"></span>`
+  )
   .join('');
 
 const customerSprites = ['/img/customer_a.png', '/img/customer_b.png', '/img/customer_c.png']
-  .map((src) => `<span class="tutorial-sprite" style="width:24px;height:24px"><img src="${src}" style="width:200%;height:200%"></span>`)
+  .map(
+    (src) =>
+      `<span class="tutorial-sprite" style="width:24px;height:24px"><img src="${src}" style="width:200%;height:200%"></span>`
+  )
   .join('');
 
 const tutorialHTML =
