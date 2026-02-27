@@ -160,12 +160,15 @@ function generateShareText(
   path: Pos[],
   width: number,
   height: number,
-  dayNumber: number,
+  dayNumber: number | null,
   streakLabel?: string
 ): string {
-  const header = streakLabel
-    ? `https://etea.cafe/ day ${dayNumber} -- ${score} moves -- ${streakLabel}`
-    : `https://etea.cafe/ day ${dayNumber} -- ${score} moves`;
+  const headerBase =
+    dayNumber === null
+      ? `https://etea.cafe/ custom level - ${score} moves`
+      : `https://etea.cafe/ day ${dayNumber} - ${score} moves`;
+
+  const header = streakLabel ? `${headerBase} - ${streakLabel}` : headerBase;
 
   if (path.length === 0) {
     return header;
@@ -249,7 +252,11 @@ export function showSuccessPopup(
   // set day number
   const dayTextEl = popup.querySelector('.success-day-text');
   if (dayTextEl) {
-    dayTextEl.textContent = hideGraph ? 'Results' : `Results - Day ${dayNumber}`;
+    if (hideGraph) {
+      dayTextEl.textContent = 'Results - custom level';
+    } else {
+      dayTextEl.textContent = `Results - Day ${dayNumber}`;
+    }
   }
 
   // set score
@@ -309,12 +316,14 @@ export function showSuccessPopup(
     shareBtn.addEventListener('click', async () => {
       const streakEl = popup.querySelector('.success-streak') as HTMLElement | null;
       const streakLabel = streakEl?.style.display !== 'none' ? streakEl?.textContent ?? '' : '';
+      const isDaily = !!streakLabel;
+      const dayForShare = isDaily ? dayNumber : null;
       const shareText = generateShareText(
         score,
         path,
         width,
         height,
-        dayNumber,
+        dayForShare,
         streakLabel || undefined
       );
       try {
