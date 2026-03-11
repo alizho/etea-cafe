@@ -1,6 +1,6 @@
 import levels from './levels.json';
 import type { LevelData } from './level.schema';
-import { getTodayLevel, getTodayDateEST } from '../supabase/api';
+import { getTodayLevel, getTodayDateEST, getLevelHistory, getLevelByDate } from '../supabase/api';
 
 export function getDailyLevelData(): LevelData {
   const all = levels as unknown as LevelData[];
@@ -21,6 +21,7 @@ export type DailyLevelResult = {
   levelData: LevelData;
   levelId: string | null; // database level ID, null if using fallback
   date: string;
+  noTodayLevel: boolean;
 };
 
 // get todays lvl with fallback to levels.json
@@ -32,15 +33,41 @@ export async function getTodayLevelFromSupabase(): Promise<DailyLevelResult> {
     console.log('Supabase response:', supabaseLevel);
 
     if (!supabaseLevel) {
-      console.warn('no lvl in supabase, using fallback');
+      console.warn('no lvl in supabase so getting most recent past puzzle');
+
+      try {
+        const history = await getLevelHistory(30);
+        const latest = history && history.length > 0 ? history[0] : null;
+
+        if (latest) {
+          const pastLevel = await getLevelByDate(latest.date);
+          if (pastLevel && pastLevel.json) {
+            const jsonData = Array.isArray(pastLevel.json) ? pastLevel.json[0] : pastLevel.json;
+            if (jsonData) {
+              const levelData = jsonData as LevelData;
+              console.log('loaded most recent past puzzle', levelData.id, 'for date', latest.date);
+              return {
+                levelData,
+                levelId: pastLevel.id,
+                date: latest.date,
+                noTodayLevel: true,
+              };
+            }
+          }
+        }
+      } catch (err) {
+        console.error('no puzzle awk', err);
+      }
+
+      // if anything above fails, fall back to local rotation
       const fallback = getDailyLevelData();
-      return { levelData: fallback, levelId: null, date: todayDate };
+      return { levelData: fallback, levelId: null, date: todayDate, noTodayLevel: true };
     }
 
     if (!supabaseLevel.json) {
       console.warn('supabase lvl has no json, using fallback');
       const fallback = getDailyLevelData();
-      return { levelData: fallback, levelId: null, date: todayDate };
+      return { levelData: fallback, levelId: null, date: todayDate, noTodayLevel: false };
     }
 
     // handle jsonb array response from supabase
@@ -49,18 +76,18 @@ export async function getTodayLevelFromSupabase(): Promise<DailyLevelResult> {
     if (!jsonData) {
       console.warn('supabase lvl json is empty, using fallback');
       const fallback = getDailyLevelData();
-      return { levelData: fallback, levelId: null, date: todayDate };
+      return { levelData: fallback, levelId: null, date: todayDate, noTodayLevel: false };
     }
 
     const levelData = jsonData as LevelData;
     console.log('loaded', levelData.id);
-    return { levelData, levelId: supabaseLevel.id, date: todayDate };
+    return { levelData, levelId: supabaseLevel.id, date: todayDate, noTodayLevel: false };
   } catch (error) {
     console.error('supabase error', error);
     console.log('using fallback');
     const fallback = getDailyLevelData();
     console.log('loaded fallback', fallback.id);
     const todayDate = getTodayDateEST();
-    return { levelData: fallback, levelId: null, date: todayDate };
+    return { levelData: fallback, levelId: null, date: todayDate, noTodayLevel: false };
   }
 }

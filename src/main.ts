@@ -10,6 +10,8 @@ import {
   setBestScoreInStorage,
   hasRunInDatabase,
   getTodayDateEST,
+  getLevelHistory,
+  getLevelByDate,
 } from './supabase/api';
 import { showSuccessPopup, hideSuccessPopup } from './popup';
 import type { LevelData } from './levels/level.schema';
@@ -1357,7 +1359,7 @@ async function init() {
   if (b3) b3.src = getCustomerIconDataUrl(sprites.customers.C, 2);
   if (decorIcon) decorIcon.src = '/img/plant_a.png';
 
-  const { levelData, levelId, date } = await getTodayLevelFromSupabase();
+  const { levelData, levelId, date, noTodayLevel } = await getTodayLevelFromSupabase();
   const dailyLevelData: LevelData = levelData;
   const dailyLevelId: string | null = levelId;
   const dailyPuzzleDate: string = date;
@@ -1393,6 +1395,98 @@ async function init() {
     } else {
       dayTextEl.textContent = `day ${dayNumber}`;
     }
+  }
+
+  if (noTodayLevel) {
+    void (async () => {
+      const menuPanel = document.getElementById('menu-panel');
+      const menuPanelBody = document.getElementById('menu-panel-body');
+      if (!menuPanel || !menuPanelBody) return;
+
+      const headerHtml =
+        `<h3 class="menu-panel-title">more levels coming soon &lt;3</h3>` +
+        `<p class="menu-panel-text">in the mean time, check out our past puzzles!</p>`;
+
+      const openNoTodayLevelPanel = async () => {
+        try {
+          const levels = await getLevelHistory(30);
+
+          if (!levels || levels.length === 0) {
+            menuPanelBody.innerHTML = headerHtml + `<p class="menu-panel-text">no puzzles yet</p>`;
+          } else {
+            const months = [
+              'jan',
+              'feb',
+              'mar',
+              'apr',
+              'may',
+              'jun',
+              'jul',
+              'aug',
+              'sep',
+              'oct',
+              'nov',
+              'dec',
+            ];
+
+            const listItems = levels
+              .map((level) => {
+                const [, month, day] = level.date.split('-');
+                const label = `${months[parseInt(month, 10) - 1]} ${parseInt(day, 10)}`;
+                return (
+                  `<button class="puzzle-list-item" data-date="${level.date}" data-id="${level.id}">` +
+                  label +
+                  `</button>`
+                );
+              })
+              .join('');
+
+            menuPanelBody.innerHTML = headerHtml + `<div class="puzzle-list">${listItems}</div>`;
+
+            menuPanelBody.querySelectorAll<HTMLElement>('.puzzle-list-item').forEach((btn) => {
+              btn.addEventListener('click', () => {
+                const dateAttr = btn.dataset.date!;
+                void (async () => {
+                  try {
+                    const level = await getLevelByDate(dateAttr);
+                    if (!level || !level.json) return;
+                    const jsonData = Array.isArray(level.json) ? level.json[0] : level.json;
+                    if (!jsonData) return;
+                    const ld = jsonData as LevelData;
+                    document.dispatchEvent(
+                      new CustomEvent('loadLevel', {
+                        detail: { levelData: ld, levelId: level.id, date: dateAttr },
+                      })
+                    );
+                    menuPanel.style.display = 'none';
+                  } catch (err) {
+                    console.error('no puzzle awk', err);
+                  }
+                })();
+              });
+            });
+          }
+        } catch (err) {
+          console.error('no puzzle awk', err);
+          menuPanelBody.innerHTML =
+            headerHtml + `<p class="menu-panel-text">couldn't load puzzles</p>`;
+        }
+
+        menuPanel.style.display = 'flex';
+      };
+
+      // if tut open
+      if (menuPanel.style.display && menuPanel.style.display !== 'none') {
+        const intervalId = window.setInterval(() => {
+          if (!menuPanel.style.display || menuPanel.style.display === 'none') {
+            window.clearInterval(intervalId);
+            void openNoTodayLevelPanel();
+          }
+        }, 200);
+      } else {
+        void openNoTodayLevelPanel();
+      }
+    })();
   }
 
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
