@@ -157,14 +157,13 @@ function createScoreGraph(allScores: number[], userScore: number, container: HTM
 
 function generateShareText(
   score: number,
-  dayNumber: number | null,
-  optimalMoves?: number,
-  streakLabel?: string
+  levelNumber: number | null,
+  optimalMoves?: number
 ): string {
   const base =
-    dayNumber === null
+    levelNumber === null
       ? 'https://etea.cafe/ custom level'
-      : `https://etea.cafe/ day ${dayNumber}`;
+      : `https://etea.cafe/ level ${levelNumber}`;
 
   let status: string;
 
@@ -181,13 +180,7 @@ function generateShareText(
     status = `${score} moves`;
   }
 
-  const parts = [base, status];
-
-  if (streakLabel) {
-    parts.push(streakLabel);
-  }
-
-  return parts.join(' – ');
+  return [base, status].join(' – ');
 }
 
 // determine message based on score vs BFS optimal and other players
@@ -243,7 +236,6 @@ export function showSuccessPopup(
   optimalMoves?: number,
   onViewOptimal?: () => void,
   hideGraph?: boolean,
-  streakLabel?: string,
   isFirst?: boolean
 ): void {
   const popup = document.getElementById('success-popup');
@@ -255,7 +247,7 @@ export function showSuccessPopup(
     if (hideGraph) {
       dayTextEl.textContent = 'Results - custom level';
     } else {
-      dayTextEl.textContent = `Results - Day ${dayNumber}`;
+      dayTextEl.textContent = `Results - Level ${dayNumber}`;
     }
   }
 
@@ -265,15 +257,10 @@ export function showSuccessPopup(
     scoreEl.textContent = score.toString();
   }
 
-  // set streak
+  // Daily streaks are intentionally not part of the level collection UI.
   const streakEl = popup.querySelector('.success-streak');
   if (streakEl && streakEl instanceof HTMLElement) {
-    if (streakLabel) {
-      streakEl.textContent = streakLabel;
-      streakEl.style.display = 'block';
-    } else {
-      streakEl.style.display = 'none';
-    }
+    streakEl.style.display = 'none';
   }
 
   // show optimal score reference
@@ -323,16 +310,8 @@ export function showSuccessPopup(
       freshShareBtn.textContent = 'share';
 
       freshShareBtn.addEventListener('click', async () => {
-        const streakEl = popup.querySelector('.success-streak') as HTMLElement | null;
-        const streakLabel = streakEl?.style.display !== 'none' ? streakEl?.textContent ?? '' : '';
-        const isDaily = !!streakLabel;
-        const dayForShare = isDaily ? dayNumber : null;
-        const shareText = generateShareText(
-          score,
-          dayForShare,
-          optimalMoves,
-          streakLabel || undefined
-        );
+        const levelForShare = hideGraph ? null : dayNumber;
+        const shareText = generateShareText(score, levelForShare, optimalMoves);
         try {
           if (navigator.clipboard && window.isSecureContext) {
             await navigator.clipboard.writeText(shareText);

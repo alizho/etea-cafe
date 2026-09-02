@@ -2,16 +2,13 @@ import { inject } from '@vercel/analytics';
 import { type DrinkId, type ObstacleId, type Pos, type CustomerId } from './engine/types';
 import { clearPath, initGame, stepSimulation, tryAppendPath, type GameState } from './engine/game';
 import { buildLevel } from './levels/loader';
-import { getTodayLevelFromSupabase } from './levels/daily';
+import { getFirstLevelFromSupabase } from './levels/daily';
 import {
   submitRun,
   getPlayerId,
   getBestScoreFromStorage,
   setBestScoreInStorage,
   hasRunInDatabase,
-  getTodayDateEST,
-  getLevelHistory,
-  getLevelByDate,
 } from './supabase/api';
 import { showSuccessPopup, hideSuccessPopup } from './popup';
 import type { LevelData } from './levels/level.schema';
@@ -91,65 +88,6 @@ import {
   makeShareUrlFromToken,
 } from './share';
 import './style.css';
-
-type StreakData = {
-  currentStreak: number;
-  lastCompletedDate: string | null;
-};
-
-const STREAK_STORAGE_KEY = 'etea_daily_streak';
-
-function loadStreak(): StreakData {
-  try {
-    const raw = localStorage.getItem(STREAK_STORAGE_KEY);
-    if (!raw) {
-      return { currentStreak: 0, lastCompletedDate: null };
-    }
-    const parsed = JSON.parse(raw) as Partial<StreakData>;
-    return {
-      currentStreak: typeof parsed.currentStreak === 'number' ? parsed.currentStreak : 0,
-      lastCompletedDate:
-        typeof parsed.lastCompletedDate === 'string' ? parsed.lastCompletedDate : null,
-    };
-  } catch {
-    return { currentStreak: 0, lastCompletedDate: null };
-  }
-}
-
-function saveStreak(data: StreakData): void {
-  try {
-    localStorage.setItem(STREAK_STORAGE_KEY, JSON.stringify(data));
-  } catch {
-
-  }
-}
-
-function offsetDate(dateStr: string, deltaDays: number): string {
-  const d = new Date(`${dateStr}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + deltaDays);
-  return d.toISOString().slice(0, 10);
-}
-
-function updateStreakForPuzzleDate(puzzleDate: string): StreakData {
-  const today = getTodayDateEST();
-  const existing = loadStreak();
-
-  if (puzzleDate !== today) {
-    return existing;
-  }
-
-  if (existing.lastCompletedDate === today) {
-    return existing;
-  }
-
-  const yesterday = offsetDate(today, -1);
-  const currentStreak =
-    existing.lastCompletedDate === yesterday ? existing.currentStreak + 1 : 1;
-
-  const updated: StreakData = { currentStreak, lastCompletedDate: today };
-  saveStreak(updated);
-  return updated;
-}
 
 // store loaded sprites
 let sprites: LoadedSprites;
@@ -360,6 +298,9 @@ class GameRenderer {
   private simInterval: number | null = null;
   private animationFrame: number = 0;
   private animationInterval: number | null = null;
+  private introAnimationActive: boolean = false;
+  private introAnimationStartedAt: number = 0;
+  private introAnimationFrameId: number | null = null;
   private tempCanvas: HTMLCanvasElement;
   private tempCtx: CanvasRenderingContext2D;
   private hoverTile: Pos | null = null;
@@ -438,12 +379,50 @@ class GameRenderer {
     }, 500); // switch every 500ms
   }
 
+  private stopIntroAnimation() {
+    this.introAnimationActive = false;
+    this.canvas.style.cursor = this.uiMode === 'build' ? this.buildCursor : 'default';
+  }
+
+  public playIntroAnimation() {
+    this.introAnimationStartedAt = performance.now();
+    this.introAnimationActive = true;
+    this.canvas.style.cursor = 'default';
+
+    if (this.introAnimationFrameId !== null) {
+      cancelAnimationFrame(this.introAnimationFrameId);
+      this.introAnimationFrameId = null;
+    }
+
+    const tick = () => {
+      if (!this.introAnimationActive) {
+        this.introAnimationFrameId = null;
+        return;
+      }
+
+      this.render();
+
+      if (this.introAnimationActive) {
+        this.introAnimationFrameId = requestAnimationFrame(tick);
+      } else {
+        this.introAnimationFrameId = null;
+      }
+    };
+
+    this.render();
+    this.introAnimationFrameId = requestAnimationFrame(tick);
+  }
+
   public destroy() {
     if (this.simInterval) {
       clearInterval(this.simInterval);
     }
     if (this.animationInterval) {
       clearInterval(this.animationInterval);
+    }
+    if (this.introAnimationFrameId !== null) {
+      cancelAnimationFrame(this.introAnimationFrameId);
+      this.introAnimationFrameId = null;
     }
   }
 
@@ -583,6 +562,7 @@ class GameRenderer {
   }
 
   private handlePointerDown(e: { clientX: number; clientY: number }) {
+    if (this.introAnimationActive) return;
     if (this.state.status !== 'idle') return;
     const pos = getTilePos(
       this.canvas,
@@ -610,6 +590,7 @@ class GameRenderer {
   }
 
   private handlePointerMove(e: { clientX: number; clientY: number }) {
+    if (this.introAnimationActive) return;
     if (this.uiMode === 'build') {
       if (!this.isDrawing) return;
       if (this.state.status !== 'idle') return;
@@ -661,6 +642,7 @@ class GameRenderer {
   }
 
   private handleHover(e: { clientX: number; clientY: number }) {
+    if (this.introAnimationActive) return;
     const pos = getTilePos(
       this.canvas,
       this.state.level.width,
@@ -699,6 +681,7 @@ class GameRenderer {
   }
 
   public setUIMode(mode: 'play' | 'build') {
+    this.stopIntroAnimation();
     this.uiMode = mode;
     this.isDrawing = false;
     this.lastBuildPaintKey = null;
@@ -761,6 +744,7 @@ class GameRenderer {
   }
 
   public setState(newState: GameState) {
+    this.stopIntroAnimation();
     const prevW = this.state.level.width;
     const prevH = this.state.level.height;
     this.state = newState;
@@ -897,6 +881,11 @@ class GameRenderer {
   }
 
   public render() {
+    if (this.introAnimationActive) {
+      this.renderIntroFrame();
+      return;
+    }
+
     const { level, glorboPos } = this.state;
     const ctx = this.ctx;
 
@@ -1184,6 +1173,274 @@ class GameRenderer {
     }
   }
 
+  private renderIntroFrame() {
+    const { level, glorboPos } = this.state;
+    const ctx = this.ctx;
+
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    const baseCells: Pos[] = [];
+    for (let y = 0; y < level.height; y++) {
+      for (let x = 0; x < level.width; x++) {
+        baseCells.push({ x, y });
+      }
+    }
+
+    type IntroOverlayOp = {
+      x: number;
+      y: number;
+      priority: number;
+      draw: (drawCtx: CanvasRenderingContext2D) => void;
+    };
+
+    const overlayOps: IntroOverlayOp[] = [];
+    const addOverlayOp = (x: number, y: number, priority: number, draw: IntroOverlayOp['draw']) => {
+      overlayOps.push({ x, y, priority, draw });
+    };
+
+    const isFloor = (x: number, y: number): boolean => {
+      if (x < 0 || x >= level.width || y < 0 || y >= level.height) return false;
+      return !level.walls.has(`${x},${y}`);
+    };
+
+    const twoTileTypes = ['plant_two', 'window_double_a', 'window_double_b'] as const;
+    const twoTileByRow = new Map<string, Map<string, number[]>>();
+    for (const t of twoTileTypes) {
+      twoTileByRow.set(t, new Map());
+    }
+    for (const [key, type] of Object.entries(level.obstacles)) {
+      if (!twoTileTypes.includes(type as (typeof twoTileTypes)[number])) continue;
+      const [x, y] = key.split(',').map(Number);
+      const byRow = twoTileByRow.get(type as (typeof twoTileTypes)[number])!;
+      const xs = byRow.get(String(y)) ?? [];
+      xs.push(x);
+      byRow.set(String(y), xs);
+    }
+
+    for (const t of twoTileTypes) {
+      const byRow = twoTileByRow.get(t)!;
+      const sprite = sprites.obstacles[t as ObstacleId];
+      if (!sprite) continue;
+      for (const [yStr, xsRaw] of byRow.entries()) {
+        const y = Number(yStr);
+        const xs = Array.from(new Set(xsRaw)).sort((a, b) => a - b);
+        for (let i = 0; i < xs.length - 1; ) {
+          const x = xs[i]!;
+          const x2 = xs[i + 1]!;
+          if (x2 === x + 1) {
+            addOverlayOp(x, y, 0, (drawCtx) => {
+              drawCtx.drawImage(sprite, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE);
+            });
+            i += 2;
+          } else {
+            i += 1;
+          }
+        }
+      }
+    }
+
+    for (const [key, type] of Object.entries(level.obstacles)) {
+      const [x, y] = key.split(',').map(Number);
+      if (twoTileTypes.includes(type as (typeof twoTileTypes)[number])) continue;
+
+      const obstacleSprite = sprites.obstacles[type as ObstacleId];
+      if (!obstacleSprite) continue;
+
+      addOverlayOp(x, y, 0, (drawCtx) => {
+        let spriteToDraw = obstacleSprite;
+        if (type === 'cat') {
+          spriteToDraw = this.animationFrame % 2 === 0 ? obstacleSprite : catAltSprite;
+        }
+        drawCtx.drawImage(spriteToDraw, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      });
+    }
+
+    for (const [key, drink] of Object.entries(level.drinkStations)) {
+      const [x, y] = key.split(',').map(Number);
+      const drinkSprite = sprites.drinks[drink as DrinkId];
+      if (!drinkSprite) continue;
+
+      addOverlayOp(x, y, 1, (drawCtx) => {
+        const isGlorboOnStation = glorboPos.x === x && glorboPos.y === y;
+        const spriteToUse = isGlorboOnStation && sprites.drinkPressed ? sprites.drinkPressed : drinkSprite;
+        const outlineAlpha = this.animationFrame % 2 === 0 ? 0.7 : 0.3;
+        drawSpriteWithOutline(drawCtx, spriteToUse, x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, 4, outlineAlpha);
+      });
+    }
+
+    for (const [key, customerId] of Object.entries(level.customers)) {
+      const [x, y] = key.split(',').map(Number);
+      const customerSprite = sprites.customers[customerId as CustomerId];
+      if (!customerSprite) continue;
+
+      addOverlayOp(x, y, 2, (drawCtx) => {
+        const isServed = (this.state.remainingOrders[customerId as CustomerId]?.length ?? 0) === 0;
+        const spriteWidth = customerSprite.width / 2;
+        const spriteHeight = customerSprite.height / 2;
+        const frameIndex = this.animationFrame % 2;
+        const sourceX = frameIndex * spriteWidth;
+        const sourceY = isServed ? spriteHeight : 0;
+
+        drawCtx.drawImage(
+          customerSprite,
+          sourceX,
+          sourceY,
+          spriteWidth,
+          spriteHeight,
+          x * TILE_SIZE,
+          y * TILE_SIZE,
+          TILE_SIZE,
+          TILE_SIZE
+        );
+      });
+    }
+
+    for (const [key, customerId] of Object.entries(level.standHere)) {
+      const isServed = (this.state.remainingOrders[customerId as 'A' | 'B' | 'C']?.length ?? 0) === 0;
+      if (isServed) continue;
+      const [x, y] = key.split(',').map(Number);
+
+      addOverlayOp(x, y, 3, (drawCtx) => {
+        const standWidth = standHere.width;
+        const standHeight = standHere.height;
+        const frameWidth = standWidth / 2;
+        const frameIndex = this.animationFrame % 2;
+
+        drawCtx.drawImage(
+          standHere,
+          frameIndex * frameWidth,
+          0,
+          frameWidth,
+          standHeight,
+          x * TILE_SIZE,
+          y * TILE_SIZE,
+          TILE_SIZE,
+          TILE_SIZE
+        );
+      });
+    }
+
+    addOverlayOp(glorboPos.x, glorboPos.y, 4, (drawCtx) => {
+      const gx = glorboPos.x * TILE_SIZE;
+      const gy = glorboPos.y * TILE_SIZE;
+      const drinkCount = this.state.inventory.length;
+      const spriteIndex = Math.min(drinkCount, 2);
+      const spriteSheetWidth = glorboSpriteSheet.width;
+      const spriteSheetHeight = glorboSpriteSheet.height;
+      const spriteWidth = spriteSheetWidth / 3;
+      const spriteHeight = spriteSheetHeight / 2;
+      const sourceY = this.animationFrame * spriteHeight;
+
+      drawCtx.drawImage(
+        glorboSpriteSheet,
+        spriteIndex * spriteWidth,
+        sourceY,
+        spriteWidth,
+        spriteHeight,
+        gx,
+        gy,
+        TILE_SIZE,
+        TILE_SIZE
+      );
+    });
+
+    overlayOps.sort((a, b) => a.y - b.y || a.x - b.x || a.priority - b.priority);
+
+    const elapsed = performance.now() - this.introAnimationStartedAt;
+    const baseStepMs = 16;
+    const baseSettleSteps = 5;
+    const baseReveal = Math.min(
+      baseCells.length + baseSettleSteps,
+      elapsed / baseStepMs
+    );
+    const overlayElapsed = Math.max(
+      0,
+      elapsed - (baseCells.length + baseSettleSteps) * baseStepMs
+    );
+    const overlayStepMs = 22;
+    const overlaySettleSteps = 3;
+    const overlayReveal = Math.min(
+      overlayOps.length + overlaySettleSteps,
+      overlayElapsed / overlayStepMs
+    );
+
+    const easeOutBack = (progress: number): number => {
+      const p = Math.max(0, Math.min(1, progress));
+      const overshoot = 1.35;
+      const shifted = p - 1;
+      return 1 + (overshoot + 1) * shifted ** 3 + overshoot * shifted ** 2;
+    };
+
+    const drawTile = (x: number, y: number, progress: number) => {
+      const px = x * TILE_SIZE;
+      const py = y * TILE_SIZE;
+
+      const key = `${x},${y}`;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, progress * 1.8);
+      ctx.translate(0, Math.round((1 - easeOutBack(progress)) * -6));
+
+      if (level.walls.has(key)) {
+        let wallSprite: HTMLImageElement = wallTop;
+
+        if (isFloor(x, y + 1)) {
+          wallSprite = wallTop;
+        } else if (isFloor(x, y - 1)) {
+          wallSprite = wallBot;
+        } else if (!isFloor(x - 1, y + 1) && isFloor(x - 1, y)) {
+          wallSprite = wallRightBot;
+        } else if (isFloor(x - 1, y)) {
+          wallSprite = wallRightMid;
+        } else if (isFloor(x - 1, y + 1)) {
+          wallSprite = wallRightTop;
+        } else if (!isFloor(x + 1, y + 1) && isFloor(x + 1, y)) {
+          wallSprite = wallLeftBot;
+        } else if (isFloor(x + 1, y)) {
+          wallSprite = wallLeftMid;
+        } else if (isFloor(x + 1, y + 1)) {
+          wallSprite = wallLeftTop;
+        } else if (isFloor(x + 1, y - 1)) {
+          wallSprite = wallLeftCorner;
+        } else if (isFloor(x - 1, y - 1)) {
+          wallSprite = wallRightCorner;
+        }
+
+        ctx.drawImage(wallSprite, px, py, TILE_SIZE, TILE_SIZE);
+      } else if (x > 0 && x < level.width - 1 && y > 0 && y < level.height - 1) {
+        ctx.drawImage(floorOpen, px, py, TILE_SIZE, TILE_SIZE);
+      }
+
+      ctx.restore();
+    };
+
+    for (let i = 0; i < baseCells.length; i++) {
+      const cell = baseCells[i]!;
+      const remaining = baseReveal - i;
+      if (remaining <= 0) break;
+      drawTile(cell.x, cell.y, Math.min(1, remaining / baseSettleSteps));
+    }
+
+    for (let i = 0; i < overlayOps.length; i++) {
+      const op = overlayOps[i]!;
+      const remaining = overlayReveal - i;
+      if (remaining <= 0) break;
+
+      const progress = Math.min(1, remaining / overlaySettleSteps);
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, progress * 1.8);
+      ctx.translate(0, Math.round((1 - easeOutBack(progress)) * -5));
+      op.draw(ctx);
+      ctx.restore();
+    }
+
+    if (
+      baseReveal >= baseCells.length + baseSettleSteps &&
+      overlayReveal >= overlayOps.length + overlaySettleSteps
+    ) {
+      this.stopIntroAnimation();
+    }
+  }
+
   public updateUI() {
     const stepsEl = document.getElementById('steps');
     const messageEl = document.getElementById('message');
@@ -1359,10 +1616,9 @@ async function init() {
   if (b3) b3.src = getCustomerIconDataUrl(sprites.customers.C, 2);
   if (decorIcon) decorIcon.src = '/img/plant_a.png';
 
-  const { levelData, levelId, date, noTodayLevel } = await getTodayLevelFromSupabase();
+  const { levelData, levelId } = await getFirstLevelFromSupabase();
   const dailyLevelData: LevelData = levelData;
   const dailyLevelId: string | null = levelId;
-  const dailyPuzzleDate: string = date;
 
   // url hash? shared level time
   const sharedToken = getShareTokenFromUrlHash();
@@ -1384,7 +1640,6 @@ async function init() {
   const initialDayMatch = levelData.id.match(/day-(\d+)/);
   let dayNumber = initialDayMatch ? parseInt(initialDayMatch[1], 10) : 1;
   let currentMode: 'shared' | 'daily' | 'custom' = hasSharedLevel ? 'shared' : 'daily';
-  let currentPuzzleDate: string | null = hasSharedLevel ? null : dailyPuzzleDate;
 
   const dayTextEl = document.getElementById('day-text');
 
@@ -1393,100 +1648,8 @@ async function init() {
     if (hasSharedLevel) {
       dayTextEl.textContent = 'shared level';
     } else {
-      dayTextEl.textContent = `day ${dayNumber}`;
+      dayTextEl.textContent = `level ${dayNumber}`;
     }
-  }
-
-  if (noTodayLevel) {
-    void (async () => {
-      const menuPanel = document.getElementById('menu-panel');
-      const menuPanelBody = document.getElementById('menu-panel-body');
-      if (!menuPanel || !menuPanelBody) return;
-
-      const headerHtml =
-        `<h3 class="menu-panel-title">more levels coming soon &lt;3</h3>` +
-        `<p class="menu-panel-text">in the mean time, check out our past puzzles!</p>`;
-
-      const openNoTodayLevelPanel = async () => {
-        try {
-          const levels = await getLevelHistory(30);
-
-          if (!levels || levels.length === 0) {
-            menuPanelBody.innerHTML = headerHtml + `<p class="menu-panel-text">no puzzles yet</p>`;
-          } else {
-            const months = [
-              'jan',
-              'feb',
-              'mar',
-              'apr',
-              'may',
-              'jun',
-              'jul',
-              'aug',
-              'sep',
-              'oct',
-              'nov',
-              'dec',
-            ];
-
-            const listItems = levels
-              .map((level) => {
-                const [, month, day] = level.date.split('-');
-                const label = `${months[parseInt(month, 10) - 1]} ${parseInt(day, 10)}`;
-                return (
-                  `<button class="puzzle-list-item" data-date="${level.date}" data-id="${level.id}">` +
-                  label +
-                  `</button>`
-                );
-              })
-              .join('');
-
-            menuPanelBody.innerHTML = headerHtml + `<div class="puzzle-list">${listItems}</div>`;
-
-            menuPanelBody.querySelectorAll<HTMLElement>('.puzzle-list-item').forEach((btn) => {
-              btn.addEventListener('click', () => {
-                const dateAttr = btn.dataset.date!;
-                void (async () => {
-                  try {
-                    const level = await getLevelByDate(dateAttr);
-                    if (!level || !level.json) return;
-                    const jsonData = Array.isArray(level.json) ? level.json[0] : level.json;
-                    if (!jsonData) return;
-                    const ld = jsonData as LevelData;
-                    document.dispatchEvent(
-                      new CustomEvent('loadLevel', {
-                        detail: { levelData: ld, levelId: level.id, date: dateAttr },
-                      })
-                    );
-                    menuPanel.style.display = 'none';
-                  } catch (err) {
-                    console.error('no puzzle awk', err);
-                  }
-                })();
-              });
-            });
-          }
-        } catch (err) {
-          console.error('no puzzle awk', err);
-          menuPanelBody.innerHTML =
-            headerHtml + `<p class="menu-panel-text">couldn't load puzzles</p>`;
-        }
-
-        menuPanel.style.display = 'flex';
-      };
-
-      // if tut open
-      if (menuPanel.style.display && menuPanel.style.display !== 'none') {
-        const intervalId = window.setInterval(() => {
-          if (!menuPanel.style.display || menuPanel.style.display === 'none') {
-            window.clearInterval(intervalId);
-            void openNoTodayLevelPanel();
-          }
-        }, 200);
-      } else {
-        void openNoTodayLevelPanel();
-      }
-    })();
   }
 
   const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
@@ -1500,24 +1663,22 @@ async function init() {
     if (!dayTextEl) return;
     if (mode === 'shared') dayTextEl.textContent = 'shared level';
     else if (mode === 'custom') dayTextEl.textContent = 'your level';
-    else dayTextEl.textContent = `day ${dayNumber}`;
+    else dayTextEl.textContent = `level ${dayNumber}`;
   };
 
   const applyLevelDataToRenderer = (
     data: LevelData,
     id: string | null,
-    mode: 'shared' | 'daily' | 'custom',
-    puzzleDate: string | null
+    mode: 'shared' | 'daily' | 'custom'
   ) => {
     hideSuccessPopup();
     renderer.hideFailurePopup();
 
     currentLevelData = JSON.parse(JSON.stringify(data)) as LevelData;
     currentLevelId = id;
-    currentPuzzleDate = puzzleDate;
-
     renderer.setLevelId(currentLevelId);
     renderer.setState(initGame(buildLevel(currentLevelData)));
+    renderer.playIntroAnimation();
     setDayText(mode);
   };
 
@@ -1540,13 +1701,6 @@ async function init() {
     const viewOptimalCallback = optimalPath
       ? () => renderer.showOptimalPath(optimalPath!)
       : undefined;
-
-    let streakLabel: string | undefined;
-    if (currentMode === 'daily' && currentPuzzleDate) {
-      const { currentStreak } = updateStreakForPuzzleDate(currentPuzzleDate);
-      const dayLabel = currentStreak === 1 ? 'day' : 'days';
-      streakLabel = `streak: ${currentStreak} ${dayLabel}`;
-    }
 
     let isFirst = false;
 
@@ -1571,7 +1725,7 @@ async function init() {
       }
 
       // show success popup on every playthrough
-      const isCustom = currentMode === 'custom';
+      const hideLeaderboard = currentMode !== 'daily';
       const path = renderer.getPath();
       const { width, height } = renderer.getLevelDimensions();
       showSuccessPopup(
@@ -1583,14 +1737,13 @@ async function init() {
         height,
         optimalMoves,
         viewOptimalCallback,
-        isCustom,
-        streakLabel,
+        hideLeaderboard,
         isFirst
       );
     } catch (error) {
       console.error('Error submitting run:', error);
       // still show popup even if API call fails
-      const isCustom = currentMode === 'custom';
+      const hideLeaderboard = currentMode !== 'daily';
       const path = renderer.getPath();
       const { width, height } = renderer.getLevelDimensions();
       showSuccessPopup(
@@ -1602,14 +1755,13 @@ async function init() {
         height,
         optimalMoves,
         viewOptimalCallback,
-        isCustom,
-        streakLabel,
+        hideLeaderboard,
         isFirst
       );
     }
   });
 
-  // builder mode starts based off the day's level
+  // builder mode starts based off the current level
   type BuilderTool = 'erase' | 'decor' | 'start' | 'station' | 'cust1' | 'cust2' | 'cust3' | 'drag';
   let builderMode = false;
   let builderData: LevelData = JSON.parse(JSON.stringify(currentLevelData)) as LevelData;
@@ -3025,7 +3177,7 @@ async function init() {
     const exitHint = document.getElementById('exit-builder-hint');
     if (exitHint) exitHint.style.display = 'none';
 
-    if (ordersHeadingEl) ordersHeadingEl.textContent = "today's orders:";
+    if (ordersHeadingEl) ordersHeadingEl.textContent = 'orders:';
 
     // keep playing the level you just built if leave (custom level = no stored best)
     currentLevelId = null;
@@ -3034,7 +3186,6 @@ async function init() {
     renderer.setState(initGame(buildLevel(currentLevelData)));
 
     setDayText('custom');
-    currentPuzzleDate = null;
     renderer.forceUpdateOrdersDisplay();
   };
 
@@ -3054,7 +3205,7 @@ async function init() {
     const exitHint = document.getElementById('exit-builder-hint');
     if (exitHint) exitHint.style.display = 'none';
 
-    if (ordersHeadingEl) ordersHeadingEl.textContent = "today's orders:";
+    if (ordersHeadingEl) ordersHeadingEl.textContent = 'orders:';
     renderer.forceUpdateOrdersDisplay();
   };
 
@@ -3065,7 +3216,7 @@ async function init() {
       const validation = decoded ? validateLevelData(decoded) : null;
       if (decoded && validation && validation.ok) {
         forceExitBuilderMode();
-        applyLevelDataToRenderer(decoded as LevelData, null, 'shared', null);
+        applyLevelDataToRenderer(decoded as LevelData, null, 'shared');
         return;
       }
 
@@ -3077,12 +3228,12 @@ async function init() {
       renderer.setState({ ...s, message: 'invalid share link' });
       history.replaceState(null, '', window.location.pathname + window.location.search);
       forceExitBuilderMode();
-      applyLevelDataToRenderer(dailyLevelData, dailyLevelId, 'daily', dailyPuzzleDate);
+      applyLevelDataToRenderer(dailyLevelData, dailyLevelId, 'daily');
       return;
     }
 
     forceExitBuilderMode();
-    applyLevelDataToRenderer(dailyLevelData, dailyLevelId, 'daily', dailyPuzzleDate);
+    applyLevelDataToRenderer(dailyLevelData, dailyLevelId, 'daily');
   };
 
   window.addEventListener('hashchange', () => {
@@ -3194,22 +3345,17 @@ async function init() {
 
   // listen for level loads from the menu
   document.addEventListener('loadLevel', ((e: CustomEvent) => {
-    const { levelData: ld, levelId: lid, date: puzzleDate } = e.detail;
+    const { levelData: ld, levelId: lid } = e.detail;
     forceExitBuilderMode();
 
     const m = (ld as LevelData).id?.match(/day-(\d+)/);
     dayNumber = m ? parseInt(m[1], 10) : 1;
 
-    applyLevelDataToRenderer(
-      ld as LevelData,
-      lid as string,
-      'daily',
-      typeof puzzleDate === 'string' ? puzzleDate : null
-    );
+    applyLevelDataToRenderer(ld as LevelData, lid as string, 'daily');
   }) as EventListener);
 
   // initial render and orders display
-  renderer.render();
+  renderer.playIntroAnimation();
   renderer.updateUI();
 }
 

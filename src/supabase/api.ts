@@ -32,12 +32,11 @@ export async function getTodayLevel() {
   return getLevelByDate(today);
 }
 
-// um for previous levels?
-export async function getLevelHistory(limit: number = 30) {
+export async function getLevelHistory(limit: number = 1000) {
   const { data, error } = await supabase
     .from('levels')
     .select('id, date')
-    .order('date', { ascending: false })
+    .order('date', { ascending: true })
     .limit(limit);
 
   if (error) throw error;

@@ -821,6 +821,12 @@ a.menu-item {
   gap: 4px;
   max-height: 260px;
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.puzzle-list::-webkit-scrollbar {
+  display: none;
 }
 
 .puzzle-list-item {

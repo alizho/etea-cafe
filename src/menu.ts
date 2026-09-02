@@ -1,5 +1,5 @@
 import { toggleAudio, getAudioEnabled } from './audio';
-import { getLevelHistory, getLevelByDate, getTodayDateEST } from './supabase/api';
+import { getLevelHistory, getLevelByDate } from './supabase/api';
 import type { LevelData } from './levels/level.schema';
 
 const TUTORIAL_SEEN_KEY = 'tutorialSeen';
@@ -132,12 +132,12 @@ export function initMenu(): void {
           break;
         }
 
-        case 'past-puzzles':
+        case 'levels':
           showPanel(
-            `<h3 class="menu-panel-title">puzzles</h3>` +
+            `<h3 class="menu-panel-title">levels</h3>` +
               `<p class="menu-panel-text">loading...</p>`
           );
-          void loadPastPuzzles();
+          void loadLevels();
           break;
 
         case 'builder':
@@ -186,56 +186,33 @@ export function initMenu(): void {
     });
   }
 
-  /* ── past puzzles helpers ── */
-
-  function formatDateLabel(dateStr: string): string {
-    const [, month, day] = dateStr.split('-');
-    const months = [
-      'jan',
-      'feb',
-      'mar',
-      'apr',
-      'may',
-      'jun',
-      'jul',
-      'aug',
-      'sep',
-      'oct',
-      'nov',
-      'dec',
-    ];
-    return `${months[parseInt(month, 10) - 1]} ${parseInt(day, 10)}`;
-  }
-
-  async function loadPastPuzzles(): Promise<void> {
+  async function loadLevels(): Promise<void> {
     if (!menuPanelBody) return;
 
     try {
-      const levels = await getLevelHistory(30);
-      const today = getTodayDateEST();
+      const levels = await getLevelHistory();
 
       if (!levels || levels.length === 0) {
         menuPanelBody.innerHTML =
-          `<h3 class="menu-panel-title">puzzles</h3>` +
-          `<p class="menu-panel-text">no puzzles yet</p>`;
+          `<h3 class="menu-panel-title">levels</h3>` +
+          `<p class="menu-panel-text">no levels found</p>`;
         return;
       }
 
       const listItems = levels
-        .map((level) => {
-          const isToday = level.date === today;
-          const label = formatDateLabel(level.date);
-          const todayTag = isToday ? ' <span class="puzzle-today-tag">(today)</span>' : '';
+        .map((level, index) => {
+          const idNumber = level.id.match(/day-(\d+)/)?.[1];
+          const label = `level ${idNumber ? parseInt(idNumber, 10) : index + 1}`;
           return (
-            `<button class="puzzle-list-item${isToday ? ' puzzle-list-today' : ''}"` +
+            `<button class="puzzle-list-item"` +
             ` data-date="${level.date}" data-id="${level.id}">` +
-            `${label}${todayTag}</button>`
+            `${label}</button>`
           );
         })
         .join('');
 
       menuPanelBody.innerHTML =
-        `<h3 class="menu-panel-title">puzzles</h3>` + `<div class="puzzle-list">${listItems}</div>`;
+        `<h3 class="menu-panel-title">levels</h3>` + `<div class="puzzle-list">${listItems}</div>`;
 
       menuPanelBody.querySelectorAll<HTMLElement>('.puzzle-list-item').forEach((btn) => {
         btn.addEventListener('click', () => {
@@ -246,8 +223,8 @@ export function initMenu(): void {
       console.error('Failed to load puzzle history:', err);
       if (menuPanelBody) {
         menuPanelBody.innerHTML =
-          `<h3 class="menu-panel-title">puzzles</h3>` +
-          `<p class="menu-panel-text">couldn't load puzzles</p>`;
+          `<h3 class="menu-panel-title">levels</h3>` +
+          `<p class="menu-panel-text">couldn't load levels</p>`;
       }
     }
   }

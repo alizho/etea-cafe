@@ -12,7 +12,7 @@
     <meta name="theme-color" content="#000000" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta property="og:title" content="etea.cafe" />
-    <meta property="og:description" content="A daily cafe puzzle game." />
+    <meta property="og:description" content="A cozy cafe puzzle game." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://etea.cafe/" />
     <meta property="og:image" content="https://etea.cafe/img/_page.png" />
@@ -23,16 +23,15 @@
     <meta property="og:image:alt" content="ETea Cafe" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="ETea Cafe" />
-    <meta name="twitter:description" content="A daily cafe puzzle game." />
+    <meta name="twitter:description" content="A cozy cafe puzzle game." />
     <meta name="twitter:image" content="https://etea.cafe/img/_page.png" />
-    <link rel="stylesheet" href="/style.css" />
     <title>etea cafe</title>
   </head>
   <body>
     <div id="root">
       <div class="header">
         <img src="/img/logo.gif" alt="ETea.cafe" class="logo" />
-        <div id="day-text" class="day-text">day 1</div>
+        <div id="day-text" class="day-text">level 1</div>
       </div>
       <div class="game-container">
         <div class="game-section">
@@ -76,7 +75,7 @@
         </div>
 
         <div class="sidebar">
-          <h3 id="orders-heading">today's orders:</h3>
+          <h3 id="orders-heading">orders:</h3>
           <ul id="orders"></ul>
 
           <div class="sidebar-content">
@@ -210,7 +209,7 @@
     <!--success popup -->
     <div id="success-popup" class="popup-overlay" style="display: none">
       <div class="popup-content">
-        <h2 class="success-day-text">Results - Day 1</h2>
+        <h2 class="success-day-text">Results - Level 1</h2>
         <div class="success-score-section">
           <div class="success-score-label">your score:</div>
           <div class="success-score-value">0</div>
@@ -255,7 +254,7 @@
           mute
         </button>
         <a href="https://discord.gg/E4khGA66TD" target="_blank" rel="noopener noreferrer" class="menu-item menu-item--mobile-only discord-cta-menu-link">join the discord</a>
-        <button class="menu-item" data-action="past-puzzles">past puzzles</button>
+        <button class="menu-item" data-action="levels">levels</button>
         <button class="menu-item" data-action="builder">builder</button>
         <button class="menu-item" data-action="tutorial">tutorial</button>
         <button class="menu-item" data-action="about">about</button>
