@@ -1639,7 +1639,7 @@ a.menu-item {
 }
 
 /* desktop: side columns line up with the bottom of the board instead of floating mid-height */
-@media (min-width: 601px) {
+@media (min-width: 601px) and (min-aspect-ratio: 1/1) {
   .game-container > .sidebar,
   .game-container > .tutorial-banner {
     align-self: flex-end; /* bottom margin is set from main.ts to match the board */
@@ -1673,5 +1673,126 @@ a.menu-item {
 @media (prefers-reduced-motion: reduce) {
   .hands-demo-pop {
     animation: none;
+  }
+}
+
+/* ── portrait tablets / tall windows (wider than a phone, taller than wide) ──
+   stack checklist, board and orders in one column so the board gets the full width.
+   keep in sync with STACKED_QUERY in main.ts */
+@media (min-width: 601px) and (max-aspect-ratio: 1/1) {
+  html,
+  body {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  #root {
+    justify-content: flex-start;
+    overflow: visible;
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 16px 0;
+    box-sizing: border-box;
+  }
+
+  .game-container {
+    flex-shrink: 0;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 24px;
+  }
+
+  .game-section {
+    width: 100%;
+    max-width: none;
+    align-items: center;
+    order: 1;
+  }
+
+  .game-controls {
+    justify-content: center;
+  }
+
+  .tutorial-banner {
+    order: -2;
+    width: fit-content;
+    max-width: min(640px, 100%);
+    align-self: center;
+    margin-bottom: 0;
+  }
+
+  .sidebar {
+    order: 2;
+    width: min(720px, 100%);
+    min-width: 0;
+    align-self: center;
+    margin-top: 0; /* desktop pulls it up with -132px */
+    margin-bottom: 0;
+  }
+
+  #orders {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  #orders .order-item {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    margin-bottom: 0;
+  }
+}
+
+/* stacked layouts (phones + portrait tablets): the bottom wall row of the board is
+   mostly empty, so let the hands sit up in it instead of leaving a gap */
+@media (max-width: 600px), (max-aspect-ratio: 1/1) {
+  .game-canvas {
+    margin-bottom: calc(-1 * var(--wall-row, 0px) + 4px);
+  }
+
+  .game-info {
+    flex-direction: row;
+    justify-content: center;
+    align-items: baseline;
+    gap: 16px;
+    padding: 0 8px;
+  }
+}
+
+/* ── phones: tighter so the board, hands and orders fit on one screen ── */
+@media (max-width: 600px) {
+  .logo {
+    transform: scale(1.2);
+    margin: 4px 0 0;
+  }
+
+  .tutorial-banner {
+    padding: 8px 10px;
+  }
+
+  .tutorial-banner-title {
+    font-size: 16px;
+    margin: 0 0 2px;
+  }
+
+  .tutorial-banner-progress {
+    margin-bottom: 4px;
+  }
+
+  /* two columns of checks instead of one tall list */
+  .tutorial-checklist {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 10px;
+    font-size: 13px;
+  }
+
+  .tutorial-checklist li {
+    min-height: 26px;
+    gap: 6px;
   }
 }

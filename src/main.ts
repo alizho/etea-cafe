@@ -482,6 +482,8 @@ class GameRenderer {
   private updateCanvasDisplaySize(baseCanvasWidth: number, baseCanvasHeight: number) {
     // fit display size w current layout
     const isMobile = window.innerWidth <= 600;
+    // portrait tablets / tall windows stack everything in one column (see STACKED_QUERY)
+    const stacked = isStackedLayout();
 
     const headerEl = document.querySelector('.header') as HTMLElement | null;
     const controlsEl = document.querySelector('.game-controls') as HTMLElement | null;
@@ -494,32 +496,52 @@ class GameRenderer {
     const inventoryH = inventoryEl?.getBoundingClientRect().height ?? 0;
     const infoH = infoEl?.getBoundingClientRect().height ?? 0;
 
-    const sidebarW = isMobile ? 0 : (sidebarEl?.getBoundingClientRect().width ?? 0);
+    const sidebarW = stacked ? 0 : (sidebarEl?.getBoundingClientRect().width ?? 0);
+    // stacked (not phone): orders sit under the board and should fit on screen too
+    // (phones too now, so the orders show without scrolling when there's room)
+    const sidebarH = stacked ? (sidebarEl?.getBoundingClientRect().height ?? 0) + 12 : 0;
     // tutorial checklist: a left column on desktop, a row above the board on mobile
     const bannerEl = document.getElementById('tutorial-banner');
     const bannerRect = bannerEl && bannerEl.style.display !== 'none' ? bannerEl.getBoundingClientRect() : null;
-    const bannerW = !isMobile && bannerRect ? bannerRect.width + 16 : 0;
-    const bannerH = isMobile && bannerRect ? bannerRect.height + 8 : 0;
+    const bannerW = !stacked && bannerRect ? bannerRect.width + 16 : 0;
+    const bannerH = stacked && bannerRect ? bannerRect.height + 12 : 0;
 
     const logo = document.querySelector('.logo') as HTMLElement | null;
 
-    const extraLogoSpace = logo && !isMobile ? logo.getBoundingClientRect().height * 0.5 : 0;
+    const extraLogoSpace = logo && !stacked ? logo.getBoundingClientRect().height * 0.5 : 0;
 
-    const paddingW = isMobile ? 8 : 64;
-    const paddingH = isMobile ? 16 : 72;
+    const paddingW = isMobile ? 8 : stacked ? 48 : 64;
+    const paddingH = isMobile ? 16 : stacked ? 100 : 72;
 
     const maxW = Math.max(120, window.innerWidth - sidebarW - bannerW - paddingW);
     const maxH = Math.max(
       120,
-      window.innerHeight - headerH - controlsH - inventoryH - infoH - bannerH - paddingH - extraLogoSpace
+      window.innerHeight -
+        headerH -
+        controlsH -
+        inventoryH -
+        infoH -
+        bannerH -
+        sidebarH -
+        paddingH -
+        extraLogoSpace
     );
 
-    const fitScale = Math.min(maxW / baseCanvasWidth, maxH / baseCanvasHeight, 1);
+    // stacked layouts have room to spare, so let the board grow past 1:1 there
+    const maxScale = stacked && !isMobile ? 1.6 : 1;
+    // stacked layouts tuck the mostly-empty bottom wall row under the hands (see --wall-row),
+    // so only the visible part of the board needs to fit vertically
+    const rows = this.state.level.height;
+    const visibleH = stacked ? baseCanvasHeight * (1 - 61 / 64 / rows) : baseCanvasHeight;
+    let fitScale = Math.min(maxW / baseCanvasWidth, maxH / visibleH, maxScale);
+    // phones: never shrink the board below 80% of the screen width just to fit the orders
+    if (isMobile) fitScale = Math.max(fitScale, Math.min((0.8 * maxW) / baseCanvasWidth, maxScale));
     const cssW = Math.max(64, Math.floor(baseCanvasWidth * fitScale));
     const cssH = Math.max(64, Math.floor(baseCanvasHeight * fitScale));
 
     this.canvas.style.width = `${cssW}px`;
     this.canvas.style.height = `${cssH}px`;
+    this.canvas.style.setProperty('--wall-row', `${Math.round((cssH / rows) * (61 / 64))}px`);
 
     // side columns (tutorial checklist, orders) sit flush with the board's bottom edge
     requestAnimationFrame(() => alignSideColumns(this.canvas, this.state.level.height));
@@ -1728,6 +1750,13 @@ class GameRenderer {
   }
 }
 
+// one column (checklist, board, orders) for phones and for anything taller than it is wide.
+// keep in sync with the matching @media query at the end of style.css
+const STACKED_QUERY = '(max-width: 600px), (max-aspect-ratio: 1/1)';
+function isStackedLayout(): boolean {
+  return window.matchMedia(STACKED_QUERY).matches;
+}
+
 // desktop: line the bottom of the side columns up with the bottom of the board.
 // they're flex-end aligned, so bump each one's bottom margin by however far it's off.
 function alignSideColumns(canvas: HTMLCanvasElement, rows: number) {
@@ -1737,7 +1766,7 @@ function alignSideColumns(canvas: HTMLCanvasElement, rows: number) {
   const cols = document.querySelectorAll<HTMLElement>(
     '.game-container > .sidebar, .game-container > .tutorial-banner'
   );
-  const desktop = window.innerWidth > 600;
+  const desktop = !isStackedLayout();
   cols.forEach((col) => {
     if (!desktop || col.style.display === 'none') {
       col.style.marginBottom = '';
