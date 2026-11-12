@@ -1204,10 +1204,13 @@ a.menu-item {
   display: none;
 }
 
+/* "try tutorial" (primary) with "skip tutorial" as a plain button to its right */
 .first-visit-actions {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
   gap: 12px;
   margin-top: 28px;
 }
@@ -1227,18 +1230,7 @@ a.menu-item {
 }
 
 .first-visit-skip-btn {
-  padding: 4px 8px;
-  font-family: 'Pixer', Arial, sans-serif;
-  font-size: 13px;
-  color: #888;
-  background: none;
-  border: none;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.first-visit-skip-btn:hover {
-  color: var(--primary-color);
+  padding: 10px 24px;
 }
 
 /* tutorial: spotlight the orders list with a callout until the player presses ok */
@@ -1794,5 +1786,113 @@ a.menu-item {
   .tutorial-checklist li {
     min-height: 26px;
     gap: 6px;
+  }
+}
+
+/* ── start screen (src/start.ts): "click to enter" ── */
+
+/* one big transparent button so the starfield shows; the game loads hidden underneath */
+.start-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
+  padding: 16px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  box-sizing: border-box;
+  cursor: pointer;
+  text-align: center;
+}
+
+.start-screen:focus-visible {
+  outline: none;
+}
+
+body.start-screen-open #root,
+body.start-screen-open .hamburger-wrapper {
+  visibility: hidden;
+}
+
+body.start-screen-open {
+  overflow: hidden;
+}
+
+/* logo.gif is 147x37, kept at whole-number scales */
+.start-logo {
+  display: block;
+  width: 441px;
+  max-width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* glorbo idle: column 0 of the 3x2 sheet, swapping between row 0 and row 1 */
+.start-glorbo {
+  --size: 64px;
+  display: block;
+  width: var(--size);
+  height: var(--size);
+  background: url('/img/glorbo_sprite_sheet.png') 0 0 / calc(var(--size) * 3) calc(var(--size) * 2)
+    no-repeat;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  animation: start-glorbo-idle 1s steps(1, end) infinite;
+}
+
+@keyframes start-glorbo-idle {
+  0% {
+    background-position: 0 0;
+  }
+  50%,
+  100% {
+    background-position: 0 calc(var(--size) * -1);
+  }
+}
+
+/* "click to enter" blinks on and off */
+.start-enter {
+  font-family: 'Pixer', Arial, sans-serif;
+  font-size: 18px;
+  color: var(--primary-color);
+  background: #f3f2ed;
+  padding: 6px 14px;
+  border: 3px solid var(--primary-color);
+  animation: start-enter-blink 1.2s steps(1, end) infinite;
+}
+
+@keyframes start-enter-blink {
+  50% {
+    visibility: hidden;
+  }
+}
+
+@media (max-width: 600px) {
+  .start-screen {
+    gap: 20px;
+  }
+
+  .start-logo {
+    width: 294px;
+  }
+
+  .start-glorbo {
+    --size: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .start-glorbo,
+  .start-enter {
+    animation: none;
   }
 }

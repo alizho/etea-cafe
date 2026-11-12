@@ -32,22 +32,31 @@ const tutorialHTML =
   howToPlayHTML +
   `<p class="menu-panel-text"><a class="menu-panel-link" href="/tutorial">try the tutorial</a></p>`;
 
-// first visit: rules + "try tutorial" as the main action, "skip" as a quiet secondary
+// first visit: a short welcome that pushes the playable tutorial instead of a wall of rules
+const welcomeHTML =
+  `<h3 class="menu-panel-title">welcome to etea.cafe!</h3>` +
+  `<p class="menu-panel-text">help glorbo ${glorboSprite} serve every customer in as few steps as you can.</p>` +
+  `<p class="menu-panel-text">new here? the <span class="tutorial-hl">tutorial</span> takes about a minute.</p>`;
+
 const firstVisitHTML =
-  howToPlayHTML +
+  welcomeHTML +
   `<div class="first-visit-actions">` +
   `<a class="game-button game-button--primary" href="/tutorial">try tutorial</a>` +
-  `<button type="button" class="first-visit-skip-btn" data-action="skip-tutorial">skip tutorial</button>` +
+  `<button type="button" class="game-button first-visit-skip-btn" data-action="skip-tutorial">skip tutorial</button>` +
   `</div>`;
 
 const FIRST_VISIT_CLASS = 'menu-panel--first-visit';
+
+export function hasSeenTutorial(): boolean {
+  return !!localStorage.getItem(TUTORIAL_SEEN_KEY);
+}
 
 export function markTutorialSeen(): void {
   localStorage.setItem(TUTORIAL_SEEN_KEY, '1');
 }
 
 export function showTutorialIfFirstVisit(): void {
-  if (localStorage.getItem(TUTORIAL_SEEN_KEY)) return;
+  if (hasSeenTutorial()) return;
 
   const menuPanel = document.getElementById('menu-panel');
   const menuPanelBody = document.getElementById('menu-panel-body');
@@ -130,7 +139,8 @@ export function initMenu(): void {
 
   if (menuPanel) {
     menuPanel.addEventListener('click', (e) => {
-      if (e.target === menuPanel) hidePanel();
+      // the first-visit welcome only closes through its buttons
+      if (e.target === menuPanel && !menuPanel.classList.contains(FIRST_VISIT_CLASS)) hidePanel();
     });
   }
 
@@ -139,7 +149,7 @@ export function initMenu(): void {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       if (menuPanel && menuPanel.style.display !== 'none') {
-        hidePanel();
+        if (!menuPanel.classList.contains(FIRST_VISIT_CLASS)) hidePanel();
       } else if (menuOpen) {
         closeMenu();
       }

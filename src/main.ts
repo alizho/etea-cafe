@@ -27,6 +27,12 @@ import {
 } from './audio';
 import { initMenu, showTutorialIfFirstVisit, markTutorialSeen } from './menu';
 import {
+  shouldShowStartScreen,
+  showStartScreen,
+  isStartScreenOpen,
+  onStartScreenClose,
+} from './start';
+import {
   TUTORIAL_LESSONS,
   isTutorialRoute,
   getLessonIndexFromUrl,
@@ -1626,9 +1632,14 @@ class GameRenderer {
       const slot1 = document.getElementById('inventory-slot-1');
       [slot0, slot1].forEach((slot, i) => {
         if (!slot) return;
-        const drinkId = inventory[i];
+        const drinkId = inventory[i] ?? '';
+        // only rebuild a slot when its item changes: replacing the <img> on every step
+        // makes Safari blank it for a frame while it re-decodes (the "flash")
+        if (slot.dataset.item === drinkId && slot.querySelector('.inventory-drink-icon:not(.hands-demo-pop)')) return;
+        if (slot.dataset.item === drinkId && !drinkId && !slot.firstChild) return;
+        slot.dataset.item = drinkId;
         if (drinkId) {
-          const imageSrc = sprites.drinkItems[drinkId]?.src ?? '';
+          const imageSrc = sprites.drinkItems[drinkId as DrinkId]?.src ?? '';
           slot.innerHTML = `<img src="${imageSrc}" alt="${drinkId}" class="inventory-drink-icon" />`;
         } else {
           slot.innerHTML = '';
@@ -1786,6 +1797,8 @@ function alignSideColumns(canvas: HTMLCanvasElement, rows: number) {
 async function init() {
   const tutorialRoute = isTutorialRoute();
   if (tutorialRoute) markTutorialSeen();
+  // the start screen handles first visits itself (tutorial is its primary button then)
+  else if (shouldShowStartScreen()) showStartScreen();
   else showTutorialIfFirstVisit();
   ensureAudioStartedOnFirstGesture();
   void startBackgroundMusic();
@@ -1939,6 +1952,43 @@ async function init() {
     if (TUTORIAL_LESSONS[tutorialIndex].pointAtOrders) showCallout();
   }
 
+  // ── in-app navigation between the daily puzzle and /tutorial ──
+  // swapping the level in place instead of a full page load, so nothing has to rebuild
+
+  function enterTutorial(index: number) {
+    markTutorialSeen();
+    loadTutorialLesson(index);
+    // banner changes the available space, so refit the canvas
+    window.dispatchEvent(new Event('resize'));
+  }
+
+  function enterDaily() {
+    const m = dailyLevelData.id?.match(/day-(\d+)/);
+    dayNumber = m ? parseInt(m[1], 10) : 1;
+    applyLevelDataToRenderer(dailyLevelData, dailyLevelId, 'daily');
+    window.dispatchEvent(new Event('resize'));
+  }
+
+  // any plain click on a link to /tutorial (welcome popup, menu panel)
+  document.addEventListener('click', (e) => {
+    const link = (e.target as Element | null)?.closest?.('a[href="/tutorial"]');
+    if (!link || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    const menuPanel = document.getElementById('menu-panel');
+    if (menuPanel) {
+      menuPanel.style.display = 'none';
+      menuPanel.classList.remove('menu-panel--first-visit');
+    }
+    history.pushState(null, '', '/tutorial?lesson=1');
+    enterTutorial(0);
+  });
+
+  // browser back / forward between the two
+  window.addEventListener('popstate', () => {
+    if (isTutorialRoute()) enterTutorial(getLessonIndexFromUrl());
+    else if (currentMode === 'tutorial') enterDaily();
+  });
+
   const handleTutorialSuccess = (moves: number) => {
     showTutorialSuccess({
       index: tutorialIndex,
@@ -1946,7 +1996,8 @@ async function init() {
       par: getTutorialPar(tutorialIndex),
       onNext: () => {
         if (tutorialIndex >= TUTORIAL_LESSONS.length - 1) {
-          window.location.href = '/';
+          history.pushState(null, '', '/');
+          enterDaily();
         } else {
           loadTutorialLesson(tutorialIndex + 1);
         }
@@ -3634,6 +3685,11 @@ async function init() {
   // initial render and orders display
   renderer.playIntroAnimation();
   renderer.updateUI();
+
+  // the intro played hidden behind the start screen, so replay it when entering reveals the board
+  if (isStartScreenOpen()) {
+    onStartScreenClose(() => renderer.playIntroAnimation());
+  }
 }
 
 function scatterDecorations(): void {
