@@ -25,7 +25,24 @@ import {
   playWompSfx,
   playCustomerServeSfx,
 } from './audio';
-import { initMenu, showTutorialIfFirstVisit } from './menu';
+import { initMenu, showTutorialIfFirstVisit, markTutorialSeen } from './menu';
+import {
+  TUTORIAL_LESSONS,
+  isTutorialRoute,
+  getLessonIndexFromUrl,
+  setLessonInUrl,
+  showTutorialBanner,
+  hideTutorialBanner,
+  setFailureMessage,
+  showTutorialSuccess,
+  hideTutorialSuccess,
+  showOrdersCallout,
+  hideOrdersCallout,
+  nudgeOrdersCallout,
+  showCursorTooltip,
+  hideCursorTooltip,
+} from './tutorial';
+import { initGuide, refreshGuide, setGuideLesson } from './guide';
 import {
   loadAllSprites,
   type LoadedSprites,
@@ -317,6 +334,22 @@ class GameRenderer {
   private successHandled: boolean = false;
   private currentLevelId: string | null = null;
   private showingOptimalReplay: boolean = false;
+  // tutorial callout open: no drawing or running until the player presses ok
+  private inputLocked: boolean = false;
+  // tutorial: pulse a white ring around run once there's a path to run
+  private highlightRunWhenReady: boolean = false;
+  private onLockedPointerDown: ((clientX: number, clientY: number) => void) | null = null;
+  // tutorial hover labels: called with the hovered tile (null when off the board or busy)
+  private onHover: ((pos: Pos | null, clientX: number, clientY: number) => void) | null = null;
+  // guide hooks (src/guide.ts): extra canvas drawing, state updates, rejected input
+  private overlayRenderer:
+    | ((ctx: CanvasRenderingContext2D, state: GameState, animFrame: number) => void)
+    | null = null;
+  private onUIUpdate: ((state: GameState) => void) | null = null;
+  private onInputRejected:
+    | ((kind: 'start' | 'blocked', clientX: number, clientY: number) => void)
+    | null = null;
+  private lastRejectedKey: string | null = null;
 
   // avoid build mode spamming paint calls on same tile
   private lastBuildPaintKey: string | null = null;
@@ -462,6 +495,11 @@ class GameRenderer {
     const infoH = infoEl?.getBoundingClientRect().height ?? 0;
 
     const sidebarW = isMobile ? 0 : (sidebarEl?.getBoundingClientRect().width ?? 0);
+    // tutorial checklist: a left column on desktop, a row above the board on mobile
+    const bannerEl = document.getElementById('tutorial-banner');
+    const bannerRect = bannerEl && bannerEl.style.display !== 'none' ? bannerEl.getBoundingClientRect() : null;
+    const bannerW = !isMobile && bannerRect ? bannerRect.width + 16 : 0;
+    const bannerH = isMobile && bannerRect ? bannerRect.height + 8 : 0;
 
     const logo = document.querySelector('.logo') as HTMLElement | null;
 
@@ -470,10 +508,10 @@ class GameRenderer {
     const paddingW = isMobile ? 8 : 64;
     const paddingH = isMobile ? 16 : 72;
 
-    const maxW = Math.max(120, window.innerWidth - sidebarW - paddingW);
+    const maxW = Math.max(120, window.innerWidth - sidebarW - bannerW - paddingW);
     const maxH = Math.max(
       120,
-      window.innerHeight - headerH - controlsH - inventoryH - infoH - paddingH - extraLogoSpace
+      window.innerHeight - headerH - controlsH - inventoryH - infoH - bannerH - paddingH - extraLogoSpace
     );
 
     const fitScale = Math.min(maxW / baseCanvasWidth, maxH / baseCanvasHeight, 1);
@@ -482,6 +520,9 @@ class GameRenderer {
 
     this.canvas.style.width = `${cssW}px`;
     this.canvas.style.height = `${cssH}px`;
+
+    // side columns (tutorial checklist, orders) sit flush with the board's bottom edge
+    requestAnimationFrame(() => alignSideColumns(this.canvas, this.state.level.height));
   }
 
   private setupEventListeners() {
@@ -489,12 +530,17 @@ class GameRenderer {
     this.canvas.addEventListener('mousemove', (e) => {
       this.handlePointerMove(e);
       this.handleHover(e);
+      this.emitHover(e.clientX, e.clientY);
     });
-    this.canvas.addEventListener('mouseup', () => this.stopDrawing());
-    this.canvas.addEventListener('mouseleave', () => {
+    this.canvas.addEventListener('mouseup', (e) => {
+      this.stopDrawing();
+      this.emitHover(e.clientX, e.clientY);
+    });
+    this.canvas.addEventListener('mouseleave', (e) => {
       this.stopDrawing();
       this.hoverTile = null;
       this.render();
+      this.onHover?.(null, e.clientX, e.clientY);
     });
 
     const undoBtn = document.getElementById('undo-btn') as HTMLButtonElement | null;
@@ -562,6 +608,10 @@ class GameRenderer {
   }
 
   private handlePointerDown(e: { clientX: number; clientY: number }) {
+    if (this.inputLocked && this.uiMode === 'play') {
+      this.onLockedPointerDown?.(e.clientX, e.clientY);
+      return;
+    }
     if (this.introAnimationActive) return;
     if (this.state.status !== 'idle') return;
     const pos = getTilePos(
@@ -584,9 +634,13 @@ class GameRenderer {
     }
 
     const last = this.state.path[this.state.path.length - 1] ?? this.state.level.start;
-    if (pos.x !== last.x || pos.y !== last.y) return;
+    if (pos.x !== last.x || pos.y !== last.y) {
+      this.onInputRejected?.('start', e.clientX, e.clientY);
+      return;
+    }
 
     this.isDrawing = true;
+    this.lastRejectedKey = null;
   }
 
   private handlePointerMove(e: { clientX: number; clientY: number }) {
@@ -631,6 +685,16 @@ class GameRenderer {
     this.state = tryAppendPath(this.state, pos);
     if (this.state.path.length > prevLen) {
       playPathTileSfx();
+      this.lastRejectedKey = null;
+    } else {
+      // tried to step onto a wall / customer / obstacle right next to the path end
+      const last = this.state.path[this.state.path.length - 1];
+      const key = `${pos.x},${pos.y}`;
+      const adjacent = last && Math.abs(last.x - pos.x) + Math.abs(last.y - pos.y) === 1;
+      if (adjacent && key !== this.lastRejectedKey) {
+        this.lastRejectedKey = key;
+        this.onInputRejected?.('blocked', e.clientX, e.clientY);
+      }
     }
     this.scheduleRender();
     this.scheduleUIUpdate();
@@ -729,6 +793,57 @@ class GameRenderer {
 
   public setGlorboHidden(hidden: boolean) {
     this.glorboHidden = hidden;
+  }
+
+  public setInputLocked(
+    locked: boolean,
+    onLockedPointerDown: ((clientX: number, clientY: number) => void) | null = null
+  ) {
+    this.inputLocked = locked;
+    this.onLockedPointerDown = locked ? onLockedPointerDown : null;
+    if (locked) this.isDrawing = false;
+    this.updateUI();
+  }
+
+  public setOverlayRenderer(
+    fn: ((ctx: CanvasRenderingContext2D, state: GameState, animFrame: number) => void) | null
+  ) {
+    this.overlayRenderer = fn;
+  }
+
+  public setOnUIUpdate(fn: ((state: GameState) => void) | null) {
+    this.onUIUpdate = fn;
+  }
+
+  public setOnInputRejected(
+    fn: ((kind: 'start' | 'blocked', clientX: number, clientY: number) => void) | null
+  ) {
+    this.onInputRejected = fn;
+  }
+
+  public requestRender() {
+    this.scheduleRender();
+  }
+
+  public isDrawingPath(): boolean {
+    return this.isDrawing;
+  }
+
+  public setHighlightRunWhenReady(on: boolean) {
+    this.highlightRunWhenReady = on;
+    this.updateUI();
+  }
+
+  public setOnHover(
+    handler: ((pos: Pos | null, clientX: number, clientY: number) => void) | null
+  ) {
+    this.onHover = handler;
+  }
+
+  private emitHover(clientX: number, clientY: number) {
+    if (!this.onHover) return;
+    const busy = this.uiMode !== 'play' || this.isDrawing || this.state.status !== 'idle';
+    this.onHover(busy ? null : this.hoverTile, clientX, clientY);
   }
 
   public setOnSuccess(handler: ((moves: number) => void) | null) {
@@ -1164,6 +1279,12 @@ class GameRenderer {
       );
     }
 
+    if (this.uiMode === 'play' && this.overlayRenderer) {
+      ctx.save();
+      this.overlayRenderer(ctx, this.state, this.animationFrame);
+      ctx.restore();
+    }
+
     // draw drag ghost at hover tile
     if (this.dragGhostRenderer && this.hoverTile) {
       ctx.save();
@@ -1503,11 +1624,19 @@ class GameRenderer {
     }
 
     if (runButton) {
-      runButton.disabled = this.uiMode === 'build' || this.state.status !== 'idle';
+      runButton.disabled =
+        this.uiMode === 'build' || this.state.status !== 'idle' || this.inputLocked;
+      runButton.classList.toggle(
+        'run-btn--ready',
+        this.highlightRunWhenReady && !runButton.disabled && this.state.path.length > 1
+      );
     }
 
     if (retryButton) {
-      retryButton.disabled = this.uiMode === 'build' || this.state.status === 'running';
+      // nothing to reset until a path is drawn (or a run has finished)
+      const nothingToReset = this.state.status === 'idle' && this.state.path.length <= 1;
+      retryButton.disabled =
+        this.uiMode === 'build' || this.state.status === 'running' || nothingToReset;
     }
 
     if (undoButton) {
@@ -1518,6 +1647,8 @@ class GameRenderer {
         this.state.path.length > 1;
       undoButton.disabled = !canUndo;
     }
+
+    this.onUIUpdate?.(this.state);
   }
 
   private showFailurePopup() {
@@ -1575,7 +1706,7 @@ class GameRenderer {
             const itemServed = servedLeft > 0;
             if (itemServed) servedCounts[drinkId] = servedLeft - 1;
             const servedClass = itemServed ? 'drink-item-served' : '';
-            return `<img src="${getDrinkItemImage(drinkId)}" alt="${drinkId}" class="drink-item-icon ${servedClass}" />`;
+            return `<img src="${getDrinkItemImage(drinkId)}" alt="${drinkId}" data-drink-id="${drinkId}" class="drink-item-icon ${servedClass}" />`;
           })
           .join('');
 
@@ -1583,7 +1714,7 @@ class GameRenderer {
 
         return `
         <li class="order-item ${servedClass}" data-customer-id="${customerId}">
-          <div class="order-header">order #${index + 1}</div>
+          <div class="order-header">order #${index + 1}${isServed ? ' <span class="order-served-tag">served!</span>' : ''}</div>
           <div class="order-row">
             <img src="${customerIconUrl}" alt="${customerId}" class="customer-icon" />
             <div class="drink-items">${drinkImages}</div>
@@ -1597,9 +1728,36 @@ class GameRenderer {
   }
 }
 
+// desktop: line the bottom of the side columns up with the bottom of the board.
+// they're flex-end aligned, so bump each one's bottom margin by however far it's off.
+function alignSideColumns(canvas: HTMLCanvasElement, rows: number) {
+  // the bottom wall row is mostly empty (only its top 3px edge is drawn), so aim for the visible edge
+  const canvasRect = canvas.getBoundingClientRect();
+  const boardBottom = canvasRect.bottom - (canvasRect.height / rows) * (61 / 64);
+  const cols = document.querySelectorAll<HTMLElement>(
+    '.game-container > .sidebar, .game-container > .tutorial-banner'
+  );
+  const desktop = window.innerWidth > 600;
+  cols.forEach((col) => {
+    if (!desktop || col.style.display === 'none') {
+      col.style.marginBottom = '';
+      return;
+    }
+    const current = parseFloat(getComputedStyle(col).marginBottom) || 0;
+    // orders column: line up the last order card, not the list's trailing margin
+    const anchor = col.matches('.sidebar')
+      ? (Array.from(col.querySelectorAll<HTMLElement>('#orders .order-item')).pop() ?? col)
+      : col;
+    const off = anchor.getBoundingClientRect().bottom - boardBottom;
+    col.style.marginBottom = `${Math.max(0, Math.round(current + off))}px`;
+  });
+}
+
 // initialize game
 async function init() {
-  showTutorialIfFirstVisit();
+  const tutorialRoute = isTutorialRoute();
+  if (tutorialRoute) markTutorialSeen();
+  else showTutorialIfFirstVisit();
   ensureAudioStartedOnFirstGesture();
   void startBackgroundMusic();
   await imagesLoaded;
@@ -1626,8 +1784,13 @@ async function init() {
   const sharedValidation = sharedDecoded ? validateLevelData(sharedDecoded) : null;
   const hasSharedLevel = !!sharedDecoded && !!sharedValidation && sharedValidation.ok;
 
-  const initialLevelData = hasSharedLevel ? (sharedDecoded as LevelData) : levelData;
-  const initialLevelId = hasSharedLevel ? null : levelId;
+  let tutorialIndex = tutorialRoute ? getLessonIndexFromUrl() : 0;
+  const initialLevelData = tutorialRoute
+    ? TUTORIAL_LESSONS[tutorialIndex].data
+    : hasSharedLevel
+      ? (sharedDecoded as LevelData)
+      : levelData;
+  const initialLevelId = tutorialRoute || hasSharedLevel ? null : levelId;
 
   const level = buildLevel(initialLevelData);
   const state = initGame(level);
@@ -1639,7 +1802,8 @@ async function init() {
 
   const initialDayMatch = levelData.id.match(/day-(\d+)/);
   let dayNumber = initialDayMatch ? parseInt(initialDayMatch[1], 10) : 1;
-  let currentMode: 'shared' | 'daily' | 'custom' = hasSharedLevel ? 'shared' : 'daily';
+  type PlayMode = 'shared' | 'daily' | 'custom' | 'tutorial';
+  let currentMode: PlayMode = tutorialRoute ? 'tutorial' : hasSharedLevel ? 'shared' : 'daily';
 
   const dayTextEl = document.getElementById('day-text');
 
@@ -1658,19 +1822,34 @@ async function init() {
   const renderer = new GameRenderer(canvas, state);
   renderer.setLevelId(currentLevelId);
 
-  const setDayText = (mode: 'shared' | 'daily' | 'custom') => {
+  // thanks pops, order linking, failure details, tutorial highlights (src/guide.ts)
+  initGuide({
+    renderer,
+    canvas,
+    customerIcon: (id) => getCustomerIconDataUrl(sprites.customers[id], 2),
+    itemIcon: (id) => sprites.drinkItems[id]?.src ?? '',
+  });
+
+  const setDayText = (mode: PlayMode) => {
     currentMode = mode;
+    renderer.setHighlightRunWhenReady(mode === 'tutorial');
+    if (mode !== 'tutorial') {
+      hideTutorialBanner();
+      hideTutorialSuccess();
+      hideCallout();
+      setFailureMessage(null);
+      setGuideLesson(null);
+      // left the tutorial (levels menu, builder...), so a refresh shouldn't drop you back in
+      if (isTutorialRoute()) history.replaceState(null, '', '/' + window.location.hash);
+    }
     if (!dayTextEl) return;
-    if (mode === 'shared') dayTextEl.textContent = 'shared level';
+    if (mode === 'tutorial') dayTextEl.textContent = 'tutorial';
+    else if (mode === 'shared') dayTextEl.textContent = 'shared level';
     else if (mode === 'custom') dayTextEl.textContent = 'your level';
     else dayTextEl.textContent = `level ${dayNumber}`;
   };
 
-  const applyLevelDataToRenderer = (
-    data: LevelData,
-    id: string | null,
-    mode: 'shared' | 'daily' | 'custom'
-  ) => {
+  const applyLevelDataToRenderer = (data: LevelData, id: string | null, mode: PlayMode) => {
     hideSuccessPopup();
     renderer.hideFailurePopup();
 
@@ -1682,8 +1861,77 @@ async function init() {
     setDayText(mode);
   };
 
+  // tutorial lessons: tiny levels at /tutorial, no scores submitted
+  // hoisted so setDayText (defined above) can call hideCallout
+  function showCallout() {
+    const shown = showOrdersCallout(() => {
+      hideCursorTooltip();
+      renderer.setInputLocked(false);
+      refreshGuide(); // start the ghost path + glorbo outline now that drawing is allowed
+    });
+    renderer.setInputLocked(shown, (x, y) => {
+      nudgeOrdersCallout();
+      showCursorTooltip('look at your order!', x, y);
+    });
+  }
+  function hideCallout() {
+    hideOrdersCallout();
+    hideCursorTooltip();
+    renderer.setInputLocked(false);
+  }
+
+  const getTutorialPar = (index: number): number | undefined => {
+    const lesson = TUTORIAL_LESSONS[index];
+    if (!lesson?.showPar) return undefined;
+    const result = solveLevel(buildLevel(lesson.data));
+    return result.solvable ? result.path.length - 1 : undefined;
+  };
+
+  const loadTutorialLesson = (index: number) => {
+    tutorialIndex = index;
+    const lesson = TUTORIAL_LESSONS[index];
+    applyLevelDataToRenderer(lesson.data, null, 'tutorial');
+    showTutorialBanner(index, getTutorialPar(index));
+    setFailureMessage(lesson.failText);
+    setLessonInUrl(index);
+    setGuideLesson(lesson);
+    if (lesson.pointAtOrders) showCallout();
+    else hideCallout();
+  };
+
+  if (tutorialRoute) {
+    setDayText('tutorial');
+    showTutorialBanner(tutorialIndex, getTutorialPar(tutorialIndex));
+    setFailureMessage(TUTORIAL_LESSONS[tutorialIndex].failText);
+    setLessonInUrl(tutorialIndex);
+    setGuideLesson(TUTORIAL_LESSONS[tutorialIndex]);
+    // banner changes the available height, so refit the canvas
+    window.dispatchEvent(new Event('resize'));
+    if (TUTORIAL_LESSONS[tutorialIndex].pointAtOrders) showCallout();
+  }
+
+  const handleTutorialSuccess = (moves: number) => {
+    showTutorialSuccess({
+      index: tutorialIndex,
+      moves,
+      par: getTutorialPar(tutorialIndex),
+      onNext: () => {
+        if (tutorialIndex >= TUTORIAL_LESSONS.length - 1) {
+          window.location.href = '/';
+        } else {
+          loadTutorialLesson(tutorialIndex + 1);
+        }
+      },
+      onRetry: () => loadTutorialLesson(tutorialIndex),
+    });
+  };
+
   // submit run and show top score
   renderer.setOnSuccess(async (moves: number) => {
+    if (currentMode === 'tutorial') {
+      handleTutorialSuccess(moves);
+      return;
+    }
     // compute optimal path via BFS solver
     let optimalMoves: number | undefined;
     let optimalPath: Pos[] | undefined;

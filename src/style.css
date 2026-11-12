@@ -199,7 +199,7 @@ body {
 }
 
 .game-button:disabled:hover {
-  animation: shake 0.4s ease-in-out;
+  animation: shake 0.4s steps(1, end);
 }
 
 .game-button .undo-icon {
@@ -307,7 +307,7 @@ body {
   box-shadow: 0 0 0 1px var(--secondary-color);
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.3s steps(3, end);
 }
 
 .order-item.order-served {
@@ -1121,5 +1121,557 @@ a.menu-item {
   .success-graph-canvas {
     max-width: 85vw;
     height: auto !important;
+  }
+}
+
+/* playable tutorial (/tutorial) */
+.tutorial-banner {
+  /* side panel left of the board, same width as the orders sidebar so the board stays centered */
+  order: -1;
+  width: 260px;
+  flex-shrink: 0;
+  align-self: center;
+  box-sizing: border-box;
+  padding: 10px 18px 10px 14px;
+  background-color: #f3f2ed;
+  border: 2px solid var(--primary-color);
+  box-shadow: 0 0 0 1px var(--primary-color);
+  font-family: 'Pixer', Arial, sans-serif;
+  color: #000;
+  text-align: left;
+}
+
+.tutorial-banner-progress {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.tutorial-progress-step {
+  width: 24px;
+  height: 8px;
+  background-color: #c9c6bd;
+  transition: background-color 200ms steps(2, end);
+}
+
+.tutorial-progress-step.is-done {
+  background-color: var(--primary-color);
+}
+
+.tutorial-hl {
+  color: var(--primary-color);
+}
+
+.tutorial-banner-title {
+  font-size: 18px;
+  color: var(--primary-color);
+  margin: 2px 0 4px;
+}
+
+.tutorial-banner-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.tutorial-banner-par {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--primary-color);
+}
+
+.menu-panel-link {
+  color: var(--primary-color);
+}
+
+@media (max-width: 600px) {
+  .tutorial-banner {
+    order: -2;
+    width: 100%;
+    min-width: 0;
+    align-self: stretch;
+    box-sizing: border-box;
+    padding: 8px 10px;
+  }
+
+  .tutorial-banner-text {
+    font-size: 13px;
+  }
+}
+
+/* first-visit how-to-play popup: "try tutorial" is the main action, "skip" stays quiet */
+.menu-panel--first-visit #menu-panel-close {
+  display: none;
+}
+
+.first-visit-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.game-button--primary {
+  display: inline-block;
+  padding: 10px 24px;
+  font-size: 18px;
+  text-decoration: none;
+  background-color: var(--primary-color);
+  color: #ffffff;
+}
+
+.game-button.game-button--primary:hover:not(:disabled) {
+  background-color: #f3f2ed;
+  color: var(--primary-color);
+}
+
+.first-visit-skip-btn {
+  padding: 4px 8px;
+  font-family: 'Pixer', Arial, sans-serif;
+  font-size: 13px;
+  color: #888;
+  background: none;
+  border: none;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.first-visit-skip-btn:hover {
+  color: var(--primary-color);
+}
+
+/* tutorial: spotlight the orders list with a callout until the player presses ok */
+@keyframes orders-spotlight-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px var(--primary-color),
+      0 0 0 3px #000,
+      0 0 0 6px var(--primary-color);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px var(--primary-color),
+      0 0 0 6px #000,
+      0 0 0 9px var(--primary-color);
+  }
+}
+
+#inventory.hands-spotlight .inventory-slot,
+#orders.orders-spotlight .order-item {
+  border-color: var(--primary-color);
+  animation: orders-spotlight-pulse 1.2s steps(1, end) infinite;
+}
+
+.orders-callout {
+  --arrow-left: 32px;
+  position: absolute;
+  z-index: 900;
+  width: 240px;
+  max-width: calc(100vw - 16px);
+  box-sizing: border-box;
+  padding: 12px 14px;
+  background-color: #f3f2ed;
+  border: 2px solid var(--primary-color);
+  box-shadow: 0 0 0 1px var(--primary-color);
+  font-family: 'Pixer', Arial, sans-serif;
+  color: #000;
+  text-align: left;
+}
+
+/* little pixel arrow pointing at the order */
+.orders-callout::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: calc(var(--arrow-left) - 8px);
+  border: 8px solid transparent;
+  border-top: 0;
+  border-bottom: 10px solid var(--primary-color);
+}
+
+.orders-callout--above::before {
+  top: auto;
+  bottom: -10px;
+  border-bottom: 0;
+  border-top: 10px solid var(--primary-color);
+}
+
+.orders-callout-text {
+  margin: 0 0 10px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.orders-callout-ok {
+  padding: 4px 16px;
+}
+
+/* clicked the board before pressing ok */
+.orders-callout.is-nudging {
+  animation: shake 0.4s steps(1, end);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #inventory.hands-spotlight .inventory-slot,
+  #orders.orders-spotlight .order-item {
+    animation: none;
+    box-shadow:
+      0 0 0 1px var(--primary-color),
+      0 0 0 3px #000,
+      0 0 0 6px var(--primary-color);
+  }
+}
+
+/* tooltip that follows the cursor briefly (tutorial: drawing before pressing ok) */
+.cursor-tooltip {
+  position: fixed;
+  z-index: 950;
+  pointer-events: none;
+  padding: 4px 8px;
+  background-color: var(--primary-color);
+  color: #ffffff;
+  font-family: 'Pixer', Arial, sans-serif;
+  font-size: 14px;
+  white-space: nowrap;
+  box-shadow: 0 0 0 3px #f3f2ed;
+}
+
+/* tutorial: white ring outside run's purple border once a path is drawn */
+@keyframes run-ready-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px var(--primary-color),
+      0 0 0 4px #000,
+      0 0 0 7px #ffffff;
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px var(--primary-color),
+      0 0 0 7px #000,
+      0 0 0 10px #ffffff;
+  }
+}
+
+#run-btn.run-btn--ready {
+  animation: run-ready-pulse 0.8s steps(1, end) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #run-btn.run-btn--ready {
+    animation: none;
+    box-shadow:
+      0 0 0 1px var(--primary-color),
+      0 0 0 4px #000,
+      0 0 0 7px #ffffff;
+  }
+}
+
+/* retry + lesson-complete popups: wrap long text instead of stretching wide */
+#failure-popup .popup-content,
+#tutorial-popup .popup-content {
+  max-width: min(340px, 86vw);
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+#failure-popup .popup-message,
+#tutorial-popup .popup-message {
+  overflow-wrap: break-word;
+  line-height: 1.4;
+}
+
+/* failure popup: who's missing what */
+.failure-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-family: 'Pixer', Arial, sans-serif;
+  font-size: 16px;
+  color: #000;
+}
+
+.failure-details:empty {
+  display: none;
+}
+
+.failure-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.guide-icon {
+  width: 28px;
+  height: 28px;
+  image-rendering: pixelated;
+  vertical-align: middle;
+}
+
+/* tutorial checklist (lesson 1) */
+.tutorial-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.tutorial-checklist li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  color: #888;
+}
+
+.tutorial-checklist li.is-current {
+  color: #000;
+}
+
+.tutorial-checklist li.is-done {
+  color: var(--primary-color);
+  text-decoration: line-through;
+}
+
+.tutorial-check {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border: 3px solid currentColor;
+  box-sizing: border-box;
+}
+
+.tutorial-checklist li.is-done .tutorial-check {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+/* bubbles over the board: "thanks!", "drops [item]" */
+#guide-bubbles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  z-index: 800;
+  pointer-events: none;
+}
+
+.guide-bubble {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-family: 'Pixer', Arial, sans-serif;
+  font-size: 14px;
+  white-space: nowrap;
+  color: #ffffff;
+  background-color: var(--primary-color);
+  box-shadow: 0 0 0 3px #f3f2ed;
+}
+
+.guide-bubble .guide-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.guide-bubble--drop {
+  background-color: #ff4d6d;
+  animation: guide-bob 0.8s steps(1, end) infinite;
+}
+
+.guide-bubble--item {
+  padding: 2px 4px;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px #000;
+  /* sit clear of the station sprite below */
+  transform: translate(-50%, calc(-100% - 12px));
+}
+
+.guide-bubble--item .guide-icon {
+  width: 28px;
+  height: 28px;
+  image-rendering: pixelated;
+}
+
+.guide-bubble--thanks {
+  color: #000;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px var(--primary-color);
+  animation: guide-rise 1.2s steps(3, end) forwards;
+}
+
+@keyframes guide-bob {
+  0%,
+  100% {
+    transform: translate(-50%, -100%);
+  }
+  50% {
+    transform: translate(-50%, calc(-100% - 4px));
+  }
+}
+
+@keyframes guide-rise {
+  from {
+    transform: translate(-50%, -100%);
+  }
+  to {
+    transform: translate(-50%, calc(-100% - 18px));
+  }
+}
+
+/* order card linked to the hovered customer, and served tag */
+#orders .order-item.is-linked {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 1px #ffffff;
+}
+
+.order-served-tag {
+  color: var(--primary-color);
+  margin-left: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-bubble--drop,
+  .guide-bubble--thanks {
+    animation: none;
+  }
+}
+
+
+/* lesson complete: pixel confetti + stars */
+#tutorial-popup .popup-content {
+  position: relative;
+  overflow: visible;
+}
+
+.confetti {
+  position: absolute;
+  top: 0;
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  pointer-events: none;
+  opacity: 0;
+  animation: confetti-pop 1000ms steps(5, end) forwards;
+}
+
+.confetti--star {
+  width: 4px;
+  height: 4px;
+  box-shadow:
+    4px 0 0 currentColor,
+    -4px 0 0 currentColor,
+    0 4px 0 currentColor,
+    0 -4px 0 currentColor;
+}
+
+@keyframes confetti-pop {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+  45% {
+    opacity: 1;
+    transform: translate(var(--dx), var(--dy));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--dx) * 1.25), calc(var(--dy) + 80px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti {
+    display: none;
+  }
+}
+
+/* order item linked to the hovered station (or hovered itself) */
+#orders .drink-item-icon.is-item-linked {
+  outline: 3px solid #ffffff;
+  outline-offset: 1px;
+  animation: item-link-blink 1000ms steps(1, end) infinite;
+}
+
+/* same thickness, steps outward */
+@keyframes item-link-blink {
+  50% {
+    outline-offset: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #orders .drink-item-icon.is-item-linked {
+    animation: none;
+  }
+}
+
+/* lesson complete: room between "try again" and "next lesson" / "play" */
+#tutorial-popup .game-button {
+  margin: 6px 10px;
+}
+
+/* tutorial: board is greyed out until the orders callout is dismissed */
+.game-canvas.is-locked {
+  filter: grayscale(1) brightness(0.55);
+  pointer-events: none; /* fully non-interactive until ok */
+}
+
+/* callout sitting left of the order (over the board), arrow pointing right */
+.orders-callout--left::before {
+  top: calc(var(--arrow-top, 32px) - 8px);
+  bottom: auto;
+  left: auto;
+  right: -10px;
+  border: 8px solid transparent;
+  border-right: 0;
+  border-left: 10px solid var(--primary-color);
+}
+
+/* desktop: side columns line up with the bottom of the board instead of floating mid-height */
+@media (min-width: 601px) {
+  .game-container > .sidebar,
+  .game-container > .tutorial-banner {
+    align-self: flex-end; /* bottom margin is set from main.ts to match the board */
+  }
+}
+
+/* callout to the right of its target (the hands), arrow pointing left */
+.orders-callout--right::before {
+  top: calc(var(--arrow-top, 32px) - 8px);
+  bottom: auto;
+  left: -10px;
+  border: 8px solid transparent;
+  border-left: 0;
+  border-right: 10px solid var(--primary-color);
+}
+
+/* tutorial hands demo: items pop into the slots */
+.hands-demo-pop {
+  animation: hands-pop 300ms steps(3, end);
+}
+
+@keyframes hands-pop {
+  from {
+    transform: scale(0.4) translateY(8px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hands-demo-pop {
+    animation: none;
   }
 }

@@ -34,6 +34,7 @@
         <div id="day-text" class="day-text">level 1</div>
       </div>
       <div class="game-container">
+        <div id="tutorial-banner" class="tutorial-banner" style="display: none"></div>
         <div class="game-section">
           <div class="game-controls">
             <button id="run-btn" class="game-button">run</button>
@@ -201,8 +202,20 @@
     <!--not servbed popup -->
     <div id="failure-popup" class="popup-overlay" style="display: none">
       <div class="popup-content">
-        <p class="popup-message">all customers weren't served :(</p>
+        <div id="failure-details" class="failure-details"></div>
+        <p class="popup-message">not everyone got served.</p>
         <button id="popup-retry-btn" class="game-button">retry?</button>
+      </div>
+    </div>
+
+    <!--tutorial lesson complete popup -->
+    <div id="tutorial-popup" class="popup-overlay" style="display: none">
+      <div class="popup-content">
+        <p id="tutorial-popup-message" class="popup-message">nice!</p>
+        <button id="tutorial-popup-retry-btn" class="game-button" style="display: none">
+          try again
+        </button>
+        <button id="tutorial-popup-next-btn" class="game-button">next lesson</button>
       </div>
     </div>
 

@@ -13,18 +13,38 @@ const itemSprites = ['/img/drink_b_item.png', '/img/food_c_item.png', '/img/drin
   .map((src) => `<span class="tutorial-sprite tutorial-sprite--full" style="width:24px;height:24px"><img src="${src}" style="width:100%;height:100%"></span>`)
   .join('');
 
-const customerSprites = ['/img/customer_a.png', '/img/customer_b.png', '/img/customer_c.png']
-  .map((src) => `<span class="tutorial-sprite" style="width:24px;height:24px"><img src="${src}" style="width:200%;height:200%"></span>`)
-  .join('');
+const standSprite =
+  `<span class="tutorial-sprite" style="width:24px;height:24px">` +
+  `<img src="/img/stand_here.png" style="width:200%;height:100%">` +
+  `</span>`;
 
-const tutorialHTML =
+const howToPlayHTML =
   `<h3 class="menu-panel-title">how to play</h3>` +
-  `<p class="menu-panel-text">- meet glorbo ${glorboSprite}. click and drag to draw a path from glorbo to complete the level.</p>` +
-  `<p class="menu-panel-text">- make sure you serve everyone their order by stepping on the items ${itemSprites} they want before you reach them.</p>` +
-  `<p class="menu-panel-text">- you can only hold 2 items at a time.</p>` +
-  `<p class="menu-panel-text">- press run to see if you served everyone ${customerSprites} their order.</p>` +
-  `<p class="menu-panel-text">- try to find the shortest path possible.</p>` +
-  `<p class="menu-panel-text">- have fun!</p>`;
+  `<p class="menu-panel-text">- drag from glorbo ${glorboSprite} to draw a path</p>` +
+  `<p class="menu-panel-text">- step on items ${itemSprites} to grab them</p>` +
+  `<p class="menu-panel-text">- walk past a sparkle ${standSprite} to serve</p>` +
+  `<p class="menu-panel-text">- hold 2 items max</p>` +
+  `<p class="menu-panel-text">- press run</p>` +
+  `<p class="menu-panel-text">- fewest steps wins!</p>`;
+
+// opened from the menu: rules + a link to the playable tutorial
+const tutorialHTML =
+  howToPlayHTML +
+  `<p class="menu-panel-text"><a class="menu-panel-link" href="/tutorial">try the tutorial</a></p>`;
+
+// first visit: rules + "try tutorial" as the main action, "skip" as a quiet secondary
+const firstVisitHTML =
+  howToPlayHTML +
+  `<div class="first-visit-actions">` +
+  `<a class="game-button game-button--primary" href="/tutorial">try tutorial</a>` +
+  `<button type="button" class="first-visit-skip-btn" data-action="skip-tutorial">skip tutorial</button>` +
+  `</div>`;
+
+const FIRST_VISIT_CLASS = 'menu-panel--first-visit';
+
+export function markTutorialSeen(): void {
+  localStorage.setItem(TUTORIAL_SEEN_KEY, '1');
+}
 
 export function showTutorialIfFirstVisit(): void {
   if (localStorage.getItem(TUTORIAL_SEEN_KEY)) return;
@@ -33,8 +53,15 @@ export function showTutorialIfFirstVisit(): void {
   const menuPanelBody = document.getElementById('menu-panel-body');
   if (!menuPanel || !menuPanelBody) return;
 
-  menuPanelBody.innerHTML = tutorialHTML;
+  menuPanelBody.innerHTML = firstVisitHTML;
+  menuPanel.classList.add(FIRST_VISIT_CLASS);
   menuPanel.style.display = 'flex';
+  menuPanelBody
+    .querySelector('[data-action="skip-tutorial"]')
+    ?.addEventListener('click', () => {
+      menuPanel.style.display = 'none';
+      menuPanel.classList.remove(FIRST_VISIT_CLASS);
+    });
   localStorage.setItem(TUTORIAL_SEEN_KEY, '1');
 }
 
@@ -69,6 +96,7 @@ export function initMenu(): void {
   const showPanel = (html: string) => {
     if (!menuPanel || !menuPanelBody) return;
     menuPanelBody.innerHTML = html;
+    menuPanel.classList.remove(FIRST_VISIT_CLASS);
     menuPanel.style.display = 'flex';
     closeMenu();
   };
@@ -76,6 +104,7 @@ export function initMenu(): void {
   const hidePanel = () => {
     if (!menuPanel) return;
     menuPanel.style.display = 'none';
+    menuPanel.classList.remove(FIRST_VISIT_CLASS);
   };
 
   /* ── hamburger button ── */
