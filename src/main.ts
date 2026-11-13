@@ -25,7 +25,7 @@ import {
   playWompSfx,
   playCustomerServeSfx,
 } from './audio';
-import { initMenu, showTutorialIfFirstVisit, markTutorialSeen } from './menu';
+import { initMenu, showTutorialIfFirstVisit, markTutorialSeen, OPEN_TUTORIAL_EVENT } from './menu';
 import {
   shouldShowStartScreen,
   showStartScreen,
@@ -1957,6 +1957,8 @@ async function init() {
 
   function enterTutorial(index: number) {
     markTutorialSeen();
+    // the builder can't stay open over a lesson (forceExitBuilderMode is hoisted below; only runs on user action)
+    forceExitBuilderMode();
     loadTutorialLesson(index);
     // banner changes the available space, so refit the canvas
     window.dispatchEvent(new Event('resize'));
@@ -1969,11 +1971,7 @@ async function init() {
     window.dispatchEvent(new Event('resize'));
   }
 
-  // any plain click on a link to /tutorial (welcome popup, menu panel)
-  document.addEventListener('click', (e) => {
-    const link = (e.target as Element | null)?.closest?.('a[href="/tutorial"]');
-    if (!link || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    e.preventDefault();
+  function openTutorial() {
     const menuPanel = document.getElementById('menu-panel');
     if (menuPanel) {
       menuPanel.style.display = 'none';
@@ -1981,7 +1979,18 @@ async function init() {
     }
     history.pushState(null, '', '/tutorial?lesson=1');
     enterTutorial(0);
+  }
+
+  // any plain click on a link to /tutorial (welcome popup)
+  document.addEventListener('click', (e) => {
+    const link = (e.target as Element | null)?.closest?.('a[href="/tutorial"]');
+    if (!link || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    openTutorial();
   });
+
+  // hamburger menu "tutorial" item
+  window.addEventListener(OPEN_TUTORIAL_EVENT, openTutorial);
 
   // browser back / forward between the two
   window.addEventListener('popstate', () => {

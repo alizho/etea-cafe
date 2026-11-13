@@ -4,33 +4,13 @@ import type { LevelData } from './levels/level.schema';
 
 const TUTORIAL_SEEN_KEY = 'tutorialSeen';
 
+// main.ts listens for this and swaps the board to lesson 1
+export const OPEN_TUTORIAL_EVENT = 'etea:open-tutorial';
+
 const glorboSprite =
   `<span class="tutorial-sprite" style="width:24px;height:24px">` +
   `<img src="/img/glorbo_sprite_sheet.png" style="width:300%;height:200%">` +
   `</span>`;
-
-const itemSprites = ['/img/drink_b_item.png', '/img/food_c_item.png', '/img/drink_a_item.png']
-  .map((src) => `<span class="tutorial-sprite tutorial-sprite--full" style="width:24px;height:24px"><img src="${src}" style="width:100%;height:100%"></span>`)
-  .join('');
-
-const standSprite =
-  `<span class="tutorial-sprite" style="width:24px;height:24px">` +
-  `<img src="/img/stand_here.png" style="width:200%;height:100%">` +
-  `</span>`;
-
-const howToPlayHTML =
-  `<h3 class="menu-panel-title">how to play</h3>` +
-  `<p class="menu-panel-text">- drag from glorbo ${glorboSprite} to draw a path</p>` +
-  `<p class="menu-panel-text">- step on items ${itemSprites} to grab them</p>` +
-  `<p class="menu-panel-text">- walk past a sparkle ${standSprite} to serve</p>` +
-  `<p class="menu-panel-text">- hold 2 items max</p>` +
-  `<p class="menu-panel-text">- press run</p>` +
-  `<p class="menu-panel-text">- fewest steps wins!</p>`;
-
-// opened from the menu: rules + a link to the playable tutorial
-const tutorialHTML =
-  howToPlayHTML +
-  `<p class="menu-panel-text"><a class="menu-panel-link" href="/tutorial">try the tutorial</a></p>`;
 
 // first visit: a short welcome that pushes the playable tutorial instead of a wall of rules
 const welcomeHTML =
@@ -185,7 +165,8 @@ export function initMenu(): void {
           break;
 
         case 'tutorial':
-          showPanel(tutorialHTML);
+          closeMenu();
+          window.dispatchEvent(new Event(OPEN_TUTORIAL_EVENT));
           break;
 
         case 'about':
