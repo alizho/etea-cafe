@@ -1256,6 +1256,12 @@ a.menu-item {
   animation: orders-spotlight-pulse 1.2s steps(1, end) infinite;
 }
 
+/* ring otherwise paints under .game-info's background */
+#inventory.hands-spotlight {
+  position: relative;
+  z-index: 2;
+}
+
 .orders-callout {
   --arrow-left: 32px;
   position: absolute;

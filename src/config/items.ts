@@ -269,54 +269,37 @@ export interface LoadedSprites {
 
 // load all sprites
 
+const loadImage = (src: string): Promise<HTMLImageElement> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+};
+
+async function loadSpriteRecord<K extends string, C>(
+  configs: Record<K, C>,
+  srcOf: (config: C) => string
+): Promise<Record<K, HTMLImageElement>> {
+  const entries = await Promise.all(
+    (Object.entries(configs) as [K, C][]).map(
+      async ([id, config]) => [id, await loadImage(srcOf(config))] as const
+    )
+  );
+  return Object.fromEntries(entries) as Record<K, HTMLImageElement>;
+}
+
 export async function loadAllSprites(): Promise<LoadedSprites> {
-  const loadImage = (src: string): Promise<HTMLImageElement> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = reject;
-      img.src = src;
-    });
-  };
-
-  // load drinks
-
-  const drinkPromises = Object.entries(DRINKS).map(async ([id, config]) => {
-    const img = await loadImage(config.spritePath);
-    return [id, img] as const;
-  });
-
-  const drinkItemPromises = Object.entries(DRINKS).map(async ([id, config]) => {
-    const img = await loadImage(config.itemSpritePath);
-    return [id, img] as const;
-  });
-
-  const obstaclePromises = Object.entries(OBSTACLES).map(async ([id, config]) => {
-    const img = await loadImage(config.spritePath);
-    return [id, img] as const;
-  });
-
-  const customerPromises = Object.entries(CUSTOMERS).map(async ([id, config]) => {
-    const img = await loadImage(config.spritePath);
-    return [id, img] as const;
-  });
-
-  const drinkPressed = await loadImage('/img/drink_pressed.png');
-
-  const [drinkResults, drinkItemResults, obstacleResults, customerResults] = await Promise.all([
-    Promise.all(drinkPromises),
-    Promise.all(drinkItemPromises),
-    Promise.all(obstaclePromises),
-    Promise.all(customerPromises),
+  const [drinks, drinkItems, obstacles, customers, drinkPressed] = await Promise.all([
+    loadSpriteRecord(DRINKS, (c) => c.spritePath),
+    loadSpriteRecord(DRINKS, (c) => c.itemSpritePath),
+    loadSpriteRecord(OBSTACLES, (c) => c.spritePath),
+    loadSpriteRecord(CUSTOMERS, (c) => c.spritePath),
+    loadImage('/img/drink_pressed.png'),
   ]);
 
-  return {
-    drinks: Object.fromEntries(drinkResults) as Record<DrinkId, HTMLImageElement>,
-    drinkItems: Object.fromEntries(drinkItemResults) as Record<DrinkId, HTMLImageElement>,
-    drinkPressed,
-    obstacles: Object.fromEntries(obstacleResults) as Record<ObstacleId, HTMLImageElement>,
-    customers: Object.fromEntries(customerResults) as Record<CustomerId, HTMLImageElement>,
-  };
+  return { drinks, drinkItems, drinkPressed, obstacles, customers };
 }
 
 export function getDrinkConfig(id: DrinkId): DrinkConfig {
@@ -332,17 +315,9 @@ export function getCustomerConfig(id: CustomerId): CustomerConfig {
 }
 
 export function getDecorWidth(kind: DecorKind): number {
-  if (kind === 'plant_two') return 2;
-  if (kind === 'table_triple') return 3;
-  if (kind === 'window_double_a' || kind === 'window_double_b') return 2;
-  return 1;
+  return kind === 'table_triple' ? 3 : (OBSTACLES[kind]?.width ?? 1);
 }
 
 export function isMultiTileDecor(kind: DecorKind): boolean {
-  return (
-    kind === 'plant_two' ||
-    kind === 'table_triple' ||
-    kind === 'window_double_a' ||
-    kind === 'window_double_b'
-  );
+  return getDecorWidth(kind) > 1;
 }

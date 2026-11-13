@@ -1,16 +1,20 @@
 import { toggleAudio, getAudioEnabled } from './audio';
 import { getLevelHistory, getLevelByDate } from './supabase/api';
 import type { LevelData } from './levels/level.schema';
+import { GLORBO_SHEET, spriteIcon } from './ui/icons';
 
 const TUTORIAL_SEEN_KEY = 'tutorialSeen';
 
 // main.ts listens for this and swaps the board to lesson 1
 export const OPEN_TUTORIAL_EVENT = 'etea:open-tutorial';
 
-const glorboSprite =
-  `<span class="tutorial-sprite" style="width:24px;height:24px">` +
-  `<img src="/img/glorbo_sprite_sheet.png" style="width:300%;height:200%">` +
-  `</span>`;
+const glorboSprite = spriteIcon(GLORBO_SHEET, '300%', '200%');
+
+const panelHTML = (title: string, body: string) =>
+  `<h3 class="menu-panel-title">${title}</h3>` + body;
+
+const panelTextHTML = (title: string, text: string) =>
+  panelHTML(title, `<p class="menu-panel-text">${text}</p>`);
 
 // first visit: a short welcome that pushes the playable tutorial instead of a wall of rules
 const welcomeHTML =
@@ -26,6 +30,11 @@ const firstVisitHTML =
   `</div>`;
 
 const FIRST_VISIT_CLASS = 'menu-panel--first-visit';
+
+function hideMenuPanel(menuPanel: HTMLElement): void {
+  menuPanel.style.display = 'none';
+  menuPanel.classList.remove(FIRST_VISIT_CLASS);
+}
 
 export function hasSeenTutorial(): boolean {
   return !!localStorage.getItem(TUTORIAL_SEEN_KEY);
@@ -47,11 +56,8 @@ export function showTutorialIfFirstVisit(): void {
   menuPanel.style.display = 'flex';
   menuPanelBody
     .querySelector('[data-action="skip-tutorial"]')
-    ?.addEventListener('click', () => {
-      menuPanel.style.display = 'none';
-      menuPanel.classList.remove(FIRST_VISIT_CLASS);
-    });
-  localStorage.setItem(TUTORIAL_SEEN_KEY, '1');
+    ?.addEventListener('click', () => hideMenuPanel(menuPanel));
+  markTutorialSeen();
 }
 
 export function initMenu(): void {
@@ -91,9 +97,7 @@ export function initMenu(): void {
   };
 
   const hidePanel = () => {
-    if (!menuPanel) return;
-    menuPanel.style.display = 'none';
-    menuPanel.classList.remove(FIRST_VISIT_CLASS);
+    if (menuPanel) hideMenuPanel(menuPanel);
   };
 
   /* ── hamburger button ── */
@@ -152,10 +156,7 @@ export function initMenu(): void {
         }
 
         case 'levels':
-          showPanel(
-            `<h3 class="menu-panel-title">levels</h3>` +
-              `<p class="menu-panel-text">loading...</p>`
-          );
+          showPanel(panelTextHTML('levels', 'loading...'));
           void loadLevels();
           break;
 
@@ -171,10 +172,12 @@ export function initMenu(): void {
 
         case 'about':
           showPanel(
-            `<h3 class="menu-panel-title">about</h3>` +
+            panelHTML(
+              'about',
               `<p class="menu-panel-text">this game was made with &lt;3 by <a href="https://jam.ms" target="_blank" rel="noopener" class="menu-link">jamms</a></p>` +
-              `<p class="menu-panel-text">inspired by <a href="https://enclose.horse" target="_blank" rel="noopener" class="menu-link">enclose.horse</a></p>` +
-              `<p class="menu-panel-text"><a href="https://store.steampowered.com/app/3085040/ETea/" target="_blank" rel="noopener" class="menu-link">wishlist etea on steam!</a></p>`
+                `<p class="menu-panel-text">inspired by <a href="https://enclose.horse" target="_blank" rel="noopener" class="menu-link">enclose.horse</a></p>` +
+                `<p class="menu-panel-text"><a href="https://store.steampowered.com/app/3085040/ETea/" target="_blank" rel="noopener" class="menu-link">wishlist etea on steam!</a></p>`
+            )
           );
           break;
       }
@@ -183,19 +186,20 @@ export function initMenu(): void {
 
   /* ── audio toggle (bottom-left + hamburger on mobile) ── */
 
-  const audioToggleBtn = document.getElementById('audio-toggle-btn');
-  const audioToggleImg = audioToggleBtn?.querySelector<HTMLImageElement>('img');
-  const audioToggleMenuBtn = document.getElementById('audio-toggle-menu-btn');
-  const audioToggleMenuImg = audioToggleMenuBtn?.querySelector<HTMLImageElement>('img');
+  const audioToggles = ['audio-toggle-btn', 'audio-toggle-menu-btn'].map((id) => {
+    const btn = document.getElementById(id);
+    return { btn, img: btn?.querySelector<HTMLImageElement>('img') };
+  });
+  const [{ btn: audioToggleBtn, img: audioToggleImg }] = audioToggles;
 
   const setAudioIconBoth = (enabled: boolean) => {
     const base = enabled ? '/img/volume.png' : '/img/volume_mute.png';
     const src = `${base}?v=${enabled ? 'on' : 'off'}`;
     const label = enabled ? 'mute' : 'unmute';
-    if (audioToggleImg) audioToggleImg.src = src;
-    if (audioToggleBtn) audioToggleBtn.setAttribute('aria-label', label);
-    if (audioToggleMenuImg) audioToggleMenuImg.src = src;
-    if (audioToggleMenuBtn) audioToggleMenuBtn.setAttribute('aria-label', label);
+    for (const { btn, img } of audioToggles) {
+      if (img) img.src = src;
+      if (btn) btn.setAttribute('aria-label', label);
+    }
   };
 
   if (audioToggleBtn && audioToggleImg) {
@@ -213,9 +217,7 @@ export function initMenu(): void {
       const levels = await getLevelHistory();
 
       if (!levels || levels.length === 0) {
-        menuPanelBody.innerHTML =
-          `<h3 class="menu-panel-title">levels</h3>` +
-          `<p class="menu-panel-text">no levels found</p>`;
+        menuPanelBody.innerHTML = panelTextHTML('levels', 'no levels found');
         return;
       }
 
@@ -231,8 +233,7 @@ export function initMenu(): void {
         })
         .join('');
 
-      menuPanelBody.innerHTML =
-        `<h3 class="menu-panel-title">levels</h3>` + `<div class="puzzle-list">${listItems}</div>`;
+      menuPanelBody.innerHTML = panelHTML('levels', `<div class="puzzle-list">${listItems}</div>`);
 
       menuPanelBody.querySelectorAll<HTMLElement>('.puzzle-list-item').forEach((btn) => {
         btn.addEventListener('click', () => {
@@ -241,11 +242,7 @@ export function initMenu(): void {
       });
     } catch (err) {
       console.error('Failed to load puzzle history:', err);
-      if (menuPanelBody) {
-        menuPanelBody.innerHTML =
-          `<h3 class="menu-panel-title">levels</h3>` +
-          `<p class="menu-panel-text">couldn't load levels</p>`;
-      }
+      menuPanelBody.innerHTML = panelTextHTML('levels', "couldn't load levels");
     }
   }
 

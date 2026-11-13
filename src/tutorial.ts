@@ -9,6 +9,10 @@ import {
   type Level,
   type Pos,
 } from './engine/types';
+import { CUSTOMERS, DRINKS } from './config/items';
+import { borderWalls, findKeyWithValue, posOfKey } from './util/grid';
+import { setDisplayById } from './ui/dom';
+import { GLORBO_SHEET, spriteIcon } from './ui/icons';
 
 // playable tutorial at /tutorial. each lesson is a tiny level that teaches one rule
 
@@ -38,28 +42,21 @@ export type TutorialLesson = {
   data: LevelData;
 };
 
-function borderWalls(width: number, height: number): { x: number; y: number }[] {
-  const walls: { x: number; y: number }[] = [];
-  for (let x = 0; x < width; x++) {
-    walls.push({ x, y: 0 });
-    walls.push({ x, y: height - 1 });
-  }
-  for (let y = 1; y < height - 1; y++) {
-    walls.push({ x: 0, y });
-    walls.push({ x: width - 1, y });
-  }
-  return walls;
-}
-
 // orders only list the customers present in the lesson; the engine treats missing ones as served
-type LessonLevel = Omit<LevelData, 'walls' | 'orders'> & {
+type LessonLevel = Omit<LevelData, 'walls' | 'orders' | 'width' | 'height'> & {
+  width?: number;
+  height?: number;
   orders: Partial<LevelData['orders']>;
 };
 
-function lessonLevel(level: LessonLevel): LevelData {
+// lessons default to an 8x6 room
+function lessonLevel({ id, width = 8, height = 6, ...level }: LessonLevel): LevelData {
   return {
+    id,
+    width,
+    height,
     ...level,
-    walls: borderWalls(level.width, level.height),
+    walls: borderWalls(width, height),
     orders: level.orders as LevelData['orders'],
   };
 }
@@ -67,55 +64,41 @@ function lessonLevel(level: LessonLevel): LevelData {
 // ── inline icons ──
 
 // glorbo's first frame from the sprite sheet, same crop the how-to-play popup uses
-const GLORBO_ICON =
-  `<span class="tutorial-sprite" style="width:24px;height:24px">` +
-  `<img src="/img/glorbo_sprite_sheet.png" alt="glorbo" style="width:300%;height:200%">` +
-  `</span>`;
+const GLORBO_ICON = spriteIcon(GLORBO_SHEET, '300%', '200%', 'glorbo');
 
 // a station as it looks on the board
-const stationIcon = (src: string, alt: string) =>
-  `<span class="tutorial-sprite tutorial-sprite--full" style="width:24px;height:24px">` +
-  `<img src="${src}" alt="${alt}" style="width:100%;height:100%">` +
-  `</span>`;
+const stationIcon = (drink: DrinkId, alt: string) =>
+  spriteIcon(DRINKS[drink].spritePath, '100%', '100%', alt, true);
 
 const STATION_ICONS: Record<DrinkId, string> = {
-  D1: stationIcon('/img/drink_a.png', 'purple tea'),
-  D2: stationIcon('/img/drink_b.png', 'orange drink'),
-  F1: stationIcon('/img/food_a.png', 'food'),
-  F2: stationIcon('/img/food_b.png', 'food'),
-  F3: stationIcon('/img/food_c.png', 'food'),
+  D1: stationIcon('D1', 'purple tea'),
+  D2: stationIcon('D2', 'orange drink'),
+  F1: stationIcon('F1', 'food'),
+  F2: stationIcon('F2', 'food'),
+  F3: stationIcon('F3', 'food'),
 };
 
 // customer's waiting frame (top-left of their 2x2 sheet)
 const customerIcon = (id: CustomerId) =>
-  `<span class="tutorial-sprite" style="width:24px;height:24px">` +
-  `<img src="/img/customer_${id.toLowerCase()}.png" alt="customer" style="width:200%;height:200%">` +
-  `</span>`;
+  spriteIcon(CUSTOMERS[id].spritePath, '200%', '200%', 'customer');
 
 // the sparkly stand-here tile (first frame of its 2-frame sheet)
-const STAND_SPOT_ICON =
-  `<span class="tutorial-sprite" style="width:24px;height:24px">` +
-  `<img src="/img/stand_here.png" alt="sparkly spot" style="width:200%;height:100%">` +
-  `</span>`;
+const STAND_SPOT_ICON = spriteIcon('/img/stand_here.png', '200%', '100%', 'sparkly spot');
 
 const hl = (t: string) => `<span class='tutorial-hl'>${t}</span>`;
 
 // ── checklist building blocks ──
 
-const posOfKey = (key: string): Pos => {
-  const [x, y] = key.split(',').map(Number);
-  return { x, y };
-};
+const tileWith =
+  <V>(pick: (level: Level) => Record<string, V>, value: V) =>
+  (level: Level): Pos | null => {
+    const key = findKeyWithValue(pick(level), value);
+    return key ? posOfKey(key) : null;
+  };
 
-const stationTile = (drink: DrinkId) => (level: Level) => {
-  const key = Object.keys(level.drinkStations).find((k) => level.drinkStations[k] === drink);
-  return key ? posOfKey(key) : null;
-};
+const stationTile = (drink: DrinkId) => tileWith((l) => l.drinkStations, drink);
 
-const spotTile = (id: CustomerId) => (level: Level) => {
-  const key = Object.keys(level.standHere).find((k) => level.standHere[k] === id);
-  return key ? posOfKey(key) : null;
-};
+const spotTile = (id: CustomerId) => tileWith((l) => l.standHere, id);
 
 const grab = (drink: DrinkId): ChecklistItem => ({
   label: `grab ${STATION_ICONS[drink]}`,
@@ -128,6 +111,13 @@ const serve = (id: CustomerId): ChecklistItem => ({
   done: (c) => c.served(id),
   tile: spotTile(id),
 });
+
+const endOnSparkle = (id: CustomerId): ChecklistItem => ({
+  ...serve(id),
+  label: `end on the sparkle ${STAND_SPOT_ICON}`,
+});
+
+const serveWithoutHint = (id: CustomerId): ChecklistItem => ({ ...serve(id), tile: undefined });
 
 const pressRun: ChecklistItem = {
   label: `press ${hl('run')}`,
@@ -145,7 +135,7 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
         done: (c) => c.state.path.length > 1,
       },
       { ...grab('D1'), label: `walk over the tea ${STATION_ICONS.D1}` },
-      { ...serve('A'), label: `end on the sparkle ${STAND_SPOT_ICON}` },
+      endOnSparkle('A'),
       pressRun,
     ],
     failText: 'grab the tea, then end on the sparkle.',
@@ -154,8 +144,6 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
     ghostPath: true,
     data: lessonLevel({
       id: 'tutorial-1',
-      width: 8,
-      height: 6,
       start: { x: 1, y: 2 },
       obstacles: [{ x: 3, y: 4, type: 'plant_a' }],
       drinkStations: [{ x: 3, y: 2, drink: 'D1' }],
@@ -166,17 +154,10 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
   {
     title: 'two items',
     note: `this order has ${hl('2 items')}.`,
-    checklist: [
-      grab('D2'),
-      grab('F1'),
-      { ...serve('A'), label: `end on the sparkle ${STAND_SPOT_ICON}` },
-      pressRun,
-    ],
+    checklist: [grab('D2'), grab('F1'), endOnSparkle('A'), pressRun],
     failText: 'grab both items first.',
     data: lessonLevel({
       id: 'tutorial-2',
-      width: 8,
-      height: 6,
       start: { x: 1, y: 1 },
       obstacles: [{ x: 4, y: 2, type: 'plant_b' }],
       drinkStations: [
@@ -190,17 +171,10 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
   {
     title: 'hands full',
     note: `you can hold ${hl('2 things')}. a 3rd drops the ${hl('oldest')}.`,
-    checklist: [
-      grab('F1'),
-      grab('D1'),
-      { ...serve('A'), label: `end on the sparkle ${STAND_SPOT_ICON}` },
-      pressRun,
-    ],
+    checklist: [grab('F1'), grab('D1'), endOnSparkle('A'), pressRun],
     failText: 'a 3rd item drops the oldest.',
     data: lessonLevel({
       id: 'tutorial-3',
-      width: 8,
-      height: 6,
       start: { x: 1, y: 2 },
       obstacles: [{ x: 3, y: 4, type: 'stool' }],
       drinkStations: [
@@ -219,8 +193,6 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
     failText: 'walk through both sparkles.',
     data: lessonLevel({
       id: 'tutorial-4',
-      width: 8,
-      height: 6,
       start: { x: 1, y: 2 },
       obstacles: [{ x: 3, y: 1, type: 'plant_a' }],
       drinkStations: [
@@ -238,12 +210,7 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
     title: 'fewest steps',
     note: `use as ${hl('few steps')} as you can.`,
     // no tile hints here: this one is the real test
-    checklist: [
-      { ...serve('A'), tile: undefined },
-      { ...serve('B'), tile: undefined },
-      { ...serve('C'), tile: undefined },
-      pressRun,
-    ],
+    checklist: [serveWithoutHint('A'), serveWithoutHint('B'), serveWithoutHint('C'), pressRun],
     failText: '2 items max. walk past sparkles to serve.',
     showPar: true,
     data: lessonLevel({
@@ -358,8 +325,7 @@ export function setChecklistProgress(status: ChecklistStatus): void {
 }
 
 export function hideTutorialBanner(): void {
-  const banner = document.getElementById('tutorial-banner');
-  if (banner) banner.style.display = 'none';
+  setDisplayById('tutorial-banner', 'none');
 }
 
 const DEFAULT_FAILURE_MESSAGE = 'not everyone got served.';
@@ -400,14 +366,12 @@ export function showTutorialSuccess(opts: TutorialSuccessOptions): void {
   nextBtn.textContent = isLast ? 'play' : 'next lesson';
   retryBtn.style.display = lesson?.showPar ? '' : 'none';
 
-  nextBtn.onclick = () => {
+  const closeThen = (fn: () => void) => () => {
     hideTutorialSuccess();
-    opts.onNext();
+    fn();
   };
-  retryBtn.onclick = () => {
-    hideTutorialSuccess();
-    opts.onRetry();
-  };
+  nextBtn.onclick = closeThen(opts.onNext);
+  retryBtn.onclick = closeThen(opts.onRetry);
 
   popup.style.display = 'flex';
   const content = popup.querySelector<HTMLElement>('.popup-content');
@@ -442,8 +406,7 @@ function burstConfetti(container: HTMLElement): void {
 }
 
 export function hideTutorialSuccess(): void {
-  const popup = document.getElementById('tutorial-popup');
-  if (popup) popup.style.display = 'none';
+  setDisplayById('tutorial-popup', 'none');
 }
 
 // callout that points at the orders list until the player presses ok
@@ -473,11 +436,13 @@ const SPOTLIGHT: Record<CalloutPage['target'], { id: string; cls: string }> = {
 };
 
 // stepped loop: grab tea, grab food, hand off the tea, hand off the food
+const TEA = DRINKS.D1.itemSpritePath;
+const FOOD = DRINKS.F1.itemSpritePath;
 const HANDS_DEMO_FRAMES: (string | null)[][] = [
   [null, null],
-  ['/img/drink_a_item.png', null],
-  ['/img/drink_a_item.png', '/img/food_a_item.png'],
-  [null, '/img/food_a_item.png'],
+  [TEA, null],
+  [TEA, FOOD],
+  [null, FOOD],
   [null, null],
 ];
 const HANDS_DEMO_STEP_MS = 700;
@@ -662,7 +627,7 @@ function onCursorTooltipMove(e: MouseEvent): void {
   moveCursorTooltip(e.clientX, e.clientY);
 }
 
-export function showCursorTooltip(text: string, clientX: number, clientY: number): void {
+function setCursorTooltipText(text: string, clientX: number, clientY: number): void {
   if (!cursorTooltip) {
     cursorTooltip = document.createElement('div');
     cursorTooltip.className = 'cursor-tooltip';
@@ -672,6 +637,10 @@ export function showCursorTooltip(text: string, clientX: number, clientY: number
   }
   cursorTooltip.textContent = text;
   moveCursorTooltip(clientX, clientY);
+}
+
+export function showCursorTooltip(text: string, clientX: number, clientY: number): void {
+  setCursorTooltipText(text, clientX, clientY);
 
   if (cursorTooltipTimer !== null) window.clearTimeout(cursorTooltipTimer);
   cursorTooltipTimer = window.setTimeout(hideCursorTooltip, 1500);
@@ -706,13 +675,5 @@ export function setHoverLabel(text: string | null, clientX: number, clientY: num
     hideCursorTooltip();
     return;
   }
-  if (!cursorTooltip) {
-    cursorTooltip = document.createElement('div');
-    cursorTooltip.className = 'cursor-tooltip';
-    cursorTooltip.setAttribute('role', 'status');
-    document.body.appendChild(cursorTooltip);
-    window.addEventListener('mousemove', onCursorTooltipMove);
-  }
-  cursorTooltip.textContent = text;
-  moveCursorTooltip(clientX, clientY);
+  setCursorTooltipText(text, clientX, clientY);
 }

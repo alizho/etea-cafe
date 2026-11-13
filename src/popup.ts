@@ -1,5 +1,19 @@
 import { getAllScoresForLevel } from './supabase/api';
 import type { Pos } from './engine/types';
+import { copyToClipboard, replaceWithClone, setDisplayById, showTextOrHide } from './ui/dom';
+
+const graphStatusHTML = (text: string) =>
+  `<div style='color: #76428a; font-family: Pixer;'>${text}</div>`;
+
+function minMax(values: number[]): { min: number; max: number } {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const v of values) {
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  return { min, max };
+}
 
 function createScoreGraph(allScores: number[], userScore: number, container: HTMLElement): void {
   container.innerHTML = '';
@@ -56,7 +70,8 @@ function createScoreGraph(allScores: number[], userScore: number, container: HTM
   }
 
   // calculate bar width - 3px default, scale down if many points or close together
-  const positions = Array.from(scorePositions.values()).sort((a, b) => a - b);
+  // uniqueScores ascend, so positions already do too
+  const positions = Array.from(scorePositions.values());
   let minSpacing = graphWidth;
 
   for (let i = 1; i < positions.length; i++) {
@@ -70,6 +85,8 @@ function createScoreGraph(allScores: number[], userScore: number, container: HTM
 
   // hover functionality
   let hoveredScore: number | null = null;
+  const barBottom = canvas.height - 30;
+  const barTop = barBottom - graphHeight;
 
   const redraw = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -89,8 +106,7 @@ function createScoreGraph(allScores: number[], userScore: number, container: HTM
     });
 
     // redraw user score indicator if needed
-    const userScoreIndex = uniqueScores.indexOf(userScore);
-    if (userScoreIndex === -1) {
+    if (!scoreCounts.has(userScore)) {
       const userX = horizontalPadding + ((userScore - minScore) / range) * graphWidth;
       ctx.strokeStyle = '#76428a';
       ctx.lineWidth = 2;
@@ -130,9 +146,6 @@ function createScoreGraph(allScores: number[], userScore: number, container: HTM
     let found = false;
     uniqueScores.forEach((score) => {
       const x = scorePositions.get(score)! - barWidth / 2;
-      const barTop = canvas.height - 30 - graphHeight;
-      const barBottom = canvas.height - 30;
-
       if (mouseX >= x && mouseX <= x + barWidth && mouseY >= barTop && mouseY <= barBottom) {
         hoveredScore = score;
         found = true;
@@ -196,8 +209,7 @@ function getScoreMessage(
 
   if (allScores.length === 0) return null;
 
-  const sortedScores = [...allScores].sort((a, b) => a - b);
-  const maxScore = sortedScores[sortedScores.length - 1];
+  const { min: minScore, max: maxScore } = minMax(allScores);
 
   // if we know the optimal, compare against it
   if (optimalMoves !== undefined) {
@@ -209,7 +221,6 @@ function getScoreMessage(
     }
   } else {
     // fallback: compare against other players (but never say "optimal path!" without BFS proof)
-    const minScore = sortedScores[0];
     if (userScore === minScore + 1) {
       return 'almost perfect!';
     }
@@ -286,9 +297,7 @@ export function showSuccessPopup(
   if (viewOptimalBtn) {
     if (optimalMoves !== undefined && score !== optimalMoves && onViewOptimal) {
       viewOptimalBtn.style.display = 'inline-block';
-      const freshBtn = viewOptimalBtn.cloneNode(true) as HTMLElement;
-      viewOptimalBtn.parentNode?.replaceChild(freshBtn, viewOptimalBtn);
-      freshBtn.addEventListener('click', () => {
+      replaceWithClone(viewOptimalBtn).addEventListener('click', () => {
         hideSuccessPopup();
         onViewOptimal();
       });
@@ -305,39 +314,19 @@ export function showSuccessPopup(
       shareBtn.style.display = 'none';
     } else {
       shareBtn.style.display = 'inline-block';
-      const freshShareBtn = shareBtn.cloneNode(true) as HTMLElement;
-      shareBtn.parentNode?.replaceChild(freshShareBtn, shareBtn);
+      const freshShareBtn = replaceWithClone(shareBtn);
       freshShareBtn.textContent = 'share';
 
       freshShareBtn.addEventListener('click', async () => {
         const levelForShare = hideGraph ? null : dayNumber;
         const shareText = generateShareText(score, levelForShare, optimalMoves);
         try {
-          if (navigator.clipboard && window.isSecureContext) {
-            await navigator.clipboard.writeText(shareText);
+          if (await copyToClipboard(shareText)) {
             const originalText = freshShareBtn.textContent;
             freshShareBtn.textContent = 'copied!';
             setTimeout(() => {
               freshShareBtn.textContent = originalText;
             }, 2000);
-          } else {
-            const ta = document.createElement('textarea');
-            ta.value = shareText;
-            ta.style.position = 'fixed';
-            ta.style.left = '-9999px';
-            ta.style.top = '0';
-            document.body.appendChild(ta);
-            ta.focus();
-            ta.select();
-            const ok = document.execCommand('copy');
-            document.body.removeChild(ta);
-            if (ok) {
-              const originalText = freshShareBtn.textContent;
-              freshShareBtn.textContent = 'copied!';
-              setTimeout(() => {
-                freshShareBtn.textContent = originalText;
-              }, 2000);
-            }
           }
         } catch (err) {
           console.error('Failed to copy:', err);
@@ -357,15 +346,7 @@ export function showSuccessPopup(
 
   if (hideGraph || !levelId) {
     // no graph to show — just determine message from BFS optimal alone
-    const message = getScoreMessage(score, [], optimalMoves);
-    if (messageEl && messageEl instanceof HTMLElement) {
-      if (message) {
-        messageEl.textContent = message;
-        messageEl.style.display = 'block';
-      } else {
-        messageEl.style.display = 'none';
-      }
-    }
+    showTextOrHide(messageEl, getScoreMessage(score, [], optimalMoves));
     return;
   }
 
@@ -378,23 +359,14 @@ export function showSuccessPopup(
   }
 
   if (graphContainer) {
-    graphContainer.innerHTML =
-      "<div style='color: #76428a; font-family: Pixer;'>loading graph...</div>";
+    graphContainer.innerHTML = graphStatusHTML('loading graph...');
   }
 
   getAllScoresForLevel(levelId)
     .then((allScores) => {
       try {
         // determine and show message based on score vs BFS optimal and other players
-        const message = getScoreMessage(score, allScores, optimalMoves);
-        if (messageEl && messageEl instanceof HTMLElement) {
-          if (message) {
-            messageEl.textContent = message;
-            messageEl.style.display = 'block';
-          } else {
-            messageEl.style.display = 'none';
-          }
-        }
+        showTextOrHide(messageEl, getScoreMessage(score, allScores, optimalMoves));
 
         if (graphContainer && graphContainer instanceof HTMLElement) {
           createScoreGraph(allScores, score, graphContainer);
@@ -402,8 +374,7 @@ export function showSuccessPopup(
       } catch (error) {
         console.error('Error processing scores:', error);
         if (graphContainer) {
-          graphContainer.innerHTML =
-            "<div style='color: #76428a; font-family: Pixer;'>Error processing data</div>";
+          graphContainer.innerHTML = graphStatusHTML('Error processing data');
         }
       }
     })
@@ -413,15 +384,11 @@ export function showSuccessPopup(
         percentileEl.textContent = 'N/A';
       }
       if (graphContainer) {
-        graphContainer.innerHTML =
-          "<div style='color: #76428a; font-family: Pixer;'>Error loading graph</div>";
+        graphContainer.innerHTML = graphStatusHTML('Error loading graph');
       }
     });
 }
 
 export function hideSuccessPopup(): void {
-  const popup = document.getElementById('success-popup');
-  if (popup) {
-    popup.style.display = 'none';
-  }
+  setDisplayById('success-popup', 'none');
 }

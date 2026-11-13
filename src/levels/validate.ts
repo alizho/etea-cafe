@@ -1,11 +1,10 @@
-import type { CustomerId } from '../engine/types';
+import { keyOf, type CustomerId } from '../engine/types';
 import type { ObstacleId } from '../config/items';
 import { ALL_CUSTOMER_IDS, ALL_DRINK_IDS, isWallDecorType } from '../config/items';
 import type { LevelData } from './level.schema';
+import { standTileOf } from './loader';
 
 // builder mode checks b4 solver script lol
-
-const k = (x: number, y: number) => `${x},${y}`;
 
 export type LevelValidation = { ok: true } | { ok: false; errors: string[] };
 
@@ -23,15 +22,15 @@ export function validateLevelData(data: LevelData): LevelValidation {
   const wallSet = new Set<string>();
   for (const w of data.walls) {
     if (!inBounds(w.x, w.y)) errors.push(`wall out of bounds at (${w.x},${w.y})`);
-    wallSet.add(k(w.x, w.y));
+    wallSet.add(keyOf(w));
   }
 
-  const startKey = k(data.start.x, data.start.y);
+  const startKey = keyOf(data.start);
 
   const obstacleSet = new Set<string>();
   for (const o of data.obstacles) {
     if (!inBounds(o.x, o.y)) errors.push(`obstacle out of bounds at (${o.x},${o.y})`);
-    const key = k(o.x, o.y);
+    const key = keyOf(o);
     if (isWallDecorType(o.type as ObstacleId)) {
       const isTopBorder = o.y === 0;
       const isNonCorner = o.x > 0 && o.x < data.width - 1;
@@ -52,7 +51,7 @@ export function validateLevelData(data: LevelData): LevelValidation {
   const stationsSet = new Set<string>();
   for (const s of data.drinkStations) {
     if (!inBounds(s.x, s.y)) errors.push(`drink station out of bounds at (${s.x},${s.y})`);
-    const key = k(s.x, s.y);
+    const key = keyOf(s);
     // stations can't overlap walls because the player can never step
     if (wallSet.has(key)) errors.push(`drink station overlaps wall at (${s.x},${s.y})`);
     if (obstacleSet.has(key)) errors.push(`drink station overlaps obstacle at (${s.x},${s.y})`);
@@ -64,7 +63,7 @@ export function validateLevelData(data: LevelData): LevelValidation {
 
   for (const c of data.customers) {
     if (!inBounds(c.x, c.y)) errors.push(`customer ${c.id} out of bounds at (${c.x},${c.y})`);
-    const key = k(c.x, c.y);
+    const key = keyOf(c);
     if (wallSet.has(key)) errors.push(`customer ${c.id} overlaps wall at (${c.x},${c.y})`);
     if (obstacleSet.has(key)) errors.push(`customer ${c.id} overlaps obstacle at (${c.x},${c.y})`);
     if (stationsSet.has(key))
@@ -75,14 +74,9 @@ export function validateLevelData(data: LevelData): LevelValidation {
     if (customerPosById[c.id]) errors.push(`customer ${c.id} appears multiple times`);
     customerPosById[c.id] = key;
 
-    let standX = c.x;
-    let standY = c.y;
-    if (c.standHere === 'left') standX = c.x - 1;
-    else if (c.standHere === 'right') standX = c.x + 1;
-    else if (c.standHere === 'up') standY = c.y - 1;
-    else if (c.standHere === 'down') standY = c.y + 1;
-    if (!inBounds(standX, standY)) errors.push(`customer ${c.id} stand tile is out of bounds`);
-    const standKey = k(standX, standY);
+    const stand = standTileOf(c);
+    if (!inBounds(stand.x, stand.y)) errors.push(`customer ${c.id} stand tile is out of bounds`);
+    const standKey = keyOf(stand);
     if (wallSet.has(standKey)) errors.push(`customer ${c.id} stand tile overlaps wall`);
     if (obstacleSet.has(standKey)) errors.push(`customer ${c.id} stand tile overlaps obstacle`);
     if (customerSet.has(standKey)) errors.push(`customer ${c.id} stand tile overlaps a customer`);
@@ -94,9 +88,7 @@ export function validateLevelData(data: LevelData): LevelValidation {
 
   if (wallSet.has(startKey)) errors.push('start overlaps a wall');
   if (customerSet.has(startKey)) errors.push('start overlaps a customer');
-  if (stationsSet.has(startKey)) {
-    // start can overlap stations
-  }
+  // start can overlap stations
 
   for (const id of ALL_CUSTOMER_IDS) {
     const order = data.orders[id];

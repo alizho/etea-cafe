@@ -1,5 +1,23 @@
 import { supabase } from './client';
 
+// .single() reports "no rows" as error PGRST116; treat that as a null result
+const NO_ROWS = 'PGRST116';
+
+function dataOrNullIfNoRows<T>(res: { data: T; error: { code: string } | null }): T {
+  if (res.error && res.error.code !== NO_ROWS) throw res.error;
+  return res.data;
+}
+
+function dataOrThrow<T>(res: { data: T; error: unknown }): T {
+  if (res.error) throw res.error;
+  return res.data;
+}
+
+const successfulRunMoves = (levelId: string) =>
+  supabase.from('runs').select('moves').eq('level_id', levelId).eq('success', true);
+
+const bestScoreKey = (levelId: string) => `bestScore_${levelId}`;
+
 // returns today's date as YYYY-MM-DD in Eastern Time (America/New_York)
 // handles EST/EDT daylight saving transitions automatically
 export function getTodayDateEST(): string {
@@ -16,15 +34,9 @@ export async function getLevelByDate(date: string) {
   const today = getTodayDateEST();
   if (date > today) return null; // never expose future levels
 
-  const { data, error } = await supabase
-    .from('levels')
-    .select('id, json')
-    .eq('date', date)
-    .single();
-
-  if (error && error.code !== 'PGRST116') throw error;
-  // PGRST116 = no rows
-  return data;
+  return dataOrNullIfNoRows(
+    await supabase.from('levels').select('id, json').eq('date', date).single()
+  );
 }
 
 export async function getTodayLevel() {
@@ -33,13 +45,9 @@ export async function getTodayLevel() {
 }
 
 export async function getLevelHistory(limit: number = 1000) {
-  const { data, error } = await supabase
-    .from('levels')
-    .select('id, date')
-    .order('date', { ascending: true })
-    .limit(limit);
-
-  if (error) throw error;
+  const data = dataOrThrow(
+    await supabase.from('levels').select('id, date').order('date', { ascending: true }).limit(limit)
+  );
   const today = getTodayDateEST();
   return (data ?? []).filter((row) => row.date <= today);
 }
@@ -54,29 +62,26 @@ export function getPlayerId(): string {
 
 // get best score from localStorage for a specific level
 export function getBestScoreFromStorage(levelId: string): number | null {
-  const key = `bestScore_${levelId}`;
-  const stored = localStorage.getItem(key);
+  const stored = localStorage.getItem(bestScoreKey(levelId));
   return stored ? parseInt(stored, 10) : null;
 }
 
 // set best score in localStorage for a specific level
 export function setBestScoreInStorage(levelId: string, moves: number): void {
-  const key = `bestScore_${levelId}`;
-  localStorage.setItem(key, moves.toString());
+  localStorage.setItem(bestScoreKey(levelId), moves.toString());
 }
 
 // check if player already has a run in the database for this level
 export async function hasRunInDatabase(levelId: string, playerId: string): Promise<boolean> {
-  const { data, error } = await supabase
-    .from('runs')
-    .select('id')
-    .eq('level_id', levelId)
-    .eq('player_anon_id', playerId)
-    .limit(1)
-    .single();
-
-  if (error && error.code !== 'PGRST116') throw error;
-  // PGRST116 = no rows
+  const data = dataOrNullIfNoRows(
+    await supabase
+      .from('runs')
+      .select('id')
+      .eq('level_id', levelId)
+      .eq('player_anon_id', playerId)
+      .limit(1)
+      .single()
+  );
   return data !== null;
 }
 
@@ -86,38 +91,31 @@ export async function submitRun(
   moves: number,
   success: boolean
 ) {
-  const { data, error } = await supabase
-    .from('runs')
-    .insert({
-      level_id: levelId,
-      player_anon_id: playerId,
-      moves,
-      success,
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  return dataOrThrow(
+    await supabase
+      .from('runs')
+      .insert({
+        level_id: levelId,
+        player_anon_id: playerId,
+        moves,
+        success,
+      })
+      .select()
+      .single()
+  );
 }
 
 export async function getTopScoreForLevel(
   levelId: string,
   playerId: string
 ): Promise<{ moves: number } | null> {
-  const { data, error } = await supabase
-    .from('runs')
-    .select('moves')
-    .eq('level_id', levelId)
-    .eq('player_anon_id', playerId)
-    .eq('success', true)
-    .order('moves', { ascending: true })
-    .limit(1)
-    .single();
-
-  if (error && error.code !== 'PGRST116') throw error;
-  // PGRST116 = no rows
-  return data;
+  return dataOrNullIfNoRows(
+    await successfulRunMoves(levelId)
+      .eq('player_anon_id', playerId)
+      .order('moves', { ascending: true })
+      .limit(1)
+      .single()
+  );
 }
 
 // calculate percentile for a given score
@@ -131,13 +129,6 @@ export function calculatePercentile(score: number, allScores: number[]): number 
 
 // get all scores for a level to calculate percentile
 export async function getAllScoresForLevel(levelId: string): Promise<number[]> {
-  const { data, error } = await supabase
-    .from('runs')
-    .select('moves')
-    .eq('level_id', levelId)
-    .eq('success', true)
-    .order('moves', { ascending: true });
-
-  if (error) throw error;
+  const data = dataOrThrow(await successfulRunMoves(levelId).order('moves', { ascending: true }));
   return data?.map((r) => r.moves) || [];
 }

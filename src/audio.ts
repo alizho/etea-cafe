@@ -61,52 +61,100 @@ async function loadMusicBuffer(ctx: AudioContext): Promise<AudioBuffer> {
   return musicBufferPromise;
 }
 
-const tileSfx = new Audio(WET_A);
-tileSfx.preload = 'auto';
-tileSfx.volume = SFX_VOLUME * PATH_TILE_SFX_VOLUME;
+function preloadSfx(src: string, volume: number): HTMLAudioElement {
+  const audio = new Audio(src);
+  audio.preload = 'auto';
+  audio.volume = volume;
+  return audio;
+}
 
-const stepSfx = new Audio(STEP_SFX);
-stepSfx.preload = 'auto';
-stepSfx.volume = SFX_VOLUME * STEP_VOLUME_SCALE;
+const niceSfx = preloadSfx(NICE_SFX, SFX_VOLUME);
+const wompSfx = preloadSfx(WOMP_SFX, SFX_VOLUME);
 
-const niceSfx = new Audio(NICE_SFX);
-niceSfx.preload = 'auto';
-niceSfx.volume = SFX_VOLUME;
+const CUSTOMER_SERVE_SFX: Record<CustomerId, HTMLAudioElement> = {
+  A: preloadSfx(MELODY_SFX, SFX_VOLUME),
+  B: preloadSfx(JET_SFX, SFX_VOLUME),
+  C: preloadSfx(CHER_SFX, SFX_VOLUME),
+};
 
-const wompSfx = new Audio(WOMP_SFX);
-wompSfx.preload = 'auto';
-wompSfx.volume = SFX_VOLUME;
+// rapid-fire sfx: rate-limited, capped polyphony, slight random volume and pitch
+type ThrottledSfx = {
+  base: HTMLAudioElement;
+  volume: number;
+  volumeJitter: [min: number, span: number];
+  rateJitter: [min: number, span: number];
+  minIntervalMs: number;
+  maxPolyphony: number;
+  lastAtMs: number;
+  active: Set<HTMLAudioElement>;
+};
 
-const jetSfx = new Audio(JET_SFX);
-jetSfx.preload = 'auto';
-jetSfx.volume = SFX_VOLUME;
+function throttledSfx(
+  src: string,
+  volume: number,
+  opts: Pick<ThrottledSfx, 'volumeJitter' | 'rateJitter' | 'minIntervalMs' | 'maxPolyphony'>
+): ThrottledSfx {
+  return { base: preloadSfx(src, volume), volume, ...opts, lastAtMs: 0, active: new Set() };
+}
 
-const cherSfx = new Audio(CHER_SFX);
-cherSfx.preload = 'auto';
-cherSfx.volume = SFX_VOLUME;
+const tileSfx = throttledSfx(WET_A, SFX_VOLUME * PATH_TILE_SFX_VOLUME, {
+  volumeJitter: [0.9, 0.2],
+  rateJitter: [0.98, 0.04],
+  minIntervalMs: 35,
+  maxPolyphony: 6,
+});
 
-const melodySfx = new Audio(MELODY_SFX);
-melodySfx.preload = 'auto';
-melodySfx.volume = SFX_VOLUME;
+const stepSfx = throttledSfx(STEP_SFX, SFX_VOLUME * STEP_VOLUME_SCALE, {
+  volumeJitter: [0.5, 0.5],
+  rateJitter: [0.9, 0.2],
+  minIntervalMs: 50,
+  maxPolyphony: 4,
+});
 
-const PATH_TILE_SFX_MIN_INTERVAL_MS = 35;
-const STEP_SFX_MIN_INTERVAL_MS = 50;
-const PATH_TILE_SFX_MAX_POLYPHONY = 6;
-const STEP_SFX_MAX_POLYPHONY = 4;
+function playThrottled(t: ThrottledSfx): void {
+  if (!hasStarted || !audioEnabled) return;
 
-let lastPathTileSfxAtMs = 0;
-let lastStepSfxAtMs = 0;
-const activePathTileSfx = new Set<HTMLAudioElement>();
-const activeStepSfx = new Set<HTMLAudioElement>();
+  const nowMs = performance.now();
+  if (nowMs - t.lastAtMs < t.minIntervalMs) return;
+  if (t.active.size >= t.maxPolyphony) return;
+  t.lastAtMs = nowMs;
+
+  // randomize pitch and volume
+  const sfx = t.base.cloneNode(true) as HTMLAudioElement;
+  sfx.volume = Math.min(1, t.volume * (t.volumeJitter[0] + Math.random() * t.volumeJitter[1]));
+  sfx.playbackRate = t.rateJitter[0] + Math.random() * t.rateJitter[1];
+
+  t.active.add(sfx);
+  const cleanup = () => {
+    t.active.delete(sfx);
+  };
+  sfx.addEventListener('ended', cleanup, { once: true });
+  sfx.addEventListener('error', cleanup, { once: true });
+  void sfx.play().catch(cleanup);
+}
+
+function playOneShot(base: HTMLAudioElement, volume: number, playbackRate?: number): void {
+  const sfx = base.cloneNode(true) as HTMLAudioElement;
+  sfx.volume = volume;
+  if (playbackRate !== undefined) sfx.playbackRate = playbackRate;
+  void sfx.play().catch(() => {});
+}
 
 type ListenerOptions = AddEventListenerOptions & { passive?: boolean };
 
-function gestureHandler() {
+function getMusicContext(): AudioContext {
   if (!musicContext) {
     musicContext = new AudioContext();
   }
+  return musicContext;
+}
 
-  void ensureContextRunning(musicContext);
+function applyMusicVolume(): void {
+  if (musicGain) musicGain.gain.value = audioEnabled ? MUSIC_VOLUME : 0;
+}
+
+function gestureHandler() {
+  void ensureContextRunning(getMusicContext());
 
   if (!hasStarted && !startInProgress) {
     void startBackgroundMusic();
@@ -140,34 +188,28 @@ export async function startBackgroundMusic(): Promise<void> {
   startInProgress = true;
 
   try {
-    if (!musicContext) {
-      musicContext = new AudioContext();
-    }
-
-    await ensureContextRunning(musicContext);
+    const ctx = getMusicContext();
+    await ensureContextRunning(ctx);
 
     if (!musicGain) {
-      musicGain = musicContext.createGain();
-      musicGain.gain.value = audioEnabled ? MUSIC_VOLUME : 0;
-      musicGain.connect(musicContext.destination);
-    } else {
-      musicGain.gain.value = audioEnabled ? MUSIC_VOLUME : 0;
+      musicGain = ctx.createGain();
+      musicGain.connect(ctx.destination);
     }
+    applyMusicVolume();
     if (musicSource) return;
 
-    const buffer = await loadMusicBuffer(musicContext);
+    const buffer = await loadMusicBuffer(ctx);
 
-    await ensureContextRunning(musicContext);
+    await ensureContextRunning(ctx);
 
-    const source = musicContext.createBufferSource();
+    const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.loop = true;
     source.connect(musicGain);
     source.start(0);
     musicSource = source;
     hasStarted = true;
-
-  } catch (err) {
+  } catch {
   } finally {
     startInProgress = false;
   }
@@ -175,9 +217,7 @@ export async function startBackgroundMusic(): Promise<void> {
 
 export function toggleAudio(): boolean {
   audioEnabled = !audioEnabled;
-  if (musicGain) {
-    musicGain.gain.value = audioEnabled ? MUSIC_VOLUME : 0;
-  }
+  applyMusicVolume();
   return audioEnabled;
 }
 
@@ -186,86 +226,33 @@ export function getAudioEnabled(): boolean {
 }
 
 export function playPathTileSfx(): void {
-  if (!hasStarted || !audioEnabled) return;
-
-  const nowMs = performance.now();
-  if (nowMs - lastPathTileSfxAtMs < PATH_TILE_SFX_MIN_INTERVAL_MS) return;
-  if (activePathTileSfx.size >= PATH_TILE_SFX_MAX_POLYPHONY) return;
-  lastPathTileSfxAtMs = nowMs;
-
-  // randomize pitch and volume
-  const sfx = tileSfx.cloneNode(true) as HTMLAudioElement;
-  sfx.volume = Math.min(1, SFX_VOLUME * PATH_TILE_SFX_VOLUME * (0.9 + Math.random() * 0.2));
-  sfx.playbackRate = 0.98 + Math.random() * 0.04;
-
-  activePathTileSfx.add(sfx);
-  const cleanup = () => {
-    activePathTileSfx.delete(sfx);
-  };
-  sfx.addEventListener('ended', cleanup, { once: true });
-  sfx.addEventListener('error', cleanup, { once: true });
-  void sfx.play().catch(cleanup);
+  playThrottled(tileSfx);
 }
 
 export function playStepSfx(): void {
-  if (!hasStarted || !audioEnabled) return;
-
-  const nowMs = performance.now();
-  if (nowMs - lastStepSfxAtMs < STEP_SFX_MIN_INTERVAL_MS) return;
-  if (activeStepSfx.size >= STEP_SFX_MAX_POLYPHONY) return;
-  lastStepSfxAtMs = nowMs;
-
-  // randomize pitch and volume
-  const sfx = stepSfx.cloneNode(true) as HTMLAudioElement;
-  sfx.volume = Math.min(1, SFX_VOLUME * STEP_VOLUME_SCALE * (0.5 + Math.random() * 0.5));
-  sfx.playbackRate = 0.9 + Math.random() * 0.2;
-
-  activeStepSfx.add(sfx);
-  const cleanup = () => {
-    activeStepSfx.delete(sfx);
-  };
-  sfx.addEventListener('ended', cleanup, { once: true });
-  sfx.addEventListener('error', cleanup, { once: true });
-  void sfx.play().catch(cleanup);
+  playThrottled(stepSfx);
 }
 
 export function playNiceSfx(): void {
   if (!hasStarted || !audioEnabled) return;
-
-  const sfx = niceSfx.cloneNode(true) as HTMLAudioElement;
-  sfx.volume = SFX_VOLUME;
-  void sfx.play().catch(() => {});
+  playOneShot(niceSfx, SFX_VOLUME);
 }
 
 export function playWompSfx(): void {
   if (!hasStarted || !audioEnabled) return;
-
-  const sfx = wompSfx.cloneNode(true) as HTMLAudioElement;
-  sfx.volume = SFX_VOLUME;
-  void sfx.play().catch(() => {});
+  playOneShot(wompSfx, SFX_VOLUME);
 }
 
 export function playCustomerServeSfx(customerId: CustomerId): void {
   if (!hasStarted || !audioEnabled) return;
 
-  let base: HTMLAudioElement;
-  if (customerId === 'A') {
-    base = melodySfx;
-  } else if (customerId === 'B') {
-    base = jetSfx;
-  } else if (customerId === 'C') {
-    base = cherSfx;
-  } else {
-    return;
-  }
+  const base = CUSTOMER_SERVE_SFX[customerId];
+  if (!base) return;
 
   for (let i = 0; i < 3; i++) {
     setTimeout(() => {
       if (!audioEnabled) return;
-      const sfx = base.cloneNode(true) as HTMLAudioElement;
-      sfx.volume = SFX_VOLUME * 0.4;
-      sfx.playbackRate = 1.4;
-      void sfx.play().catch(() => {});
+      playOneShot(base, SFX_VOLUME * 0.4, 1.4);
     }, i * 100);
   }
 }

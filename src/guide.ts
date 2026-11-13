@@ -3,6 +3,7 @@ import { findDrops, type Drop } from './engine/simulate';
 import { solveLevel } from './engine/solver';
 import { keyOf, type CustomerId, type DrinkId, type Pos } from './engine/types';
 import { TILE_SIZE } from './config/constants';
+import { findKeyWithValue, keysWithValue, posOfKey } from './util/grid';
 import {
   getHoverLabel,
   isOrdersCalloutOpen,
@@ -64,8 +65,6 @@ const bubbleLayer = (): HTMLElement => {
   return el;
 };
 
-// ── simulation helpers ──
-
 // ── positioning ──
 
 function tileToClient(state: GameState, pos: Pos): { x: number; top: number } | null {
@@ -87,19 +86,31 @@ function iconImg(src: string, alt: string): string {
   return `<img class="guide-icon" src="${src}" alt="${alt}" />`;
 }
 
+type Bubble = HTMLElement & { _pos?: Pos };
+
+function clearBubbles(kind: string) {
+  bubbleLayer()
+    .querySelectorAll(`.guide-bubble--${kind}`)
+    .forEach((el) => el.remove());
+}
+
+function addBubble(kind: string, state: GameState, pos: Pos): Bubble {
+  const el = document.createElement('div') as Bubble;
+  el.className = `guide-bubble guide-bubble--${kind}`;
+  el._pos = pos;
+  bubbleLayer().appendChild(el);
+  placeBubble(el, state, pos);
+  return el;
+}
+
 // ── drop preview bubbles (tutorial) ──
 
 function renderDropBubbles(state: GameState) {
-  const layer = bubbleLayer();
-  layer.querySelectorAll('.guide-bubble--drop').forEach((el) => el.remove());
+  clearBubbles('drop');
   if (!deps) return;
   for (const drop of drops) {
-    const el = document.createElement('div');
-    el.className = 'guide-bubble guide-bubble--drop';
+    const el = addBubble('drop', state, drop.pos);
     el.innerHTML = `drops ${iconImg(deps.itemIcon(drop.item), drop.item)}`;
-    layer.appendChild(el);
-    placeBubble(el, state, drop.pos);
-    (el as HTMLElement & { _pos?: Pos })._pos = drop.pos;
   }
 }
 
@@ -107,7 +118,7 @@ function repositionBubbles() {
   if (!deps) return;
   const state = deps.renderer.getState();
   bubbleLayer()
-    .querySelectorAll<HTMLElement & { _pos?: Pos }>('.guide-bubble')
+    .querySelectorAll<Bubble>('.guide-bubble')
     .forEach((el) => {
       if (el._pos) placeBubble(el, state, el._pos);
     });
@@ -116,33 +127,24 @@ function repositionBubbles() {
 // ── item bubbles: the order's icon over every station that has it ──
 
 function renderItemBubbles() {
-  const layer = bubbleLayer();
-  layer.querySelectorAll('.guide-bubble--item').forEach((el) => el.remove());
+  clearBubbles('item');
   if (!deps || !linkedItem) return;
   const state = deps.renderer.getState();
-  for (const [key, id] of Object.entries(state.level.drinkStations)) {
-    if (id !== linkedItem) continue;
-    const el = document.createElement('div') as HTMLElement & { _pos?: Pos };
-    el.className = 'guide-bubble guide-bubble--item';
-    el.innerHTML = iconImg(deps.itemIcon(id), id);
-    el._pos = keyToPos(key);
-    layer.appendChild(el);
-    placeBubble(el, state, el._pos);
+  for (const key of keysWithValue(state.level.drinkStations, linkedItem)) {
+    addBubble('item', state, posOfKey(key)).innerHTML = iconImg(
+      deps.itemIcon(linkedItem),
+      linkedItem
+    );
   }
 }
 
 // ── "thanks!" pops (every level) ──
 
 function popThanks(state: GameState, customerId: CustomerId) {
-  const key = Object.entries(state.level.customers).find(([, id]) => id === customerId)?.[0];
+  const key = findKeyWithValue(state.level.customers, customerId);
   if (!key) return;
-  const [x, y] = key.split(',').map(Number);
-  const el = document.createElement('div') as HTMLElement & { _pos?: Pos };
-  el.className = 'guide-bubble guide-bubble--thanks';
+  const el = addBubble('thanks', state, posOfKey(key));
   el.textContent = 'thanks!';
-  el._pos = { x, y };
-  bubbleLayer().appendChild(el);
-  placeBubble(el, state, el._pos);
   window.setTimeout(() => el.remove(), 1200);
 }
 
@@ -209,12 +211,21 @@ function setLinkedCustomer(id: CustomerId | null) {
 // "pulse" steps the outline outward by its own width instead of making it thicker.
 const LINE_PX = 3;
 
-function strokeTile(ctx: CanvasRenderingContext2D, pos: Pos, color: string, pulse: boolean) {
+function lineWidthUnits(): number {
   const state = deps?.renderer.getState();
   const rect = deps?.canvas.getBoundingClientRect();
   const unitsPerPx =
     state && rect && rect.width > 0 ? (state.level.width * TILE_SIZE) / rect.width : 1;
-  const w = LINE_PX * unitsPerPx;
+  return LINE_PX * unitsPerPx;
+}
+
+function strokeTile(
+  ctx: CanvasRenderingContext2D,
+  pos: Pos,
+  color: string,
+  pulse: boolean,
+  w: number
+) {
   const inset = pulse ? 0 : w;
   ctx.strokeStyle = color;
   ctx.lineWidth = w;
@@ -239,6 +250,12 @@ function ghostVisible(state: GameState): boolean {
 
 function drawOverlay(ctx: CanvasRenderingContext2D, state: GameState, animFrame: number) {
   const thick = animFrame === 1;
+  let w: number | undefined; // measured once, only if something is outlined
+  const outline = (pos: Pos, color = HIGHLIGHT) =>
+    strokeTile(ctx, pos, color, thick, (w ??= lineWidthUnits()));
+  const outlineKeys = (record: Record<string, string>, value: string) => {
+    for (const key of keysWithValue(record, value)) outline(posOfKey(key));
+  };
 
   // ghost path: dots appear one tile at a time, hold, then start over
   if (ghostVisible(state)) {
@@ -260,36 +277,23 @@ function drawOverlay(ctx: CanvasRenderingContext2D, state: GameState, animFrame:
   // checklist goal (glorbo first, then the tea, then the sparkle)
   if (lesson && state.status === 'idle' && !isOrdersCalloutOpen()) {
     const { goal } = evaluateChecklist(lesson, state);
-    if (goal) strokeTile(ctx, goal, HIGHLIGHT, thick);
+    if (goal) outline(goal);
   }
 
   // tiles where the drawn path would knock something out of your hands
   if (lesson && state.status === 'idle') {
-    for (const drop of drops) strokeTile(ctx, drop.pos, DANGER, thick);
+    for (const drop of drops) outline(drop.pos, DANGER);
   }
 
   // hovered customer / order card: outline the customer and their spot
   if (linkedCustomer) {
-    for (const [key, id] of Object.entries(state.level.customers)) {
-      if (id === linkedCustomer) strokeTile(ctx, keyToPos(key), HIGHLIGHT, thick);
-    }
-    for (const [key, id] of Object.entries(state.level.standHere)) {
-      if (id === linkedCustomer) strokeTile(ctx, keyToPos(key), HIGHLIGHT, thick);
-    }
+    outlineKeys(state.level.customers, linkedCustomer);
+    outlineKeys(state.level.standHere, linkedCustomer);
   }
 
   // hovered order item or station: outline every station that has it
-  if (linkedItem) {
-    for (const [key, id] of Object.entries(state.level.drinkStations)) {
-      if (id === linkedItem) strokeTile(ctx, keyToPos(key), HIGHLIGHT, thick);
-    }
-  }
+  if (linkedItem) outlineKeys(state.level.drinkStations, linkedItem);
 }
-
-const keyToPos = (key: string): Pos => {
-  const [x, y] = key.split(',').map(Number);
-  return { x, y };
-};
 
 function syncGhostTimer() {
   const state = deps?.renderer.getState();

@@ -1,54 +1,45 @@
-import type { DrinkId, Level, ObstacleId } from '../engine/types';
-import type { CustomerId } from '../engine/types';
+import {
+  keyOf,
+  type CustomerId,
+  type DrinkId,
+  type Level,
+  type ObstacleId,
+  type Pos,
+} from '../engine/types';
 import type { LevelData } from './level.schema';
 
-const k = (x: number, y: number) => `${x},${y}`;
+// tile the player stands on to serve a customer
+export function standTileOf(c: LevelData['customers'][number]): Pos {
+  if (c.standHere === 'left') return { x: c.x - 1, y: c.y };
+  if (c.standHere === 'right') return { x: c.x + 1, y: c.y };
+  if (c.standHere === 'up') return { x: c.x, y: c.y - 1 };
+  if (c.standHere === 'down') return { x: c.x, y: c.y + 1 };
+  return { x: c.x, y: c.y };
+}
 
 export function buildLevel(data: LevelData): Level {
-  // build standHere map: calculate position based on customer position and standHere direction
   const standHereMap: Record<string, CustomerId> = {};
-  for (const customer of data.customers) {
-    let standX = customer.x;
-    let standY = customer.y;
-    if (customer.standHere === 'left') standX = customer.x - 1;
-    else if (customer.standHere === 'right') standX = customer.x + 1;
-    else if (customer.standHere === 'up') standY = customer.y - 1;
-    else if (customer.standHere === 'down') standY = customer.y + 1;
-    standHereMap[k(standX, standY)] = customer.id;
+  const customersMap: Record<string, CustomerId> = {};
+  for (const c of data.customers) {
+    standHereMap[keyOf(standTileOf(c))] = c.id;
+    customersMap[keyOf(c)] = c.id;
   }
 
   const obstaclesMap: Record<string, ObstacleId> = {};
-  for (const o of data.obstacles) {
-    obstaclesMap[k(o.x, o.y)] = o.type as ObstacleId;
-  }
+  for (const o of data.obstacles) obstaclesMap[keyOf(o)] = o.type as ObstacleId;
 
   const drinkStationsMap: Record<string, DrinkId> = {};
-  for (const d of data.drinkStations) {
-    drinkStationsMap[k(d.x, d.y)] = d.drink;
-  }
-
-  const customersMap: Record<string, CustomerId> = {};
-  for (const c of data.customers) {
-    customersMap[k(c.x, c.y)] = c.id;
-  }
+  for (const d of data.drinkStations) drinkStationsMap[keyOf(d)] = d.drink;
 
   return {
     width: data.width,
     height: data.height,
     start: data.start,
-
-    walls: new Set(data.walls.map((w) => k(w.x, w.y))),
-
+    walls: new Set(data.walls.map(keyOf)),
     obstacles: obstaclesMap,
-
     drinkStations: drinkStationsMap,
-
     customers: customersMap,
-
     standHere: standHereMap,
-
-    orders: Object.fromEntries(
-      Object.entries(data.orders).map(([id, drinks]) => [id, drinks])
-    ) as Record<CustomerId, DrinkId[]>,
+    orders: { ...data.orders },
   };
 }

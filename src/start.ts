@@ -43,17 +43,17 @@ function onKeydown(e: KeyboardEvent): void {
 
 export function showStartScreen(): void {
   if (overlay) return;
-  const touch = window.matchMedia('(hover: none)').matches;
+  const verb = window.matchMedia('(hover: none)').matches ? 'tap' : 'click';
 
   const btn = document.createElement('button');
   btn.type = 'button';
   overlay = btn;
   overlay.className = 'start-screen';
-  overlay.setAttribute('aria-label', `etea cafe, ${touch ? 'tap' : 'click'} to enter`);
+  overlay.setAttribute('aria-label', `etea cafe, ${verb} to enter`);
   overlay.innerHTML =
     `<img src="/img/logo.gif" alt="" class="start-logo" />` +
     `<span class="start-glorbo" aria-hidden="true"></span>` +
-    `<span class="start-enter">${touch ? 'tap' : 'click'} to enter</span>`;
+    `<span class="start-enter">${verb} to enter</span>`;
   overlay.addEventListener('click', enter);
 
   document.body.appendChild(overlay);
