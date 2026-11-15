@@ -52,6 +52,26 @@ export type GhostRenderer = (
 
 type ClientPoint = { clientX: number; clientY: number };
 
+const KEY_STEPS: Record<string, [number, number]> = {
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+  KeyW: [0, -1],
+  KeyS: [0, 1],
+  KeyA: [-1, 0],
+  KeyD: [1, 0],
+};
+
+const isTypingTarget = (t: EventTarget | null) =>
+  t instanceof HTMLElement &&
+  (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+
+const isOverlayOpen = () =>
+  Array.from(document.querySelectorAll<HTMLElement>('.popup-overlay')).some(
+    (el) => el.style.display !== '' && el.style.display !== 'none'
+  );
+
 const isServed = (state: GameState, customerId: CustomerId) =>
   (state.remainingOrders[customerId]?.length ?? 0) === 0;
 
@@ -328,13 +348,47 @@ export class GameRenderer {
     // undo only while drawing paths
 
     window.addEventListener('keydown', (e) => {
-      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z') return;
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
-      if (!this.undoAllowed()) return;
-      e.preventDefault();
-      this.undoLastPathStep();
+      if (isTypingTarget(e.target)) return;
+      const isUndo =
+        ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') ||
+        (e.key === 'Backspace' && !e.ctrlKey && !e.metaKey && !e.altKey);
+      if (isUndo) {
+        if (!this.undoAllowed() || isOverlayOpen()) return;
+        e.preventDefault();
+        this.undoLastPathStep();
+        return;
+      }
+      this.handleKeyStep(e);
     });
+  }
+
+  private tileCenterClient(pos: Pos): ClientPoint {
+    const rect = this.canvas.getBoundingClientRect();
+    const { width, height } = this.state.level;
+    return {
+      clientX: rect.left + ((pos.x + 0.5) / width) * rect.width,
+      clientY: rect.top + ((pos.y + 0.5) / height) * rect.height,
+    };
+  }
+
+  // arrows / wasd extend the path one tile from its end
+  private handleKeyStep(e: KeyboardEvent) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const step = KEY_STEPS[e.code] ?? KEY_STEPS[e.key];
+    if (!step || this.uiMode !== 'play' || isOverlayOpen()) return;
+    e.preventDefault();
+
+    const last = this.state.path[this.state.path.length - 1] ?? this.state.level.start;
+    if (this.inputLocked) {
+      const c = this.tileCenterClient(last);
+      this.onLockedPointerDown?.(c.clientX, c.clientY);
+      return;
+    }
+    if (this.introAnimationActive || !this.undoAllowed()) return;
+
+    const next = { x: last.x + step[0], y: last.y + step[1] };
+    if (!inBounds(this.state.level.width, this.state.level.height, next)) return;
+    this.tryExtendPath(next, this.tileCenterClient(next));
   }
 
   private undoLastPathStep() {
@@ -392,6 +446,10 @@ export class GameRenderer {
       return;
     }
 
+    this.tryExtendPath(pos, e);
+  }
+
+  private tryExtendPath(pos: Pos, at: ClientPoint) {
     const prevLen = this.state.path.length;
     this.state = tryAppendPath(this.state, pos);
     if (this.state.path.length > prevLen) {
@@ -399,11 +457,12 @@ export class GameRenderer {
       this.lastRejectedKey = null;
     } else {
       // tried to step onto a wall / customer / obstacle right next to the path end
+      const key = keyOf(pos);
       const last = this.state.path[this.state.path.length - 1];
       const adjacent = last && manhattan1(last, pos);
       if (adjacent && key !== this.lastRejectedKey) {
         this.lastRejectedKey = key;
-        this.onInputRejected?.('blocked', e.clientX, e.clientY);
+        this.onInputRejected?.('blocked', at.clientX, at.clientY);
       }
     }
     this.scheduleRender();
