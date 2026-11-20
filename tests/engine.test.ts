@@ -13,7 +13,12 @@ function randomPath(seed: number, level: ReturnType<typeof buildLevel>): Pos[] {
   const len = Math.floor(r() * 45);
   for (let i = 0; i < len; i++) {
     const last = st.path[st.path.length - 1];
-    const d = [[1, 0], [-1, 0], [0, 1], [0, -1]][Math.floor(r() * 4)];
+    const d = [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ][Math.floor(r() * 4)];
     st = old.tryAppendPath(st, { x: last.x + d[0], y: last.y + d[1] });
   }
   return st.path;
@@ -65,5 +70,29 @@ describe('engine matches legacy behavior', () => {
       }
       expect(pick(cur.clearPath(b))).toEqual(pick(old.clearPath(a)));
     }
+  });
+});
+
+describe('neededDrops', () => {
+  const at = { x: 0, y: 0 };
+  it('keeps only drops a waiting customer still needs, once per missing item', () => {
+    const drops = [
+      { pos: at, item: 'D2' as const }, // junk: nobody wants it
+      { pos: at, item: 'D1' as const }, // A still wants a tea
+      { pos: at, item: 'D1' as const }, // a 2nd tea, but only one is missing
+    ];
+    const remaining = { A: ['D1' as const], B: [], C: [] };
+    expect(curSim.neededDrops(drops, remaining).map((d) => d.item)).toEqual(['D1']);
+  });
+
+  it('skips a dropped item when you still hold a copy', () => {
+    const drops = [{ pos: at, item: 'D1' as const }]; // the spare tea a spill took
+    const remaining = { A: ['D1' as const], B: [], C: [] };
+    expect(curSim.neededDrops(drops, remaining, ['D1'])).toEqual([]);
+  });
+
+  it('shows nothing when everyone is served', () => {
+    const drops = [{ pos: at, item: 'F1' as const }];
+    expect(curSim.neededDrops(drops, { A: [], B: [], C: [] })).toEqual([]);
   });
 });

@@ -60,6 +60,7 @@ export function validateLevelData(data: LevelData): LevelValidation {
 
   const customerPosById: Partial<Record<CustomerId, string>> = {};
   const customerSet = new Set<string>();
+  const standKeys = new Set<string>();
 
   for (const c of data.customers) {
     if (!inBounds(c.x, c.y)) errors.push(`customer ${c.id} out of bounds at (${c.x},${c.y})`);
@@ -77,6 +78,7 @@ export function validateLevelData(data: LevelData): LevelValidation {
     const stand = standTileOf(c);
     if (!inBounds(stand.x, stand.y)) errors.push(`customer ${c.id} stand tile is out of bounds`);
     const standKey = keyOf(stand);
+    standKeys.add(standKey);
     if (wallSet.has(standKey)) errors.push(`customer ${c.id} stand tile overlaps wall`);
     if (obstacleSet.has(standKey)) errors.push(`customer ${c.id} stand tile overlaps obstacle`);
     if (customerSet.has(standKey)) errors.push(`customer ${c.id} stand tile overlaps a customer`);
@@ -84,6 +86,16 @@ export function validateLevelData(data: LevelData): LevelValidation {
 
   for (const id of ALL_CUSTOMER_IDS) {
     if (!customerPosById[id]) errors.push(`missing customer ${id}`);
+  }
+
+  for (const s of data.spills ?? []) {
+    if (!inBounds(s.x, s.y)) errors.push(`spill out of bounds at (${s.x},${s.y})`);
+    const key = keyOf(s);
+    if (wallSet.has(key) || obstacleSet.has(key) || customerSet.has(key) || stationsSet.has(key))
+      errors.push(`spill must be on an empty floor tile at (${s.x},${s.y})`);
+    if (standKeys.has(key))
+      errors.push(`spill can't be on a customer's sparkle at (${s.x},${s.y})`);
+    if (key === startKey) errors.push(`spill overlaps start at (${s.x},${s.y})`);
   }
 
   if (wallSet.has(startKey)) errors.push('start overlaps a wall');

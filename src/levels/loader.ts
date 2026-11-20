@@ -37,6 +37,7 @@ export function buildLevel(data: LevelData): Level {
     start: data.start,
     walls: new Set(data.walls.map(keyOf)),
     obstacles: obstaclesMap,
+    spills: new Set((data.spills ?? []).map(keyOf)),
     drinkStations: drinkStationsMap,
     customers: customersMap,
     standHere: standHereMap,

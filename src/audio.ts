@@ -5,6 +5,7 @@ import {
   STEP_SFX,
   NICE_SFX,
   WOMP_SFX,
+  THUD_SFX,
   JET_SFX,
   CHER_SFX,
   MELODY_SFX,
@@ -70,6 +71,7 @@ function preloadSfx(src: string, volume: number): HTMLAudioElement {
 
 const niceSfx = preloadSfx(NICE_SFX, SFX_VOLUME);
 const wompSfx = preloadSfx(WOMP_SFX, SFX_VOLUME);
+const thudSfx = preloadSfx(THUD_SFX, SFX_VOLUME);
 
 const CUSTOMER_SERVE_SFX: Record<CustomerId, HTMLAudioElement> = {
   A: preloadSfx(MELODY_SFX, SFX_VOLUME),
@@ -241,6 +243,12 @@ export function playNiceSfx(): void {
 export function playWompSfx(): void {
   if (!hasStarted || !audioEnabled) return;
   playOneShot(wompSfx, SFX_VOLUME);
+}
+
+// glorbo hitting the floor after slipping on a spill
+export function playThudSfx(): void {
+  if (!hasStarted || !audioEnabled) return;
+  playOneShot(thudSfx, SFX_VOLUME);
 }
 
 export function playCustomerServeSfx(customerId: CustomerId): void {

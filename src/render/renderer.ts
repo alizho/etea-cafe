@@ -16,6 +16,7 @@ import {
   playStepSfx,
   playNiceSfx,
   playWompSfx,
+  playThudSfx,
   playCustomerServeSfx,
 } from '../audio';
 import { inBounds } from '../util/grid';
@@ -31,7 +32,12 @@ import {
   catFrame,
   drawCustomer,
   drawGlorbo,
+  drawSlippingGlorbo,
+  drawSpill,
   drawStation,
+  SLIP_MS,
+  SLIP_THUD_MS,
+  type SlipAnim,
   drawTile,
   drawTwoFrame,
   getCustomerIconDataUrl,
@@ -88,6 +94,8 @@ export class GameRenderer {
   private state: GameState;
   private isDrawing: boolean = false;
   private simInterval: number | null = null;
+  private slip: SlipAnim | null = null; // glorbo falling over on a spill
+  private slipFrameId: number | null = null;
   private animationFrame: number = 0;
   private animationInterval: number | null = null;
   private introAnimationActive: boolean = false;
@@ -237,6 +245,7 @@ export class GameRenderer {
     if (this.simInterval) {
       clearInterval(this.simInterval);
     }
+    this.cancelSlip();
     if (this.animationInterval) {
       clearInterval(this.animationInterval);
     }
@@ -522,6 +531,7 @@ export class GameRenderer {
         clearInterval(this.simInterval);
         this.simInterval = null;
       }
+      this.cancelSlip();
     }
     this.render();
     this.updateUI();
@@ -615,6 +625,7 @@ export class GameRenderer {
 
   public setState(newState: GameState) {
     this.stopIntroAnimation();
+    this.cancelSlip();
     const prevW = this.state.level.width;
     const prevH = this.state.level.height;
     this.state = newState;
@@ -678,8 +689,19 @@ export class GameRenderer {
   }
 
   private advanceSimulation(serveSfx: boolean) {
+    const prev = this.state;
     const prevOrders = serveSfx ? { ...this.state.remainingOrders } : null;
     this.state = stepSimulation(this.state);
+
+    // stepped onto a spill: glorbo falls over and gets back up before the run goes on
+    const pos = this.state.glorboPos;
+    if (
+      this.state.status === 'running' &&
+      this.state.stepIndex !== prev.stepIndex &&
+      this.state.level.spills.has(`${pos.x},${pos.y}`)
+    ) {
+      this.startSlip(pos.x < prev.glorboPos.x ? -1 : 1, prev.inventory.slice(0, 1));
+    }
 
     if (prevOrders) {
       for (const customerId in prevOrders) {
@@ -730,17 +752,54 @@ export class GameRenderer {
       return;
     }
 
+    if (!this.slip) this.scheduleSimulation();
+  }
+
+  private scheduleSimulation() {
     this.simInterval = window.setInterval(() => {
       this.advanceSimulation(true);
 
-      if (this.state.status !== 'running') {
+      if (this.state.status !== 'running' || this.slip) {
         if (this.simInterval) {
           clearInterval(this.simInterval);
           this.simInterval = null;
         }
-        this.finishRun(true);
       }
+      if (this.state.status !== 'running') this.finishRun(true);
     }, 250);
+  }
+
+  // pauses the run, animates the fall, then picks the run back up
+  private startSlip(dir: 1 | -1, dropped: DrinkId[]) {
+    this.cancelSlip();
+    const slip: SlipAnim = { start: performance.now(), dir, dropped: [...dropped] };
+    this.slip = slip;
+    let thudded = false;
+
+    const tick = () => {
+      if (this.slip !== slip) return; // reset, new level, or builder
+      const elapsed = performance.now() - slip.start;
+      if (!thudded && elapsed >= SLIP_THUD_MS) {
+        thudded = true;
+        playThudSfx();
+      }
+      if (elapsed >= SLIP_MS) {
+        this.slip = null;
+        this.slipFrameId = null;
+        this.render();
+        if (this.state.status === 'running' && this.uiMode === 'play') this.scheduleSimulation();
+        return;
+      }
+      this.render();
+      this.slipFrameId = requestAnimationFrame(tick);
+    };
+    this.slipFrameId = requestAnimationFrame(tick);
+  }
+
+  private cancelSlip() {
+    if (this.slipFrameId !== null) cancelAnimationFrame(this.slipFrameId);
+    this.slipFrameId = null;
+    this.slip = null;
   }
 
   private getStaticLayer(level: Level) {
@@ -758,6 +817,11 @@ export class GameRenderer {
       for (let x = 1; x < level.width - 1; x++) {
         drawTile(ctx, floorOpen, x, y);
       }
+    }
+
+    for (const key of level.spills) {
+      const [x, y] = key.split(',').map(Number);
+      drawSpill(ctx, x, y);
     }
 
     for (const wallKey of level.walls) {
@@ -834,7 +898,13 @@ export class GameRenderer {
 
     // draw glorbo (on top of path) — hidden when being dragged
     if (!this.glorboHidden) {
-      drawGlorbo(ctx, glorboPos.x, glorboPos.y, Math.min(this.state.inventory.length, 2), frame);
+      const column = Math.min(this.state.inventory.length, 2);
+      if (this.slip) {
+        const t = performance.now() - this.slip.start;
+        drawSlippingGlorbo(ctx, glorboPos.x, glorboPos.y, column, frame, this.slip, t);
+      } else {
+        drawGlorbo(ctx, glorboPos.x, glorboPos.y, column, frame);
+      }
     }
 
     // draw hover sprite on hovered tile (only during idle state)
@@ -893,6 +963,11 @@ export class GameRenderer {
     const addOverlayOp = (x: number, y: number, priority: number, draw: IntroOverlayOp['draw']) => {
       overlayOps.push({ x, y, priority, draw });
     };
+
+    for (const key of level.spills) {
+      const [x, y] = key.split(',').map(Number);
+      addOverlayOp(x, y, -1, (drawCtx) => drawSpill(drawCtx, x, y));
+    }
 
     for (const o of obstacleDrawList(level)) {
       addOverlayOp(o.x, o.y, 0, (drawCtx) => {

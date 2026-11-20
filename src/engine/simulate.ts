@@ -48,3 +48,23 @@ export function findDrops(state: GameState, path: Pos[]): Drop[] {
   });
   return found;
 }
+
+// drops that explain a failed run: stuff a waiting customer needed and you don't have anymore
+// skips on-purpose drops (junk, a spare a spill took)
+export function neededDrops(
+  drops: Drop[],
+  remaining: Record<CustomerId, DrinkId[]>,
+  holding: DrinkId[] = []
+): Drop[] {
+  const stillNeeded = Object.values(remaining).flat();
+  for (const d of holding) {
+    const i = stillNeeded.indexOf(d);
+    if (i >= 0) stillNeeded.splice(i, 1); // still in your hands, so dropping a copy didn't cost you
+  }
+  return drops.filter((d) => {
+    const i = stillNeeded.indexOf(d.item);
+    if (i < 0) return false;
+    stillNeeded.splice(i, 1); // one drop per missing item
+    return true;
+  });
+}

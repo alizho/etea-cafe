@@ -8,6 +8,7 @@ export type Level = {
   height: number;
   walls: Set<string>; // "x,y"
   obstacles: Record<string, ObstacleId>; // key "x,y" -> obstacle type
+  spills: Set<string>; // "x,y" walking onto one drops the oldest thing you're holding
   start: Pos;
 
   drinkStations: Record<string, DrinkId>; // key "x,y" -> drink id

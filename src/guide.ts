@@ -1,5 +1,5 @@
 import type { GameState } from './engine/game';
-import { findDrops, type Drop } from './engine/simulate';
+import { findDrops, neededDrops, type Drop } from './engine/simulate';
 import { solveLevel } from './engine/solver';
 import { keyOf, type CustomerId, type DrinkId, type Pos } from './engine/types';
 import { TILE_SIZE } from './config/constants';
@@ -165,7 +165,7 @@ function fillFailureDetails(state: GameState) {
       `<div class="failure-line">${iconImg(deps.customerIcon(id), id)} still wants ${items}</div>`
     );
   }
-  const dropped = findDrops(state, state.path);
+  const dropped = neededDrops(findDrops(state, state.path), state.remainingOrders, state.inventory);
   if (dropped.length) {
     const items = dropped.map((d) => iconImg(deps!.itemIcon(d.item), d.item)).join('');
     lines.push(`<div class="failure-line">you dropped ${items}</div>`);

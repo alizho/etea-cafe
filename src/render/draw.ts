@@ -1,10 +1,11 @@
-import type { Level, ObstacleId } from '../engine/types';
+import type { DrinkId, Level, ObstacleId } from '../engine/types';
 import { TILE_SIZE } from '../config/constants';
 import { pairAdjacent, parseKey, uniqueSorted } from '../util/grid';
 import {
   sprites,
   catAltSprite,
   glorboSpriteSheet,
+  spillSprite,
   wallTop,
   wallBot,
   wallLeftTop,
@@ -267,4 +268,82 @@ export function getGlorboIcon(glorboSprite: HTMLImageElement): string {
   const w = glorboSprite.width / 3;
   const h = glorboSprite.height / 2;
   return cropToDataUrl(glorboSprite, 0, 0, w, h);
+}
+
+// ── spills ──
+
+const PX = TILE_SIZE / 16; // one sprite pixel
+
+export function drawSpill(ctx: Ctx, x: number, y: number) {
+  drawTile(ctx, spillSprite, x, y);
+}
+
+// ── slipping on a spill ──
+// held frames like the rest of the art: no easing, only 90° turns, moves in whole sprite pixels
+
+export type SlipAnim = { start: number; dir: 1 | -1; dropped: DrinkId[] };
+type SlipPose = { turns: number; dx: number; dy: number }; // quarter turns, sprite px
+
+// back = fall away from the way glorbo was walking
+const slipFrames = (dir: 1 | -1): { ms: number; pose: SlipPose }[] => [
+  { ms: 110, pose: { turns: 0, dx: dir * 2, dy: 0 } }, // feet slide out
+  { ms: 110, pose: { turns: 0, dx: dir * 2, dy: -3 } }, // whoa
+  { ms: 90, pose: { turns: -dir, dx: dir, dy: 1 } }, // splat
+  { ms: 70, pose: { turns: -dir, dx: dir, dy: 0 } }, // bounce
+  { ms: 300, pose: { turns: -dir, dx: dir, dy: 1 } }, // lie there
+  { ms: 130, pose: { turns: 0, dx: 0, dy: -2 } }, // hop up
+  { ms: 90, pose: { turns: 0, dx: 0, dy: 0 } },
+];
+
+export const SLIP_MS = slipFrames(1).reduce((n, f) => n + f.ms, 0);
+export const SLIP_THUD_MS = 220; // the splat frame, when glorbo hits the floor
+
+function slipPose(t: number, dir: 1 | -1): SlipPose {
+  const frames = slipFrames(dir);
+  let end = 0;
+  for (const f of frames) {
+    end += f.ms;
+    if (t < end) return f.pose;
+  }
+  return frames[frames.length - 1].pose;
+}
+
+// whatever glorbo was holding pops out of their hands, bounces once, and is gone
+const ITEM_HOPS = [
+  { from: 220, to: 330, dx: 3, dy: -5 },
+  { from: 330, to: 440, dx: 6, dy: -6 },
+  { from: 440, to: 550, dx: 8, dy: -2 },
+  { from: 550, to: 700, dx: 9, dy: 2 },
+];
+
+export function drawSlippingGlorbo(
+  ctx: Ctx,
+  x: number,
+  y: number,
+  column: number,
+  frame: number,
+  slip: SlipAnim,
+  t: number
+) {
+  const pose = slipPose(t, slip.dir);
+  const cx = (x + 0.5) * TILE_SIZE;
+  const cy = (y + 0.5) * TILE_SIZE;
+  ctx.save();
+  ctx.translate(cx + pose.dx * PX, cy + pose.dy * PX);
+  ctx.rotate((pose.turns * Math.PI) / 2);
+  ctx.translate(-cx, -cy);
+  drawGlorbo(ctx, x, y, column, frame);
+  ctx.restore();
+
+  const hop = ITEM_HOPS.find((h) => t >= h.from && t < h.to);
+  if (!hop) return;
+  const size = TILE_SIZE / 2;
+  slip.dropped.forEach((id, i) => {
+    const img = sprites.drinkItems[id];
+    if (!img) return;
+    const spread = 1 + i * 0.6; // second item flies a bit further
+    const ix = cx + Math.round(slip.dir * hop.dx * spread) * PX - size / 2;
+    const iy = y * TILE_SIZE + TILE_SIZE / 4 + (hop.dy - i) * PX - size / 2;
+    ctx.drawImage(img, ix, iy, size, size);
+  });
 }

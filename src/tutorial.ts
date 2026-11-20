@@ -207,6 +207,26 @@ export const TUTORIAL_LESSONS: TutorialLesson[] = [
     }),
   },
   {
+    title: 'watch your step',
+    note: `stepping in a ${hl('spill')} drops your ${hl('oldest')} item.`,
+    checklist: [grab('D1'), endOnSparkle('A'), pressRun],
+    failText: 'walk around the spills.',
+    data: lessonLevel({
+      id: 'tutorial-spill',
+      width: 9,
+      start: { x: 1, y: 3 },
+      obstacles: [],
+      spills: [
+        { x: 4, y: 2 },
+        { x: 4, y: 3 },
+        { x: 4, y: 4 },
+      ],
+      drinkStations: [{ x: 2, y: 3, drink: 'D1' }],
+      customers: [{ x: 7, y: 3, id: 'A', standHere: 'left' }],
+      orders: { A: ['D1'] },
+    }),
+  },
+  {
     title: 'fewest steps',
     note: `use as ${hl('few steps')} as you can.`,
     // no tile hints here: this one is the real test

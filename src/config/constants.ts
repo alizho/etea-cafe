@@ -7,6 +7,8 @@ export const WET_A = '/audio/path.mp3';
 export const STEP_SFX = '/audio/step.mp3';
 export const NICE_SFX = '/audio/nice.mp3';
 export const WOMP_SFX = '/audio/womp.mp3';
+// kenney impact sounds (CC0) footstep_snow_001, pitched down and mixed to match the other sfx
+export const THUD_SFX = '/audio/thud.mp3';
 export const JET_SFX = '/audio/jet.wav';
 export const CHER_SFX = '/audio/cher.wav';
 export const MELODY_SFX = '/audio/melody.wav';

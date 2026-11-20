@@ -19,7 +19,7 @@ export function isWalkable(level: Level, posKey: string): boolean {
 }
 
 export function tileHasEffect(level: Level, posKey: string): boolean {
-  return !!level.standHere[posKey] || !!level.drinkStations[posKey];
+  return !!level.standHere[posKey] || !!level.drinkStations[posKey] || level.spills.has(posKey);
 }
 
 export function allServed(remaining: Orders): boolean {
@@ -48,13 +48,14 @@ function serve(customerId: CustomerId | undefined, inv: DrinkId[], remaining: Or
   return { inv: kept, remaining: { ...remaining, [customerId]: needs } };
 }
 
-// serve, pick up, then serve again when a stand tile overlaps a station
+// slip on a spill (drop the oldest item), serve, pick up, then serve again when a stand tile overlaps a station
 export function resolveTile(
   level: Level,
   posKey: string,
   inv: DrinkId[],
   remaining: Orders
 ): Hands {
+  if (level.spills.has(posKey)) inv = inv.slice(1);
   const customerId = level.standHere[posKey] as CustomerId | undefined;
   const hands = serve(customerId, inv, remaining);
   const drink = level.drinkStations[posKey];

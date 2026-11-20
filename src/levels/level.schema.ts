@@ -15,6 +15,9 @@ export type LevelData = {
     type: ObstacleId;
   }[];
 
+  // optional so old levels and share links still load
+  spills?: { x: number; y: number }[];
+
   drinkStations: {
     x: number;
     y: number;

@@ -32,6 +32,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F2",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "8,1": "A",
         "8,3": "B",
@@ -101,6 +102,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,3": "A",
       },
@@ -159,6 +161,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,2": "A",
       },
@@ -221,6 +224,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "D2",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,2": "B",
         "3,1": "C",
@@ -273,6 +277,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "4,2": "A",
       },
@@ -335,6 +340,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F1",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "2,1": "C",
         "3,1": "A",
@@ -392,6 +398,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "4,1": "A",
       },
@@ -453,6 +460,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "0,1": "A",
       },
@@ -511,6 +519,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,3": "A",
       },
@@ -570,6 +579,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,0": "B",
         "3,0": "A",
@@ -628,6 +638,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "4,1": "A",
       },
@@ -690,6 +701,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F1",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "2,1": "C",
         "2,2": "A",
@@ -745,6 +757,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,1": "A",
       },
@@ -807,6 +820,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F2",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,3": "C",
         "2,1": "A",
@@ -869,6 +883,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F3",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "2,1": "B",
         "2,3": "C",
@@ -928,6 +943,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,2": "A",
         "4,1": "B",
@@ -991,6 +1007,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,0": "B",
         "3,2": "A",
@@ -1052,6 +1069,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,2": "A",
         "3,0": "B",
@@ -1119,6 +1137,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F1",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,2": "C",
         "4,3": "A",
@@ -1184,6 +1203,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "0,3": "A",
         "1,0": "B",
@@ -1247,6 +1267,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "0,3": "A",
         "2,0": "B",
@@ -1309,6 +1330,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,3": "B",
         "4,2": "A",
@@ -1369,6 +1391,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "4,1": "A",
       },
@@ -1431,6 +1454,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,3": "A",
         "2,2": "B",
@@ -1495,6 +1519,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,3": "B",
         "2,0": "A",
@@ -1558,6 +1583,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,1": "B",
         "3,2": "A",
@@ -1624,6 +1650,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "0,1": "B",
         "3,4": "A",
@@ -1691,6 +1718,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,2": "B",
         "2,0": "A",
@@ -1759,6 +1787,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "D2",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "2,1": "C",
         "3,3": "B",
@@ -1827,6 +1856,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F3",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "0,3": "B",
         "2,2": "A",
@@ -1896,6 +1926,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F1",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,2": "C",
         "2,4": "A",
@@ -1965,6 +1996,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "D2",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,3": "B",
         "2,3": "A",
@@ -2024,6 +2056,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "0,2": "A",
       },
@@ -2089,6 +2122,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,1": "A",
         "2,2": "B",
@@ -2151,6 +2185,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,3": "A",
       },
@@ -2216,6 +2251,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,3": "B",
         "3,2": "A",
@@ -2286,6 +2322,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F3",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "2,1": "B",
         "2,3": "C",
@@ -2347,6 +2384,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "D1",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,2": "A",
         "3,2": "B",
@@ -2406,6 +2444,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,3": "A",
       },
@@ -2476,6 +2515,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "D2",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,2": "A",
         "1,4": "B",
@@ -2542,6 +2582,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F2",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,4": "A",
         "2,1": "C",
@@ -2610,6 +2651,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "0,3": "B",
         "1,3": "A",
@@ -2673,6 +2715,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,3": "A",
       },
@@ -2739,6 +2782,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,5": "A",
         "4,2": "B",
@@ -2807,6 +2851,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "4,1": "A",
       },
@@ -2875,6 +2920,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "D2",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,2": "C",
         "2,2": "B",
@@ -2935,6 +2981,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,3": "B",
         "2,2": "A",
@@ -2998,6 +3045,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,1": "A",
       },
@@ -3069,6 +3117,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F3",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "2,1": "A",
         "4,2": "C",
@@ -3135,6 +3184,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,3": "A",
         "3,4": "B",
@@ -3204,6 +3254,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F1",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "0,5": "B",
         "3,4": "C",
@@ -3277,6 +3328,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F3",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,3": "C",
         "2,3": "A",
@@ -3346,6 +3398,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F1",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,5": "B",
         "3,5": "C",
@@ -3415,6 +3468,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "D2",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "2,4": "C",
         "3,2": "A",
@@ -3477,6 +3531,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,1": "A",
       },
@@ -3540,6 +3595,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,1": "A",
       },
@@ -3601,6 +3657,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,5": "A",
       },
@@ -3667,6 +3724,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,3": "A",
         "2,4": "B",
@@ -3737,6 +3795,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F3",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "0,2": "A",
         "0,4": "C",
@@ -3811,6 +3870,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "D2",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "0,2": "C",
         "1,1": "A",
@@ -3873,6 +3933,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,2": "B",
         "3,4": "A",
@@ -3938,6 +3999,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,1": "A",
         "2,6": "B",
@@ -4008,6 +4070,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,3": "B",
         "2,4": "A",
@@ -4074,6 +4137,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,1": "A",
         "3,4": "B",
@@ -4138,6 +4202,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,1": "A",
         "3,3": "B",
@@ -4200,6 +4265,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F3",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,0": "B",
         "3,2": "C",
@@ -4259,6 +4325,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,1": "A",
       },
@@ -4315,6 +4382,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,2": "A",
       },
@@ -4369,6 +4437,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,0": "A",
       },
@@ -4427,6 +4496,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,3": "A",
       },
@@ -4486,6 +4556,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "0,1": "A",
       },
@@ -4547,6 +4618,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F3",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,0": "A",
         "2,2": "B",
@@ -4607,6 +4679,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,1": "B",
         "4,1": "A",
@@ -4664,6 +4737,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,2": "A",
       },
@@ -4726,6 +4800,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,1": "B",
         "3,2": "A",
@@ -4785,6 +4860,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,0": "A",
       },
@@ -4847,6 +4923,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F3",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,2": "B",
         "2,2": "C",
@@ -4902,6 +4979,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,1": "A",
       },
@@ -4960,6 +5038,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,2": "A",
       },
@@ -5015,6 +5094,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,1": "A",
       },
@@ -5075,6 +5155,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,2": "A",
         "3,4": "B",
@@ -5136,6 +5217,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,2": "A",
       },
@@ -5200,6 +5282,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,3": "A",
       },
@@ -5259,6 +5342,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,1": "A",
       },
@@ -5319,6 +5403,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,1": "A",
       },
@@ -5381,6 +5466,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,2": "A",
         "4,2": "B",
@@ -5443,6 +5529,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,3": "B",
         "4,1": "A",
@@ -5509,6 +5596,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,4": "B",
         "2,0": "A",
@@ -5572,6 +5660,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,4": "B",
         "3,2": "A",
@@ -5642,6 +5731,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F3",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,2": "A",
         "2,1": "B",
@@ -5702,6 +5792,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,1": "A",
         "4,2": "B",
@@ -5758,6 +5849,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,3": "A",
       },
@@ -5820,6 +5912,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,4": "A",
       },
@@ -5885,6 +5978,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,1": "B",
         "4,2": "A",
@@ -5943,6 +6037,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,3": "A",
       },
@@ -6010,6 +6105,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,1": "A",
         "2,2": "B",
@@ -6077,6 +6173,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "D1",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "2,3": "C",
         "3,4": "B",
@@ -6143,6 +6240,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F3",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "2,0": "B",
         "2,4": "A",
@@ -6203,6 +6301,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,2": "A",
       },
@@ -6268,6 +6367,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,0": "A",
         "2,2": "B",
@@ -6336,6 +6436,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F1",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "0,2": "C",
         "1,2": "A",
@@ -6403,6 +6504,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,3": "A",
         "2,4": "B",
@@ -6473,6 +6575,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "D2",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,2": "C",
         "2,0": "B",
@@ -6538,6 +6641,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F2",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,3": "A",
         "2,5": "B",
@@ -6601,6 +6705,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,3": "A",
       },
@@ -6661,6 +6766,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,4": "A",
       },
@@ -6722,6 +6828,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,3": "A",
       },
@@ -6789,6 +6896,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F3",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "0,4": "B",
         "2,0": "C",
@@ -6851,6 +6959,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,1": "A",
       },
@@ -6914,6 +7023,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,3": "A",
         "4,1": "B",
@@ -6979,6 +7089,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,2": "B",
         "3,4": "A",
@@ -7040,6 +7151,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,3": "A",
       },
@@ -7105,6 +7217,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,0": "A",
         "3,3": "B",
@@ -7172,6 +7285,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "0,1": "A",
       },
@@ -7243,6 +7357,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F3",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "2,1": "C",
         "4,2": "B",
@@ -7307,6 +7422,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,5": "A",
       },
@@ -7372,6 +7488,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "4,1": "A",
       },
@@ -7442,6 +7559,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,0": "A",
         "4,4": "B",
@@ -7509,6 +7627,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "D1",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,4": "A",
         "3,3": "B",
@@ -7573,6 +7692,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,4": "A",
         "3,2": "B",
@@ -7633,6 +7753,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,0": "A",
       },
@@ -7702,6 +7823,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,2": "A",
         "2,3": "B",
@@ -7766,6 +7888,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,2": "A",
       },
@@ -7828,6 +7951,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "4,4": "A",
       },
@@ -7897,6 +8021,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,2": "A",
         "3,5": "B",
@@ -7961,6 +8086,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "0,1": "A",
         "1,4": "B",
@@ -8025,6 +8151,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,2": "B",
         "2,4": "A",
@@ -8087,6 +8214,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,5": "A",
       },
@@ -8151,6 +8279,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,3": "A",
       },
@@ -8209,6 +8338,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "4,2": "A",
       },
@@ -8270,6 +8400,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,2": "A",
         "3,2": "B",
@@ -8326,6 +8457,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,3": "A",
       },
@@ -8388,6 +8520,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,2": "A",
         "3,1": "B",
@@ -8450,6 +8583,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F3",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,1": "A",
         "2,1": "B",
@@ -8506,6 +8640,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,3": "A",
       },
@@ -8564,6 +8699,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "0,1": "A",
       },
@@ -8622,6 +8758,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,1": "A",
       },
@@ -8680,6 +8817,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,3": "A",
       },
@@ -8736,6 +8874,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,2": "A",
       },
@@ -8800,6 +8939,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "D2",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,3": "A",
         "3,1": "C",
@@ -8860,6 +9000,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "0,2": "B",
         "3,3": "A",
@@ -8923,6 +9064,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F1",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,1": "C",
         "2,0": "B",
@@ -8982,6 +9124,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "D2",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,1": "C",
         "2,2": "A",
@@ -9035,6 +9178,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,0": "A",
       },
@@ -9097,6 +9241,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "2,2": "B",
         "3,2": "A",
@@ -9155,6 +9300,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,1": "A",
         "1,2": "B",
@@ -9216,6 +9362,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "0,1": "B",
         "0,2": "A",
@@ -9287,6 +9434,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         ],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "0,2": "B",
         "4,3": "A",
@@ -9343,6 +9491,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "1,3": "A",
       },
@@ -9409,6 +9558,7 @@ exports[`validate + buildLevel snapshot 1`] = `
           "F1",
         ],
       },
+      "spills": Set {},
       "standHere": {
         "1,0": "C",
         "2,3": "B",
@@ -9470,6 +9620,7 @@ exports[`validate + buildLevel snapshot 1`] = `
         "B": [],
         "C": [],
       },
+      "spills": Set {},
       "standHere": {
         "3,2": "A",
       },

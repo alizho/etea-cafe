@@ -10,10 +10,11 @@ import { initGame } from '../src/engine/game';
 import { TUTORIAL_LESSONS } from '../src/tutorial';
 import { randomLevel } from './gen';
 
+// the legacy solver predates spills, so spill levels get their own test below
 const named: LevelData[] = [
   ...(levels as unknown as LevelData[]),
   ...TUTORIAL_LESSONS.map((l) => l.data),
-];
+].filter((d) => !d.spills?.length);
 
 function check(data: LevelData) {
   const level = buildLevel(data);
@@ -34,7 +35,58 @@ describe('solver', () => {
   it('shipped + tutorial levels: same optimal length as legacy', () => {
     for (const d of named) {
       const { a, b } = check(d);
-      console.log(d.id, a.solvable ? a.path.length - 1 : 'unsolvable', 'visited', a.visitedStates, '->', b.visitedStates);
+      console.log(
+        d.id,
+        a.solvable ? a.path.length - 1 : 'unsolvable',
+        'visited',
+        a.visitedStates,
+        '->',
+        b.visitedStates
+      );
+    }
+  });
+
+  it('spills: only the oldest item is dropped', () => {
+    const data = TUTORIAL_LESSONS.find((l) => l.data.id === 'tutorial-spill')!.data;
+    // tea at (2,3), then food at (3,3), then the spill at (4,3)
+    const level = buildLevel({
+      ...data,
+      drinkStations: [...data.drinkStations, { x: 3, y: 3, drink: 'F1' }],
+    });
+    const path = [1, 2, 3, 4].map((x) => ({ x, y: 3 }));
+    const end = simulatePath({ ...initGame(level), path }, path);
+    expect(end.inventory).toEqual(['F1']);
+  });
+
+  it('spills: walking through with one item fails, a spare item gets you through', () => {
+    const data = TUTORIAL_LESSONS.find((l) => l.data.id === 'tutorial-spill')!.data;
+    const level = buildLevel(data);
+
+    // straight line (start -> tea -> through the spill -> sparkle) fails
+    const straight = [1, 2, 3, 4, 5, 6].map((x) => ({ x, y: 3 }));
+    expect(simulatePath(initGame(level), straight).status).toBe('failed');
+
+    // going around the spill column works (9 steps)
+    const around = [
+      [1, 3],
+      [2, 3],
+      [3, 3],
+      [3, 2],
+      [3, 1],
+      [4, 1],
+      [5, 1],
+      [5, 2],
+      [5, 3],
+      [6, 3],
+    ].map(([x, y]) => ({ x, y }));
+    expect(simulatePath(initGame(level), around).status).toBe('success');
+
+    // but grabbing a 2nd tea first lets the spill take the spare: 7 steps
+    const r = solveLevel(level);
+    expect(r.solvable && r.path.length - 1).toBe(7);
+    if (r.solvable) {
+      expect(r.path.some((p) => level.spills.has(`${p.x},${p.y}`))).toBe(true);
+      expect(simulatePath(initGame(level), r.path).status).toBe('success');
     }
   });
 
@@ -56,7 +108,9 @@ describe('solver', () => {
   });
 
   it('speed', () => {
-    const lvls = named.concat(Array.from({ length: 300 }, (_, i) => randomLevel(i + 1))).map(buildLevel);
+    const lvls = named
+      .concat(Array.from({ length: 300 }, (_, i) => randomLevel(i + 1)))
+      .map(buildLevel);
     const time = (f: typeof solveLevel) => {
       const t = performance.now();
       for (let rep = 0; rep < 3; rep++) for (const l of lvls) f(l);
@@ -66,6 +120,8 @@ describe('solver', () => {
     time(solveLevel);
     const to = time(oldSolve);
     const tn = time(solveLevel);
-    console.log(`solver legacy ${to.toFixed(0)}ms  new ${tn.toFixed(0)}ms  (${(to / tn).toFixed(2)}x)`);
+    console.log(
+      `solver legacy ${to.toFixed(0)}ms  new ${tn.toFixed(0)}ms  (${(to / tn).toFixed(2)}x)`
+    );
   });
 });

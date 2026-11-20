@@ -43,6 +43,7 @@ export const hoverNopeSprite = image('/img/hover_nope.png');
 export const hoverYepSprite = image('/img/hover_yep.png');
 
 export const standHere = image('/img/stand_here.png');
+export const spillSprite = image('/img/spill.png');
 
 // load dynamic stuff
 export const imagesLoaded = Promise.all([
